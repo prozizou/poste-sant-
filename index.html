@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Portail de connexion sécurisé - Poste de Santé de Diandioly">
+    <title>Connexion – Poste de Santé de Diandioly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:   #1a3a5c;
+            --primary-light: #274e74;
+            --accent:    #0ea472;
+            --accent-bg: #e6f7f1;
+            --danger:    #c0392b;
+            --bg:        #f0f4f8;
+            --card-bg:   #ffffff;
+            --text:      #1e2a38;
+            --muted:     #6b7a8d;
+            --border:    #d8e0e8;
+            --shadow:    0 12px 40px rgba(26,58,92,0.10);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Background decoration */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -120px; right: -120px;
+            width: 420px; height: 420px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(14,164,114,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -100px; left: -100px;
+            width: 360px; height: 360px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(26,58,92,0.09) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 44px 40px 36px;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            border-top: 5px solid var(--primary);
+            animation: slideUp 0.45s cubic-bezier(.22,.68,0,1.2) both;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Logo zone */
+        .logo-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            width: 56px; height: 56px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 14px rgba(26,58,92,0.22);
+        }
+
+        .logo-zone h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.3px;
+        }
+
+        .logo-zone p {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        /* Form */
+        .form-group { margin-bottom: 18px; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 7px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper { position: relative; }
+
+        .input-icon {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 1rem; pointer-events: none; opacity: 0.5;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 11px 12px 11px 38px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: var(--text);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fafbfc;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(14,164,114,0.15);
+            background: #fff;
+        }
+
+        /* Error */
+        .error-box {
+            background: #fdf1f0;
+            border: 1px solid #f5b7b1;
+            color: var(--danger);
+            padding: 11px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 18px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        .error-box.visible { display: flex; }
+
+        /* Button */
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            margin-top: 6px;
+            letter-spacing: 0.2px;
+        }
+        .btn:hover:not(:disabled) {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn.success { background: linear-gradient(135deg, var(--accent), #0b8a5f); }
+
+        /* Forgot password */
+        .forgot-link {
+            display: block;
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--accent);
+            text-decoration: none;
+            margin-top: -10px;
+            margin-bottom: 18px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .forgot-link:hover { text-decoration: underline; }
+
+        /* Reset success msg */
+        .reset-msg {
+            background: var(--accent-bg);
+            color: #0b6e4c;
+            border: 1px solid #a7e3ce;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .reset-msg.visible { display: block; }
+
+        /* Footer */
+        .card-footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 24px;
+            border-top: 1px solid var(--border);
+            padding-top: 16px;
+        }
+        .card-footer span { color: var(--accent); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo-zone">
+            <div class="logo-icon">🏥</div>
+            <h1>Portail Médical</h1>
+            <p>Poste de Santé de Diandioly<br>Veuillez vous identifier pour continuer</p>
+        </div>
+
+        <div id="error-box" class="error-box">
+            <span>⚠️</span>
+            <span id="error-text">Identifiants incorrects.</span>
+        </div>
+
+        <div id="reset-msg" class="reset-msg">
+            ✅ Un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception.
+        </div>
+
+        <form id="login-form" novalidate>
+            <div class="form-group">
+                <label for="email">Adresse Email</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">✉️</span>
+                    <input type="email" id="email" class="form-control"
+                           placeholder="admin@exemple.com" autocomplete="email" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" id="password" class="form-control"
+                           placeholder="••••••••" autocomplete="current-password" required>
+                </div>
+            </div>
+
+            <span class="forgot-link" id="forgot-btn">Mot de passe oublié ?</span>
+
+            <button type="submit" class="btn" id="submit-btn">Se Connecter</button>
+        </form>
+
+        <div class="card-footer">
+            Système sécurisé – <span>District Sanitaire</span> · Accès réservé au personnel autorisé
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth } from './firebase-config.js';
+        import {
+            signInWithEmailAndPassword,
+            onAuthStateChanged,
+            sendPasswordResetEmail
+        } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        // Gardien : redirige si déjà connecté
+        onAuthStateChanged(auth, (user) => {
+            if (user) window.location.href = 'accueil/menu.html';
+        });
+
+        const loginForm  = document.getElementById('login-form');
+        const submitBtn  = document.getElementById('submit-btn');
+        const errorBox   = document.getElementById('error-box');
+        const errorText  = document.getElementById('error-text');
+        const resetMsg   = document.getElementById('reset-msg');
+        const forgotBtn  = document.getElementById('forgot-btn');
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorBox.classList.add('visible');
+            resetMsg.classList.remove('visible');
+        }
+
+        function hideError() {
+            errorBox.classList.remove('visible');
+        }
+
+        // Soumission du formulaire
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const email    = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showError('Veuillez remplir tous les champs.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Authentification…';
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                submitBtn.classList.add('success');
+                submitBtn.textContent = '✓ Connexion réussie – Redirection…';
+                setTimeout(() => { window.location.href = 'accueil/menu.html'; }, 900);
+            } catch (error) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Se Connecter';
+
+                switch (error.code) {
+                    case 'auth/invalid-credential':
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                        showError('Email ou mot de passe incorrect.'); break;
+                    case 'auth/invalid-email':
+                        showError('Adresse email invalide.'); break;
+                    case 'auth/too-many-requests':
+                        showError('Compte temporairement bloqué. Réessayez dans quelques minutes.'); break;
+                    case 'auth/network-request-failed':
+                        showError('Pas de connexion réseau. Vérifiez votre connexion Internet.'); break;
+                    default:
+                        showError('Une erreur inattendue est survenue. Veuillez réessayer.');
+                }
+            }
+        });
+
+        // Réinitialisation du mot de passe
+        forgotBtn.addEventListener('click', async () => {
+            const email = document.getElementById('email').value.trim();
+            if (!email) {
+                showError('Entrez votre adresse email ci-dessus pour réinitialiser votre mot de passe.');
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                hideError();
+                resetMsg.classList.add('visible');
+            } catch (error) {
+                showError('Impossible d\'envoyer l\'email. Vérifiez l\'adresse saisie.');
+            }
+        });
+    </script>
+</body>
+</html>
