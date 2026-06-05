@@ -1,1 +1,418 @@
-t
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultations – Poste de Santé de Diandioly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:       #1a3a5c;
+            --primary-light: #274e74;
+            --accent:        #0ea472;
+            --accent-bg:     #e6f7f1;
+            --purple:        #7b5ea7;
+            --purple-bg:     #f0ebf8;
+            --danger:        #c0392b;
+            --danger-bg:     #fdf1f0;
+            --bg:            #f0f4f8;
+            --card-bg:       #ffffff;
+            --text:          #1e2a38;
+            --muted:         #6b7a8d;
+            --border:        #d8e0e8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── TOP BAR ── */
+        .topbar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white; padding: 0 28px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(26,58,92,0.18); position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .back-btn {
+            background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
+            color: white; padding: 7px 14px; border-radius: 8px; font-weight: 600;
+            cursor: pointer; text-decoration: none; font-size: 0.82rem;
+        }
+        .topbar h1 { font-size: 1.05rem; font-weight: 700; }
+        .topbar p  { font-size: 0.72rem; opacity: 0.75; }
+
+        /* ── PAGE ── */
+        .page { padding: 28px; max-width: 1400px; margin: 0 auto; }
+        .main-grid { display: grid; grid-template-columns: 1fr 460px; gap: 24px; }
+        @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--card-bg); border-radius: 14px;
+            border: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            margin-bottom: 24px; overflow: visible; display: flex; flex-direction: column;
+        }
+        .panel-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .panel-head h2 { font-size: 1rem; font-weight: 700; color: var(--primary); }
+        .panel-head p  { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+        .panel-body { padding: 22px; flex: 1; }
+
+        /* ── CARTES ── */
+        .consultation-card {
+            border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+            background: #fff; margin-bottom: 14px; transition: transform 0.2s;
+        }
+        .cons-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .cons-patient { font-weight: 700; color: var(--primary); font-size: 0.95rem; }
+        .cons-date { font-size: 0.75rem; color: var(--muted); background: var(--bg); padding: 4px 8px; border-radius: 6px; }
+        .cons-tags { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .badge { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+        .badge-diag { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(123,94,167,0.2); }
+        .cons-body { font-size: 0.85rem; color: var(--text); line-height: 1.5; }
+        .btn-ticket {
+            margin-top: 10px; padding: 6px 14px; border: 1.5px solid var(--purple);
+            background: var(--purple-bg); color: var(--purple); border-radius: 6px;
+            font-size: 0.78rem; font-weight: 700; cursor: pointer;
+        }
+        .btn-ordonnance {
+            margin-top: 10px; margin-left: 6px; padding: 6px 14px; border: 1.5px solid var(--accent);
+            background: var(--accent-bg); color: var(--accent); border-radius: 6px;
+            font-size: 0.78rem; font-weight: 700; cursor: pointer;
+        }
+
+        /* ── FORMS ── */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; text-transform: uppercase; }
+        .form-control {
+            width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: 0.9rem; font-family: inherit; background: #fafbfc;
+        }
+        .form-control:focus { outline: none; border-color: var(--purple); background: #fff; }
+
+        /* Prescription structurée */
+        .rx-builder { display: flex; gap: 8px; margin-bottom: 10px; }
+        .rx-builder select { flex: 2; }
+        .rx-builder input { flex: 2; }
+        .rx-builder button {
+            background: var(--primary); color: white; border: none; border-radius: 8px;
+            padding: 0 15px; font-weight: 700; cursor: pointer;
+        }
+        .rx-list { list-style: none; margin: 0; padding: 0; }
+        .rx-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg); padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 0.85rem;
+        }
+        .rx-item-del { color: var(--danger); cursor: pointer; font-weight: 800; border: none; background: none; }
+
+        .btn-primary {
+            width: 100%; padding: 13px; border: none; border-radius: 8px;
+            font-weight: 700; background: var(--purple); color: white; cursor: pointer; margin-top: 10px;
+        }
+
+        /* ── MODALS ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.25s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal-box {
+            background: #fff; border-radius: 16px; width: 92%; max-width: 480px; max-height: 92vh; overflow-y: auto;
+        }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+        .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; }
+        .modal-body { padding: 20px; }
+
+        /* Ordonnance Print Layout */
+        .ordonnance-print {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            border: 2px solid var(--primary); padding: 30px; border-radius: 10px;
+            background: #fff; color: #000; position: relative;
+        }
+        .ord-header { text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 15px; margin-bottom: 20px; }
+        .ord-logo { font-size: 3rem; color: var(--primary); }
+        .ord-title { font-size: 1.4rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
+        .ord-sub { font-size: 0.9rem; color: #555; }
+        .ord-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 0.95rem; }
+        .ord-rx { font-size: 4rem; font-family: serif; font-weight: bold; color: rgba(26,58,92,0.1); position: absolute; top: 150px; left: 40px; }
+        .ord-meds { list-style: none; padding: 0; min-height: 200px; z-index: 2; position: relative; }
+        .ord-med { margin-bottom: 15px; font-size: 1.1rem; }
+        .ord-med-nom { font-weight: 800; display: block; }
+        .ord-med-poso { font-size: 0.9rem; font-style: italic; color: #333; margin-left: 15px; }
+        .ord-footer { margin-top: 40px; text-align: right; }
+        .ord-sign { border-top: 1px dashed #000; display: inline-block; padding-top: 5px; width: 200px; text-align: center; font-weight: 700; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: fixed; inset: 0; background: white; padding: 20px; }
+            .modal-box { box-shadow: none; width: 100%; max-width: 100%; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="topbar">
+        <div class="topbar-left">
+            <a href="../accueil/menu.html" class="back-btn">⬅ Menu</a>
+            <div>
+                <h1>Dossiers & Consultations</h1>
+                <p>Module 2 · Historique clinique · Prescriptions Structurées</p>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page">
+        <div class="main-grid">
+
+            <!-- HISTORIQUE -->
+            <div class="panel">
+                <div class="panel-head" style="border-left: 4px solid var(--purple);">
+                    <div><h2>🩺 Historique des Consultations</h2></div>
+                </div>
+                <div class="panel-body">
+                    <div id="consultations-container"></div>
+                </div>
+            </div>
+
+            <!-- FORMULAIRE -->
+            <div class="panel">
+                <div class="panel-head">
+                    <div><h2>📝 Nouvelle Consultation</h2></div>
+                </div>
+                <div class="panel-body">
+                    <form id="consultation-form" novalidate>
+                        <div class="form-group">
+                            <label>Identité du Patient</label>
+                            <input type="text" id="c-patient-nom" class="form-control" placeholder="Nom du patient..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Motif / Symptômes</label>
+                            <textarea id="c-symptomes" class="form-control" rows="2" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Diagnostic Retenu</label>
+                            <input type="text" id="c-diagnostic" class="form-control" required>
+                        </div>
+                        
+                        <!-- NOUVEAU: Prescription structurée -->
+                        <div class="form-group" style="background: var(--bg); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                            <label>💊 Ordonnance (Depuis Stock Pharmacie)</label>
+                            <div class="rx-builder">
+                                <select id="rx-med" class="form-control">
+                                    <option value="" disabled selected>Choisir médicament...</option>
+                                </select>
+                                <input type="text" id="rx-poso" class="form-control" placeholder="Ex: 1 matin, 1 soir (5 jours)">
+                                <button type="button" id="rx-add">Ajouter</button>
+                            </div>
+                            <ul class="rx-list" id="rx-list"></ul>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="submit-btn">Enregistrer la consultation</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL ORDONNANCE -->
+    <div class="modal-overlay" id="ord-modal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>🖨️ Impression Ordonnance</h3>
+                <button class="modal-close" id="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="print-area">
+                    <div class="ordonnance-print" id="ord-content">
+                        <!-- Rempli dynamiquement -->
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="window.print()" style="margin-top:20px;">Lancer l'impression</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth } from '../firebase-config.js';
+        import { ref, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const consRef   = ref(db, 'db_consultations');
+        const stockRef  = ref(db, 'db_pharmacie_stock');
+
+        let allConsultations = [];
+        let pharmacieStock   = [];
+        let currentPrescriptions = [];
+
+        // 1. Charger Stock Pharmacie
+        onValue(stockRef, (snapshot) => {
+            pharmacieStock = [];
+            const select = document.getElementById('rx-med');
+            select.innerHTML = '<option value="" disabled selected>Choisir médicament...</option>';
+            snapshot.forEach(child => {
+                const item = child.val();
+                pharmacieStock.push({ id: child.key, ...item });
+                const opt = document.createElement('option');
+                opt.value = item.nom;
+                opt.textContent = `${item.nom} (${item.categorie || 'Stock: '+item.stock})`;
+                select.appendChild(opt);
+            });
+        });
+
+        // 2. Gestion de la liste de prescription
+        document.getElementById('rx-add').addEventListener('click', () => {
+            const med = document.getElementById('rx-med').value;
+            const poso = document.getElementById('rx-poso').value.trim();
+            if(!med) return alert("Choisissez un médicament");
+            if(!poso) return alert("Précisez la posologie");
+
+            currentPrescriptions.push({ med, poso });
+            renderRxList();
+            document.getElementById('rx-med').value = '';
+            document.getElementById('rx-poso').value = '';
+        });
+
+        function renderRxList() {
+            const ul = document.getElementById('rx-list');
+            ul.innerHTML = '';
+            currentPrescriptions.forEach((rx, index) => {
+                const li = document.createElement('li');
+                li.className = 'rx-item';
+                li.innerHTML = `<div><strong>${rx.med}</strong> - <em>${rx.poso}</em></div>
+                                <button type="button" class="rx-item-del" data-index="${index}">✕</button>`;
+                ul.appendChild(li);
+            });
+            document.querySelectorAll('.rx-item-del').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    currentPrescriptions.splice(e.target.dataset.index, 1);
+                    renderRxList();
+                });
+            });
+        }
+
+        // 3. Charger Consultations
+        onValue(consRef, (snapshot) => {
+            allConsultations = [];
+            snapshot.forEach(child => {
+                allConsultations.push({ id: child.key, ...child.val() });
+            });
+            allConsultations.sort((a, b) => (b.date_consultation || 0) - (a.date_consultation || 0));
+            renderConsultations();
+        });
+
+        function renderConsultations() {
+            const container = document.getElementById('consultations-container');
+            container.innerHTML = '';
+            allConsultations.forEach(data => {
+                const d = new Date(data.date_consultation || Date.now());
+                const dateStr = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR');
+                
+                let rxHtml = '';
+                if(data.prescriptions_struct && data.prescriptions_struct.length > 0) {
+                    rxHtml = `<div style="margin-top:8px; background:#f9f9f9; padding:8px; border-radius:6px; font-size:0.8rem;">
+                        <strong style="color:var(--accent)">Ordonnance :</strong>
+                        <ul style="padding-left: 20px; margin:5px 0 0 0;">
+                            ${data.prescriptions_struct.map(r => `<li><b>${r.med}</b> : ${r.poso}</li>`).join('')}
+                        </ul>
+                    </div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'consultation-card';
+                card.innerHTML = `
+                    <div class="cons-header">
+                        <div class="cons-patient">👤 ${data.patient_nom}</div>
+                        <div class="cons-date">${dateStr}</div>
+                    </div>
+                    <div class="cons-tags"><span class="badge badge-diag">${data.diagnostic}</span></div>
+                    <div class="cons-body">
+                        <div><strong>Symptômes:</strong> ${data.symptomes}</div>
+                        ${rxHtml}
+                    </div>
+                    <button class="btn-ticket" data-id="${data.id}">🧾 Ticket</button>
+                    ${data.prescriptions_struct?.length > 0 ? `<button class="btn-ordonnance" data-id="${data.id}">🖨️ Imprimer Ordonnance</button>` : ''}
+                `;
+                container.appendChild(card);
+            });
+
+            document.querySelectorAll('.btn-ordonnance').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cons = allConsultations.find(c => c.id === btn.dataset.id);
+                    openOrdModal(cons);
+                });
+            });
+        }
+
+        // 4. Submit
+        document.getElementById('consultation-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+
+            const payload = {
+                patient_nom: document.getElementById('c-patient-nom').value.trim(),
+                symptomes: document.getElementById('c-symptomes').value.trim(),
+                diagnostic: document.getElementById('c-diagnostic').value.trim(),
+                prescriptions_struct: currentPrescriptions,
+                date_consultation: Date.now()
+            };
+
+            try {
+                await push(consRef, payload);
+                e.target.reset();
+                currentPrescriptions = [];
+                renderRxList();
+                btn.disabled = false;
+            } catch(err) {
+                alert("Erreur");
+                btn.disabled = false;
+            }
+        });
+
+        // 5. Ordonnance Print Modal
+        function openOrdModal(data) {
+            const d = new Date(data.date_consultation);
+            const dateStr = d.toLocaleDateString('fr-FR');
+            
+            const medList = data.prescriptions_struct.map(rx => `
+                <li class="ord-med">
+                    <span class="ord-med-nom">▪ ${rx.med}</span>
+                    <span class="ord-med-poso">${rx.poso}</span>
+                </li>
+            `).join('');
+
+            document.getElementById('ord-content').innerHTML = `
+                <div class="ord-header">
+                    <div class="ord-logo">⚕️</div>
+                    <div class="ord-title">POSTE DE SANTÉ DE DIANDIOLY</div>
+                    <div class="ord-sub">Consultation & Soins Primaires</div>
+                </div>
+                <div class="ord-meta">
+                    <div><strong>Patient(e) :</strong> ${data.patient_nom}</div>
+                    <div><strong>Date :</strong> ${dateStr}</div>
+                </div>
+                <div class="ord-rx">Rx</div>
+                <ul class="ord-meds">
+                    ${medList}
+                </ul>
+                <div class="ord-footer">
+                    <div class="ord-sign">Signature & Cachet</div>
+                </div>
+            `;
+            document.getElementById('ord-modal').classList.add('open');
+        }
+
+        document.getElementById('modal-close').addEventListener('click', () => {
+            document.getElementById('ord-modal').classList.remove('open');
+        });
+    </script>
+</body>
+</html>
