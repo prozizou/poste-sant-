@@ -1,1 +1,430 @@
-h
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Planification & Rapports – Poste de Santé de Diandioly">
+    <title>Rapports & Agenda – Poste de Santé de Diandioly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:       #1a3a5c;
+            --primary-light: #274e74;
+            --accent:        #0ea472;
+            --gold:          #d68910;
+            --gold-dark:     #b87309;
+            --gold-bg:       #fef9ec;
+            --danger:        #c0392b;
+            --danger-bg:     #fdf1f0;
+            --bg:            #f0f4f8;
+            --card-bg:       #ffffff;
+            --text:          #1e2a38;
+            --muted:         #6b7a8d;
+            --border:        #d8e0e8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── TOP BAR ── */
+        .topbar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            padding: 0 28px;
+            height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(26,58,92,0.18);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+        .back-btn {
+            background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
+            color: white; padding: 7px 14px; border-radius: 8px;
+            font-family: inherit; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; transition: background 0.2s; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.22); }
+        .topbar h1 { font-size: 1.05rem; font-weight: 700; }
+        .topbar p  { font-size: 0.72rem; opacity: 0.75; }
+
+        .connection-badge {
+            background: rgba(14,164,114,0.2); border: 1px solid rgba(14,164,114,0.4);
+            color: #7dffd0; font-size: 0.75rem; font-weight: 700;
+            padding: 5px 12px; border-radius: 20px;
+        }
+
+        /* ── PAGE LAYOUT ── */
+        .page { padding: 28px; max-width: 1400px; margin: 0 auto; }
+        .main-grid { display: grid; grid-template-columns: 1fr 450px; gap: 24px; }
+        @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--card-bg); border-radius: 14px;
+            border: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            margin-bottom: 24px; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .panel-head {
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .panel-head h2 { font-size: 1rem; font-weight: 700; color: var(--primary); }
+        .panel-head p  { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+        .panel-body { padding: 22px; flex: 1; }
+
+        /* ── INDICATEURS STATISTIQUES ── */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-box {
+            background: #fafbfc; border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+            text-align: center; transition: transform 0.2s;
+        }
+        .stat-box:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.05); }
+        .stat-icon { font-size: 1.8rem; margin-bottom: 8px; }
+        .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 4px; }
+        .stat-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ── ACTIONS D'EXPORTATION ── */
+        .export-actions { display: flex; flex-direction: column; gap: 12px; background: var(--gold-bg); padding: 20px; border-radius: 10px; border: 1px dashed var(--gold); }
+        .export-title { font-size: 0.9rem; font-weight: 700; color: var(--gold-dark); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        
+        .btn-export {
+            width: 100%; padding: 12px; border: none; border-radius: 8px;
+            font-family: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .btn-pdf { background: var(--primary); color: white; }
+        .btn-csv { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn-export:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* ── AGENDA DES VISITES ── */
+        .agenda-list { display: flex; flex-direction: column; gap: 14px; max-height: 55vh; overflow-y: auto; padding-right: 5px; }
+        .agenda-card {
+            display: flex; align-items: stretch; background: #fff;
+            border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .agenda-card:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        
+        .agenda-date-box {
+            background: var(--gold-bg); padding: 12px 16px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-right: 1px solid var(--border); min-width: 90px;
+        }
+        .agenda-day { font-size: 1.6rem; font-weight: 800; color: var(--gold-dark); line-height: 1; }
+        .agenda-month { font-size: 0.75rem; font-weight: 700; color: var(--gold-dark); text-transform: uppercase; margin-top: 4px; }
+        
+        .agenda-content { padding: 14px 16px; flex: 1; }
+        .agenda-patient { font-weight: 700; color: var(--primary); font-size: 0.95rem; margin-bottom: 4px; }
+        .agenda-motif { font-size: 0.85rem; color: var(--text); }
+        
+        .badge-status { font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; margin-top: 8px; display: inline-block; }
+        .status-soon { background: var(--danger-bg); color: var(--danger); }
+        .status-later { background: #e6f7f1; color: var(--accent-dark); }
+
+        /* ── FORMULAIRES ── */
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.78rem; font-weight: 700;
+            color: var(--primary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .form-control {
+            width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: 0.9rem; font-family: inherit; color: var(--text); background: #fafbfc;
+        }
+        .form-control:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(214,137,16,0.12); background: #fff; }
+
+        .btn-primary {
+            width: 100%; padding: 13px; border: none; border-radius: 8px;
+            font-family: inherit; font-size: 0.95rem; font-weight: 700;
+            background: var(--gold); color: white; cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s; margin-top: 10px;
+        }
+        .btn-primary:hover:not(:disabled) { background: var(--gold-dark); transform: translateY(-1px); }
+
+        .empty-state { text-align: center; color: var(--muted); font-size: 0.9rem; padding: 40px 20px; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* ── STYLES D'IMPRESSION (Génération PDF) ── */
+        @media print {
+            body { background: white; color: black; }
+            .topbar, .back-btn, .btn-export, .panel:nth-child(2), form { display: none !important; }
+            .page { padding: 0; margin: 0; }
+            .panel { border: none; box-shadow: none; margin-bottom: 0; }
+            .panel-head { border-bottom: 2px solid black; }
+            .stat-box { border: 1px solid #ccc; break-inside: avoid; }
+            .export-actions { border: none; padding: 0; background: transparent; }
+            .export-title { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <nav class="topbar">
+        <div class="topbar-left">
+            <a href="menu.html" class="back-btn">⬅ Menu</a>
+            <div>
+                <h1>Planification & Rapports</h1>
+                <p>Module 5 · Statistiques du District · Agenda</p>
+            </div>
+        </div>
+        <div class="connection-badge">● Synchronisé</div>
+    </nav>
+
+    <!-- PAGE -->
+    <div class="page">
+        <div class="main-grid">
+
+            <!-- COLONNE GAUCHE : STATISTIQUES ET RAPPORTS -->
+            <div class="panel" id="print-zone">
+                <div class="panel-head" style="border-left: 4px solid var(--primary);">
+                    <div>
+                        <h2>📊 Tableau de Bord du District</h2>
+                        <p>Vue consolidée pour le mois en cours</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-value" id="stat-patients">...</div>
+                            <div class="stat-label">Patients Actifs</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">🩺</div>
+                            <div class="stat-value" id="stat-consults">...</div>
+                            <div class="stat-label">Consultations (Mois)</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">🤱</div>
+                            <div class="stat-value" id="stat-suivis">...</div>
+                            <div class="stat-label">Suivis Préventifs</div>
+                        </div>
+                    </div>
+
+                    <div class="export-actions">
+                        <div class="export-title">
+                            <span>📥</span> Exporter les données réglementaires
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text); margin-bottom: 10px;">Générez les documents requis par le médecin chef du district pour le reporting mensuel SNIS.</p>
+                        
+                        <button class="btn-export btn-pdf" onclick="window.print()">
+                            📄 Générer le Rapport PDF (Impression)
+                        </button>
+                        <button class="btn-export btn-csv" onclick="exporterCSV()">
+                            📊 Exporter l'Agenda (CSV)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLONNE DROITE : AGENDA -->
+            <div class="panel">
+                <div class="panel-head" style="border-left: 4px solid var(--gold);">
+                    <div>
+                        <h2>📅 Agenda des Visites</h2>
+                        <p>Programmation des rendez-vous à venir</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    
+                    <!-- Formulaire Nouveau RDV -->
+                    <form id="agenda-form" novalidate style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px dashed var(--border);">
+                        <div class="form-group">
+                            <label>Patient concerné</label>
+                            <input type="text" id="a-patient" class="form-control" placeholder="Nom du patient..." required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date prévue</label>
+                            <input type="date" id="a-date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Motif de la visite</label>
+                            <input type="text" id="a-motif" class="form-control" placeholder="Ex: Renouvellement pilule, Vaccin 9 mois..." required>
+                        </div>
+                        <button type="submit" class="btn-primary" id="submit-btn">Programmer le rendez-vous</button>
+                    </form>
+
+                    <!-- Liste des RDV -->
+                    <h3 style="font-size:0.85rem; color:var(--muted); text-transform:uppercase; margin-bottom:12px; letter-spacing:0.5px;">Rendez-vous programmés</h3>
+                    <div class="agenda-list" id="agenda-container">
+                        <div class="empty-state">Chargement de l'agenda...</div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+   <script type="module">
+        import { db, auth } from '../firebase-config.js';
+        import { ref, push, onValue, get, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.href = '../index.html';
+        });
+
+        const agendaRef   = ref(db, 'db_agenda');
+        const patientsRef = ref(db, 'db_patients');
+        const consultsRef = ref(db, 'db_consultations');
+        const suivisRef   = ref(db, 'db_suivi_vulnerables');
+
+        // ── 1. STATISTIQUES GLOBALES ──
+        onValue(patientsRef, (snap) => {
+            document.getElementById('stat-patients').textContent = snap.size || Object.keys(snap.val() || {}).length;
+        });
+        onValue(consultsRef, (snap) => {
+            document.getElementById('stat-consults').textContent = snap.size || Object.keys(snap.val() || {}).length;
+        });
+        onValue(suivisRef, (snap) => {
+            document.getElementById('stat-suivis').textContent = snap.size || Object.keys(snap.val() || {}).length;
+        });
+
+        // ── 2. AGENDA TEMPS RÉEL ──
+        let allAppointments = [];
+
+        onValue(agendaRef, (snapshot) => {
+            allAppointments = [];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            snapshot.forEach(child => {
+                const data = child.val();
+                if (data.date_prevue) {
+                    const rdvDate = new Date(data.date_prevue);
+                    if (rdvDate >= today) {
+                        allAppointments.push({ id: child.key, ...data, rdvObj: rdvDate });
+                    }
+                }
+            });
+
+            allAppointments.sort((a, b) => a.rdvObj - b.rdvObj);
+            renderAgenda();
+        });
+
+        function renderAgenda() {
+            const container = document.getElementById('agenda-container');
+            container.innerHTML = '';
+
+            if (allAppointments.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span style="font-size:2rem; display:block; margin-bottom:10px;">☕</span>
+                        Aucun rendez-vous à venir.
+                    </div>`;
+                return;
+            }
+
+            const today = new Date(); today.setHours(0,0,0,0);
+            const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+
+            allAppointments.forEach(rdv => {
+                const dateParts = rdv.date_prevue.split('-');
+                const d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+                const dayStr   = d.toLocaleDateString('fr-FR', { day: '2-digit' });
+                const monthStr = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
+
+                let badgeClass = 'status-later', badgeText = 'À VENIR';
+                if (d.getTime() === today.getTime())    { badgeClass = 'status-soon'; badgeText = "AUJOURD'HUI"; }
+                else if (d.getTime() === tomorrow.getTime()) { badgeClass = 'status-soon'; badgeText = 'DEMAIN'; }
+
+                const card = document.createElement('div');
+                card.className = 'agenda-card';
+                card.innerHTML = `
+                    <div class="agenda-date-box">
+                        <div class="agenda-day">${dayStr}</div>
+                        <div class="agenda-month">${monthStr}</div>
+                    </div>
+                    <div class="agenda-content">
+                        <div class="agenda-patient">👤 ${rdv.patient}</div>
+                        <div class="agenda-motif">${rdv.motif}</div>
+                        <span class="badge-status ${badgeClass}">${badgeText}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // ── 3. NOUVEAU RDV ──
+        const form      = document.getElementById('agenda-form');
+        const submitBtn = document.getElementById('submit-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const patient = document.getElementById('a-patient').value.trim();
+            const dateStr = document.getElementById('a-date').value;
+            const motif   = document.getElementById('a-motif').value.trim();
+
+            if (!patient || !dateStr || !motif) {
+                alert('Tous les champs sont obligatoires.');
+                return;
+            }
+
+            submitBtn.disabled    = true;
+            submitBtn.textContent = 'Enregistrement...';
+
+            try {
+                await push(agendaRef, {
+                    patient,
+                    date_prevue: dateStr,
+                    motif,
+                    cree_le:     Date.now()
+                });
+
+                form.reset();
+                submitBtn.style.background = 'var(--accent)';
+                submitBtn.textContent      = '✓ Rendez-vous programmé';
+                setTimeout(() => {
+                    submitBtn.style.background = 'var(--gold)';
+                    submitBtn.textContent      = 'Programmer le rendez-vous';
+                }, 2000);
+            } catch (error) {
+                console.error('Erreur ajout agenda:', error);
+                alert("Erreur lors de l'enregistrement.");
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        // ── 4. EXPORT CSV ──
+        window.exporterCSV = () => {
+            if (allAppointments.length === 0) {
+                alert("L'agenda est vide, rien à exporter.");
+                return;
+            }
+            let csvContent = 'data:text/csv;charset=utf-8,Date,Patient,Motif\n';
+            allAppointments.forEach(rdv => {
+                const patient = `"${rdv.patient.replace(/"/g, '""')}"`;
+                const motif   = `"${rdv.motif.replace(/"/g, '""')}"`;
+                csvContent += `${rdv.date_prevue},${patient},${motif}\n`;
+            });
+            const link = document.createElement('a');
+            link.href     = encodeURI(csvContent);
+            link.download = `Agenda_District_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.addEventListener('beforeunload', () => {
+            off(agendaRef); off(patientsRef); off(consultsRef); off(suivisRef);
+        });
+    </script>
+</body>
+</html>
