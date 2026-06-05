@@ -1,1 +1,312 @@
-0
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacie & Vente – Poste de Santé de Diandioly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:       #1a3a5c;
+            --primary-light: #274e74;
+            --accent:        #0ea472;
+            --danger:        #c0392b;
+            --warning:       #d68910;
+            --bg:            #f0f4f8;
+            --card-bg:       #ffffff;
+            --text:          #1e2a38;
+            --muted:         #6b7a8d;
+            --border:        #d8e0e8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        .topbar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white; padding: 0 28px; height: 64px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .back-btn { background: rgba(255,255,255,0.12); color: white; padding: 7px 14px; border-radius: 8px; text-decoration: none; font-size: 0.82rem; font-weight: 600; }
+        
+        .page { padding: 28px; max-width: 1400px; margin: 0 auto; }
+        .main-grid { display: grid; grid-template-columns: 1fr 450px; gap: 24px; }
+        @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .panel { background: var(--card-bg); border-radius: 14px; border: 1px solid var(--border); margin-bottom: 24px; }
+        .panel-head { padding: 18px 22px; border-bottom: 1px solid var(--border); }
+        .panel-head h2 { font-size: 1rem; font-weight: 700; color: var(--primary); }
+        .panel-body { padding: 22px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left; }
+        th { background: var(--bg); padding: 10px; color: var(--primary); font-size: 0.77rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+
+        .side-tabs { display: flex; gap: 4px; background: var(--bg); border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+        .side-tab { flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+        .side-tab.active { background: var(--card-bg); color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .side-tab-content { display: none; }
+        .side-tab-content.active { display: block; }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.9rem; }
+        .btn-primary { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--accent); color: white; font-weight: 700; cursor: pointer; }
+        .btn-secondary { background: var(--primary); color: white; padding: 8px 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+        /* Vente Caisse Styles */
+        .cart-table { margin-top: 15px; margin-bottom: 15px; }
+        .cart-table th, .cart-table td { padding: 8px; }
+        .cart-total { display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: 800; color: var(--primary); background: var(--bg); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .del-item { color: var(--danger); cursor: pointer; background: none; border: none; font-weight: 800; }
+
+        /* Print Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: #fff; border-radius: 16px; width: 350px; padding: 20px; text-align: center; }
+        
+        .receipt { font-family: monospace; text-align: left; padding: 10px; border: 1px dashed #000; margin-bottom: 15px; }
+        .rcpt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .rcpt-item { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px; }
+        .rcpt-total { border-top: 1px dashed #000; margin-top: 10px; padding-top: 10px; font-weight: bold; display: flex; justify-content: space-between; font-size: 1.1rem; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-print, #receipt-print * { visibility: visible; }
+            #receipt-print { position: fixed; left: 0; top: 0; width: 100%; padding: 0; margin: 0; border: none; }
+            .modal-box { box-shadow: none; background: transparent; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="topbar">
+        <div class="topbar-left">
+            <a href="menu.html" class="back-btn">⬅ Menu</a>
+            <div><h1>Pharmacie & Caisse Centrale</h1></div>
+        </div>
+    </nav>
+
+    <div class="page">
+        <div class="main-grid">
+            
+            <!-- INVENTAIRE -->
+            <div class="panel">
+                <div class="panel-head"><h2>📋 Stock Pharmacie</h2></div>
+                <div class="panel-body">
+                    <table>
+                        <thead><tr><th>Médicament</th><th>Stock</th><th>Seuil</th></tr></thead>
+                        <tbody id="inventory-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CAISSE -->
+            <div class="panel">
+                <div class="panel-head"><h2>🛒 Vente au Comptoir / Caisse</h2></div>
+                <div class="panel-body">
+                    <form id="add-to-cart-form">
+                        <div class="form-group">
+                            <label>Produit</label>
+                            <select id="v-med" class="form-control" required></select>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label>Quantité</label>
+                                <input type="number" id="v-qty" class="form-control" min="1" value="1" required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Prix Unitaire (F)</label>
+                                <input type="number" id="v-prix" class="form-control" placeholder="Ex: 500" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-secondary" style="width: 100%;">Ajouter au panier</button>
+                    </form>
+
+                    <table class="cart-table">
+                        <thead><tr><th>Produit</th><th>Qte</th><th>S.Total</th><th></th></tr></thead>
+                        <tbody id="cart-body"></tbody>
+                    </table>
+
+                    <div class="cart-total">
+                        <span>TOTAL A PAYER :</span>
+                        <span id="cart-total-display">0 FCFA</span>
+                    </div>
+
+                    <button class="btn-primary" id="btn-validate-sale" disabled>Encaisser & Imprimer Reçu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECEIPT MODAL -->
+    <div class="modal-overlay" id="receipt-modal">
+        <div class="modal-box">
+            <div class="receipt" id="receipt-print">
+                <div class="rcpt-header">
+                    <h3>PHARMACIE DIANDIOLY</h3>
+                    <div>Reçu de Vente</div>
+                    <div id="rcpt-date" style="font-size:0.8rem"></div>
+                </div>
+                <div id="rcpt-items"></div>
+                <div class="rcpt-total"><span>TOTAL</span><span id="rcpt-total-val"></span></div>
+            </div>
+            <button class="btn-secondary" onclick="window.print()" style="width:100%; margin-bottom:10px;">🖨️ Imprimer</button>
+            <button class="btn-secondary" id="close-receipt" style="width:100%; background:var(--muted)">Fermer</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from '../firebase-config.js';
+        import { ref, onValue, push, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const stockRef = ref(db, 'db_pharmacie_stock');
+        const ventesRef = ref(db, 'db_pharmacie_ventes');
+        
+        let inventory = [];
+        let cart = [];
+
+        // 1. Load Inventory
+        onValue(stockRef, (snapshot) => {
+            inventory = [];
+            const tbody = document.getElementById('inventory-body');
+            const select = document.getElementById('v-med');
+            
+            tbody.innerHTML = '';
+            select.innerHTML = '<option value="" disabled selected>Choisir un produit...</option>';
+
+            snapshot.forEach(child => {
+                const item = { id: child.key, ...child.val() };
+                inventory.push(item);
+                
+                // Table
+                const tr = document.createElement('tr');
+                const isCrit = item.stock <= item.seuil;
+                tr.innerHTML = `<td>${item.nom}</td><td style="color:${isCrit?'red':'green'}; font-weight:bold;">${item.stock}</td><td>${item.seuil}</td>`;
+                tbody.appendChild(tr);
+
+                // Select
+                if (item.stock > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.dataset.nom = item.nom;
+                    opt.dataset.stock = item.stock;
+                    opt.textContent = `${item.nom} (Dispo: ${item.stock})`;
+                    select.appendChild(opt);
+                }
+            });
+        });
+
+        // 2. Cart logic
+        document.getElementById('add-to-cart-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const sel = document.getElementById('v-med');
+            const id = sel.value;
+            const nom = sel.options[sel.selectedIndex].dataset.nom;
+            const stockDispo = parseInt(sel.options[sel.selectedIndex].dataset.stock);
+            const qty = parseInt(document.getElementById('v-qty').value);
+            const prix = parseFloat(document.getElementById('v-prix').value);
+
+            if (qty > stockDispo) {
+                alert("Stock insuffisant pour " + nom);
+                return;
+            }
+
+            const existing = cart.find(c => c.id === id);
+            if (existing) {
+                if (existing.qty + qty > stockDispo) { alert("Stock dépassé."); return; }
+                existing.qty += qty;
+            } else {
+                cart.push({ id, nom, qty, prix, total: qty * prix });
+            }
+            
+            renderCart();
+            e.target.reset();
+            document.getElementById('v-qty').value = 1;
+        });
+
+        function renderCart() {
+            const tbody = document.getElementById('cart-body');
+            tbody.innerHTML = '';
+            let grandTotal = 0;
+
+            cart.forEach((item, index) => {
+                item.total = item.qty * item.prix;
+                grandTotal += item.total;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.nom}</td>
+                    <td>${item.qty} x ${item.prix}</td>
+                    <td><strong>${item.total}</strong></td>
+                    <td><button type="button" class="del-item" data-idx="${index}">✕</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('cart-total-display').textContent = grandTotal + ' FCFA';
+            document.getElementById('btn-validate-sale').disabled = cart.length === 0;
+
+            document.querySelectorAll('.del-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    cart.splice(e.target.dataset.idx, 1);
+                    renderCart();
+                });
+            });
+        }
+
+        // 3. Process Sale
+        document.getElementById('btn-validate-sale').addEventListener('click', async () => {
+            if (cart.length === 0) return;
+            const btn = document.getElementById('btn-validate-sale');
+            btn.disabled = true; btn.textContent = 'Traitement...';
+
+            let grandTotal = cart.reduce((sum, i) => sum + i.total, 0);
+
+            try {
+                // Deduct stock for all items
+                const promises = cart.map(item => {
+                    const itemRef = ref(db, `db_pharmacie_stock/${item.id}`);
+                    return runTransaction(itemRef, (currentData) => {
+                        if (currentData === null) return currentData;
+                        currentData.stock = (currentData.stock || 0) - item.qty;
+                        return currentData;
+                    });
+                });
+                await Promise.all(promises);
+
+                // Record Sale
+                await push(ventesRef, {
+                    items: cart,
+                    total: grandTotal,
+                    date_vente: Date.now()
+                });
+
+                // Prepare Receipt
+                document.getElementById('rcpt-date').textContent = new Date().toLocaleString('fr-FR');
+                document.getElementById('rcpt-items').innerHTML = cart.map(i => `
+                    <div class="rcpt-item">
+                        <span>${i.qty}x ${i.nom}</span>
+                        <span>${i.total} F</span>
+                    </div>
+                `).join('');
+                document.getElementById('rcpt-total-val').textContent = grandTotal + ' F';
+                
+                document.getElementById('receipt-modal').classList.add('open');
+                
+                // Clear cart
+                cart = [];
+                renderCart();
+                btn.textContent = 'Encaisser & Imprimer Reçu';
+
+            } catch (err) {
+                console.error(err);
+                alert("Erreur lors de la vente.");
+                btn.disabled = false; btn.textContent = 'Encaisser & Imprimer Reçu';
+            }
+        });
+
+        document.getElementById('close-receipt').addEventListener('click', () => {
+            document.getElementById('receipt-modal').classList.remove('open');
+        });
+    </script>
+</body>
+</html>
