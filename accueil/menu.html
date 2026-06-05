@@ -1,1 +1,542 @@
-gvg
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tableau de bord – Poste de Santé de Diandioly">
+    <title>Tableau de Bord – Poste de Santé de Diandioly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:        #1a3a5c;
+            --primary-light:  #274e74;
+            --accent:         #0ea472;
+            --danger:         #c0392b;
+            --warning:        #d68910;
+            --purple:         #7b5ea7;
+            --bg:             #f0f4f8;
+            --card-bg:        #ffffff;
+            --text:           #1e2a38;
+            --muted:          #6b7a8d;
+            --border:         #d8e0e8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ──── TOP BAR ──── */
+        .topbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 0 32px;
+            height: 68px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(26,58,92,0.18);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-logo {
+            width: 38px; height: 38px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .topbar-left h1 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .topbar-left p {
+            font-size: 0.72rem;
+            opacity: 0.75;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 24px;
+            padding: 6px 14px 6px 8px;
+            font-size: 0.83rem;
+        }
+
+        .user-avatar {
+            width: 28px; height: 28px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+        /* ──── MAIN CONTENT ──── */
+        .main {
+            padding: 32px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .welcome-bar {
+            margin-bottom: 28px;
+        }
+
+        .welcome-bar h2 {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .welcome-bar p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* ──── STATS ROW ──── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .stat-card:nth-child(1) .stat-icon { background: #e8f4fd; }
+        .stat-card:nth-child(2) .stat-icon { background: #e6f7f1; }
+        .stat-card:nth-child(3) .stat-icon { background: #fef5e7; }
+        .stat-card:nth-child(4) .stat-icon { background: #fdf1f0; }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+            margin-top: 2px;
+        }
+
+        /* ──── MODULE CARDS ──── */
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .module-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            border: 1px solid var(--border);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .module-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+        }
+
+        .module-card.blue::before  { background: var(--primary); }
+        .module-card.green::before { background: var(--accent); }
+        .module-card.red::before   { background: var(--danger); }
+        .module-card.gold::before  { background: var(--warning); }
+        .module-card.purple::before { background: var(--purple); }
+
+        .module-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+        }
+
+        .module-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .module-emoji {
+            width: 46px; height: 46px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .module-card.blue .module-emoji   { background: #e8f0f8; }
+        .module-card.green .module-emoji  { background: #e6f7f1; }
+        .module-card.red .module-emoji    { background: #fdf1f0; }
+        .module-card.gold .module-emoji   { background: #fef9ec; }
+        .module-card.purple .module-emoji { background: #f0ebf8; }
+
+        .module-title-group h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .module-title-group .module-sub {
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .module-desc {
+            font-size: 0.85rem;
+            color: var(--muted);
+            line-height: 1.55;
+            margin-bottom: 18px;
+        }
+
+        .module-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 18px;
+        }
+
+        .feature-tag {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: 20px;
+            background: var(--bg);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        .module-action {
+            display: block;
+            width: 100%;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+
+        .module-action:hover:not(:disabled) {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        .module-action.blue-btn   { background: var(--primary); color: white; }
+        .module-action.green-btn  { background: var(--accent);  color: white; }
+        .module-action.red-btn    { background: var(--danger);  color: white; }
+        .module-action.gold-btn   { background: var(--warning); color: white; }
+        .module-action.purple-btn { background: var(--purple);  color: white; }
+
+        .module-action.disabled-btn {
+            background: var(--bg);
+            color: var(--muted);
+            border: 1.5px solid var(--border);
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+
+        .badge-soon {
+            font-size: 0.65rem;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-weight: 700;
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .main { padding: 16px; }
+            .topbar { padding: 0 16px; }
+            .user-badge .user-email { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <nav class="topbar">
+        <div class="topbar-left">
+            <div class="topbar-logo">🏥</div>
+            <div>
+                <h1>Poste de Santé de Diandioly</h1>
+                <p>Tableau de bord principal</p>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="user-badge">
+                <div class="user-avatar" id="user-initials">?</div>
+                <span class="user-email" id="user-email-display">Chargement…</span>
+            </div>
+            <button class="btn-logout" onclick="deconnexion()">
+                <span>⎋</span> Déconnexion
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <div class="welcome-bar">
+            <h2>Bienvenue, <span id="greeting-name">—</span> 👋</h2>
+            <p id="current-datetime">Chargement de la date…</p>
+        </div>
+
+        <!-- Stats rapides -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div>
+                    <div class="stat-label">Patients enregistrés</div>
+                    <div class="stat-value" id="stat-patients">—</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div>
+                    <div class="stat-label">Consultations (mois)</div>
+                    <div class="stat-value" id="stat-consultations">—</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💊</div>
+                <div>
+                    <div class="stat-label">Médicaments en stock</div>
+                    <div class="stat-value" id="stat-meds">—</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div>
+                    <div class="stat-label">Alertes stock critique</div>
+                    <div class="stat-value" id="stat-alerts" style="color: var(--danger);">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modules -->
+        <div class="section-title">Modules disponibles</div>
+
+        <div class="modules-grid">
+
+            <!-- 1. Patients -->
+            <div class="module-card blue">
+                <div class="module-header">
+                    <div class="module-emoji">👤</div>
+                    <div class="module-title-group">
+                        <h3>Dossiers & File Active</h3>
+                        <div class="module-sub">Module 1 – Gestion des patients</div>
+                    </div>
+                </div>
+                <p class="module-desc">Création et gestion des fiches patients : identité, âge, sexe, zone géographique et contact téléphonique.</p>
+                <div class="module-features">
+                    <span class="feature-tag">Nouveau patient</span>
+                    <span class="feature-tag">Recherche rapide</span>
+                    <span class="feature-tag">File d'attente</span>
+                </div>
+                <button class="module-action blue-btn" onclick="window.location.href='../patients/patients.html'">Nouveau Patient →</button>
+            </div>
+
+            <!-- 2. Consultations -->
+            <div class="module-card purple">
+                <div class="module-header">
+                    <div class="module-emoji">🩺</div>
+                    <div class="module-title-group">
+                        <h3>Historique des Consultations</h3>
+                        <div class="module-sub">Module 2 – Dossiers médicaux</div>
+                    </div>
+                </div>
+                <p class="module-desc">Accès aux dossiers médicaux : symptômes, diagnostics, prescriptions médicamenteuses et notes cliniques.</p>
+                <div class="module-features">
+                    <span class="feature-tag">Diagnostics</span>
+                    <span class="feature-tag">Prescriptions</span>
+                    <span class="feature-tag">Historique</span>
+                </div>
+                <button class="module-action purple-btn" onclick="window.location.href='../consultations/consultations.html'">Voir les Consultations →</button>
+            </div>
+
+            <!-- 3. Groupes vulnérables -->
+            <div class="module-card green">
+                <div class="module-header">
+                    <div class="module-emoji">🤱</div>
+                    <div class="module-title-group">
+                        <h3>Suivi Groupes Vulnérables</h3>
+                        <div class="module-sub">Module 3 – Maternité & Pédiatrie</div>
+                    </div>
+                </div>
+                <p class="module-desc">Suivi des consultations prénatales (CPN), planification familiale et carnet de vaccination des enfants.</p>
+                <div class="module-features">
+                    <span class="feature-tag">CPN</span>
+                    <span class="feature-tag">Vaccination</span>
+                    <span class="feature-tag">Planning familial</span>
+                </div>
+                <button class="module-action green-btn" onclick="window.location.href='../suivis/suivi.html'">Accéder au Suivi →</button>
+            </div>
+
+            <!-- 4. Pharmacie -->
+            <div class="module-card red">
+                <div class="module-header">
+                    <div class="module-emoji">💊</div>
+                    <div class="module-title-group">
+                        <h3>Gestion Pharmacie</h3>
+                        <div class="module-sub">Module 4 – Stock & Délivrances</div>
+                    </div>
+                </div>
+                <p class="module-desc">Inventaire des médicaments essentiels, seuils d'alerte, réapprovisionnements et traçabilité des sorties liées aux consultations.</p>
+                <div class="module-features">
+                    <span class="feature-tag">Inventaire temps réel</span>
+                    <span class="feature-tag">Alertes critiques</span>
+                    <span class="feature-tag">Réapprovisionnement</span>
+                </div>
+                <button class="module-action red-btn" onclick="window.location.href='../pharmacie/pharmacy.html'">Gérer les Stocks →</button>
+            </div>
+
+            <!-- 5. Rapports -->
+            <div class="module-card gold">
+                <div class="module-header">
+                    <div class="module-emoji">📊</div>
+                    <div class="module-title-group">
+                        <h3>Planification & Rapports</h3>
+                        <div class="module-sub">Module 5 – Statistiques & Agenda</div>
+                    </div>
+                </div>
+                <p class="module-desc">Génération de rapports mensuels et trimestriels pour le district, agenda des visites de suivi et rendez-vous programmés.</p>
+                <div class="module-features">
+                    <span class="feature-tag">Rapports district</span>
+                    <span class="feature-tag">Agenda</span>
+                    <span class="feature-tag">Statistiques</span>
+                </div>
+                <button class="module-action gold-btn" onclick="window.location.href='../planif_rapport/rapports.html'">Générer un Rapport →</button>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        import { auth, db } from '../firebase-config.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) { window.location.href = '../index.html'; return; }
+            const email = user.email || '';
+            document.getElementById('user-email-display').textContent = email;
+            document.getElementById('user-initials').textContent = email.slice(0, 2).toUpperCase();
+            const name = email.split('@')[0];
+            document.getElementById('greeting-name').textContent = name.charAt(0).toUpperCase() + name.slice(1);
+        });
+
+        function updateClock() {
+            const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            document.getElementById('current-datetime').textContent = new Date().toLocaleDateString('fr-FR', opts);
+        }
+        updateClock();
+        setInterval(updateClock, 60000);
+
+        // Statistiques pharmacie temps réel (RTDB)
+        const stockRef = ref(db, 'db_pharmacie_stock');
+        onValue(stockRef, (snapshot) => {
+            let total = 0, alerts = 0;
+            snapshot.forEach(child => {
+                const d = child.val();
+                total++;
+                if (d.stock <= d.seuil) alerts++;
+            });
+            document.getElementById('stat-meds').textContent   = total;
+            document.getElementById('stat-alerts').textContent = alerts;
+        });
+
+        window.deconnexion = () => {
+            if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                off(stockRef);
+                signOut(auth).then(() => { window.location.href = '../index.html'; });
+            }
+        };
+    </script>
+</body>
+</html>
