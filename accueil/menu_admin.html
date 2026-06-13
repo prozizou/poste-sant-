@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Administration – Poste de Santé de Diandioly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
+            --warning:#d68910;--purple:#7b5ea7;--purple-light:#9b7ec8;
+            --bg:#f0f4f8;--card-bg:#ffffff;
+            --text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+        .topbar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(26,58,92,.18);position:sticky;top:0;z-index:100;}
+        .topbar-left{display:flex;align-items:center;gap:12px;}
+        .topbar-logo{width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;}
+        .topbar-left h1{font-size:1.05rem;font-weight:700;line-height:1.2;}
+        .topbar-left p{font-size:.72rem;opacity:.75;}
+        .topbar-right{display:flex;align-items:center;gap:16px;}
+        .role-badge{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);color:white;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;}
+        .user-badge{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:24px;padding:6px 14px 6px 8px;font-size:.83rem;}
+        .user-avatar{width:28px;height:28px;background:var(--warning);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;}
+        .btn-logout{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:white;padding:7px 16px;border-radius:8px;font-size:.82rem;font-family:inherit;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:6px;}
+        .btn-logout:hover{background:rgba(255,255,255,.25);}
+        .main{padding:32px;max-width:1100px;margin:0 auto;}
+        .welcome-bar{margin-bottom:28px;}
+        .welcome-bar h2{font-size:1.55rem;font-weight:800;color:var(--primary);}
+        .welcome-bar p{font-size:.9rem;color:var(--muted);margin-top:4px;}
+        .access-notice{background:#fef9ec;border:1.5px solid #f5d78a;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px;font-size:.85rem;color:#7a5200;font-weight:500;}
+        .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px;}
+        .stat-card{background:var(--card-bg);border-radius:12px;padding:18px 20px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.03);display:flex;align-items:center;gap:14px;}
+        .stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+        .stat-card:nth-child(1) .stat-icon{background:#e8f4fd;}
+        .stat-card:nth-child(2) .stat-icon{background:#e6f7f1;}
+        .stat-card:nth-child(3) .stat-icon{background:#fef5e7;}
+        .stat-card:nth-child(4) .stat-icon{background:#f0ebf8;}
+        .stat-label{font-size:.75rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px;}
+        .stat-value{font-size:1.35rem;font-weight:800;color:var(--primary);line-height:1;margin-top:2px;}
+        .section-title{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
+        .modules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+        .module-card{background:var(--card-bg);border-radius:14px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.04);border:1px solid var(--border);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
+        .module-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
+        .module-card.gold::before{background:var(--warning);}
+        .module-card.purple::before{background:var(--purple);}
+        .module-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.08);}
+        .module-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
+        .module-emoji{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+        .module-card.gold .module-emoji{background:#fef9ec;}
+        .module-card.purple .module-emoji{background:#f0ebf8;}
+        .module-title-group h3{font-size:1rem;font-weight:700;color:var(--primary);}
+        .module-sub{font-size:.78rem;color:var(--muted);margin-top:2px;}
+        .module-desc{font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:18px;}
+        .module-features{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;}
+        .feature-tag{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+        .module-action{display:block;width:100%;padding:10px 16px;border-radius:8px;border:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;text-align:center;transition:opacity .2s,transform .15s;text-decoration:none;}
+        .module-action:hover{opacity:.88;transform:translateY(-1px);}
+        .gold-btn{background:var(--warning);color:white;}
+        .purple-btn{background:linear-gradient(135deg,var(--purple),var(--purple-light));color:white;}
+        .new-badge{position:absolute;top:16px;right:16px;background:var(--purple);color:white;font-size:.65rem;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.5px;}
+        @media(max-width:600px){.main{padding:16px;}.topbar{padding:0 16px;}.user-badge .user-email{display:none;}}
+    </style>
+</head>
+<body>
+<nav class="topbar">
+    <div class="topbar-left">
+        <div class="topbar-logo">🏥</div>
+        <div>
+            <h1>Poste de Santé de Diandioly</h1>
+            <p>Tableau de bord – Administration</p>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <div class="role-badge">🛡️ Administration</div>
+        <div class="user-badge">
+            <div class="user-avatar" id="user-initials">?</div>
+            <span class="user-email" id="user-email-display">Chargement…</span>
+        </div>
+        <button class="btn-logout" onclick="deconnexion()"><span>⎋</span> Déconnexion</button>
+    </div>
+</nav>
+<main class="main">
+    <div class="welcome-bar">
+        <h2>Bienvenue, <span id="greeting-name">—</span> 👋</h2>
+        <p id="current-datetime">Chargement…</p>
+    </div>
+
+    <div class="access-notice">
+        🛡️ Connecté(e) en tant qu'<strong>Administrateur</strong> — Accès aux Modules 2 & 3.
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon">🎟️</div>
+            <div>
+                <div class="stat-label">Tickets du jour</div>
+                <div class="stat-value" id="stat-tickets-day">—</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">💊</div>
+            <div>
+                <div class="stat-label">Ventes méd.</div>
+                <div class="stat-value" id="stat-meds-day">—</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div>
+                <div class="stat-label">Recettes du jour</div>
+                <div class="stat-value" id="stat-recettes-day">—</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div>
+                <div class="stat-label">Références stock</div>
+                <div class="stat-value" id="stat-stock">—</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">Modules disponibles</div>
+    <div class="modules-grid">
+        <!-- Module 2 -->
+        <div class="module-card gold">
+            <div class="module-header">
+                <div class="module-emoji">📊</div>
+                <div class="module-title-group">
+                    <h3>Planification & Rapports</h3>
+                    <div class="module-sub">Module 2 – Statistiques & Agenda</div>
+                </div>
+            </div>
+            <p class="module-desc">Statistiques complètes des tickets et ventes de médicaments (journalier, hebdomadaire, mensuel, trimestriel, annuel). Agenda et rapports district.</p>
+            <div class="module-features">
+                <span class="feature-tag">Tickets vendus</span>
+                <span class="feature-tag">Ventes médicaments</span>
+                <span class="feature-tag">Rapports district</span>
+                <span class="feature-tag">Agenda</span>
+            </div>
+            <a class="module-action gold-btn" href="../planif_rapport/rapports.html">Générer un Rapport →</a>
+        </div>
+        <!-- Module 3 -->
+        <div class="module-card purple">
+            <div class="new-badge">✨ NOUVEAU</div>
+            <div class="module-header">
+                <div class="module-emoji">📦</div>
+                <div class="module-title-group">
+                    <h3>Approvisionnement</h3>
+                    <div class="module-sub">Module 3 – Stock Pharmacie</div>
+                </div>
+            </div>
+            <p class="module-desc">Gestion complète du stock de la pharmacie : enregistrement des entrées, suivi des dates de péremption, prix unitaires, par boîte et par bouteille. Réapprovisionnement et inventaire en temps réel.</p>
+            <div class="module-features">
+                <span class="feature-tag">Entrées stock</span>
+                <span class="feature-tag">Dates péremption</span>
+                <span class="feature-tag">Prix détaillés</span>
+                <span class="feature-tag">Inventaire live</span>
+                <span class="feature-tag">Réapprovisionnement</span>
+            </div>
+            <a class="module-action purple-btn" href="../approvisionnement/stock.html">Gérer le Stock →</a>
+        </div>
+    </div>
+</main>
+<script type="module">
+    import { auth, db } from '../firebase-config.js';
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = '../index.html'; return; }
+        const role = sessionStorage.getItem('userRole');
+        if (role === 'caissier') { window.location.href = 'menu_caissier.html'; return; }
+        const email = user.email || '';
+        document.getElementById('user-email-display').textContent = email;
+        document.getElementById('user-initials').textContent = email.slice(0, 2).toUpperCase();
+        const name = email.split('@')[0];
+        document.getElementById('greeting-name').textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    });
+
+    function updateClock() {
+        const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' };
+        document.getElementById('current-datetime').textContent = new Date().toLocaleDateString('fr-FR', opts);
+    }
+    updateClock(); setInterval(updateClock, 60000);
+
+    function isToday(ts) {
+        const d = new Date(ts), n = new Date();
+        return d.getDate()===n.getDate() && d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear();
+    }
+    function fmt(n) { return Number(n).toLocaleString('fr-FR'); }
+
+    let _ticketTotal = 0, _medTotal = 0;
+    function updateRecettes() {
+        document.getElementById('stat-recettes-day').textContent = fmt(_ticketTotal + _medTotal) + ' F';
+    }
+
+    const ticketRef = ref(db, 'ticket_dbase');
+    const medRef    = ref(db, 'vente_medicaments');
+    const stockRef  = ref(db, 'db_pharmacie_stock');
+
+    onValue(ticketRef, (snap) => {
+        let count = 0, total = 0;
+        snap.forEach(c => {
+            const d = c.val(), ts = d.date_heure_ts || Date.now();
+            if (isToday(ts)) { count++; total += (d.prix || 0); }
+        });
+        document.getElementById('stat-tickets-day').textContent = count;
+        _ticketTotal = total; updateRecettes();
+    });
+
+    onValue(medRef, (snap) => {
+        let totalMed = 0;
+        snap.forEach(c => {
+            const d = c.val(), ts = d.date_heure_ts || Date.now();
+            if (isToday(ts)) totalMed += (d.total || 0);
+        });
+        document.getElementById('stat-meds-day').textContent = fmt(totalMed) + ' F';
+        _medTotal = totalMed; updateRecettes();
+    });
+
+    onValue(stockRef, (snap) => {
+        document.getElementById('stat-stock').textContent = snap.size || snap.numChildren() || 0;
+    });
+
+    window.deconnexion = () => {
+        if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
+            off(ticketRef); off(medRef); off(stockRef);
+            sessionStorage.clear();
+            signOut(auth).then(() => { window.location.href = '../index.html'; });
+        }
+    };
+</script>
+</body>
+</html>
