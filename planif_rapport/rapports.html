@@ -3,248 +3,312 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Planification & Rapports – Poste de Santé de Diandioly">
     <title>Rapports & Agenda – Poste de Santé de Diandioly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary:       #1a3a5c;
-            --primary-light: #274e74;
-            --accent:        #0ea472;
-            --gold:          #d68910;
-            --gold-dark:     #b87309;
-            --gold-bg:       #fef9ec;
-            --danger:        #c0392b;
-            --danger-bg:     #fdf1f0;
-            --bg:            #f0f4f8;
-            --card-bg:       #ffffff;
-            --text:          #1e2a38;
-            --muted:         #6b7a8d;
-            --border:        #d8e0e8;
+            --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
+            --gold:#d68910;--gold-dark:#b87309;--gold-bg:#fef9ec;
+            --danger:#c0392b;--danger-bg:#fdf1f0;
+            --purple:#7b5ea7;--purple-bg:#f0ebf8;
+            --blue-bg:#e8f0f8;--accent-bg:#e6f7f1;
+            --bg:#f0f4f8;--card-bg:#ffffff;--text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
         }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        .topbar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(26,58,92,.18);position:sticky;top:0;z-index:100;}
+        .topbar-left{display:flex;align-items:center;gap:12px;}
+        .back-btn{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:white;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;transition:background .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .back-btn:hover{background:rgba(255,255,255,.22);}
+        .topbar h1{font-size:1.05rem;font-weight:700;}
+        .topbar p{font-size:.72rem;opacity:.75;}
+        .conn-badge{background:rgba(14,164,114,.2);border:1px solid rgba(14,164,114,.4);color:#7dffd0;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;}
 
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
+        .page{padding:24px;max-width:1400px;margin:0 auto;}
 
-        /* ── TOP BAR ── */
-        .topbar {
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            color: white;
-            padding: 0 28px;
-            height: 64px;
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 2px 10px rgba(26,58,92,0.18);
-            position: sticky; top: 0; z-index: 100;
-        }
+        /* ── PÉRIODE SELECTOR ── */
+        .period-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+        .period-btn{padding:8px 18px;border:1.5px solid var(--border);border-radius:20px;background:var(--card-bg);font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;}
+        .period-btn:hover{border-color:var(--primary);color:var(--primary);}
+        .period-btn.active{background:var(--primary);color:white;border-color:var(--primary);}
 
-        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        /* ── PANELS ── */
+        .panel{background:var(--card-bg);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.03);margin-bottom:24px;overflow:hidden;}
+        .panel-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+        .panel-head h2{font-size:1rem;font-weight:700;color:var(--primary);}
+        .panel-head p{font-size:.78rem;color:var(--muted);margin-top:2px;}
+        .panel-body{padding:22px;}
 
-        .back-btn {
-            background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.25);
-            color: white; padding: 7px 14px; border-radius: 8px;
-            font-family: inherit; font-size: 0.82rem; font-weight: 600;
-            cursor: pointer; transition: background 0.2s; text-decoration: none;
-            display: inline-flex; align-items: center; gap: 6px;
-        }
-        .back-btn:hover { background: rgba(255,255,255,0.22); }
-        .topbar h1 { font-size: 1.05rem; font-weight: 700; }
-        .topbar p  { font-size: 0.72rem; opacity: 0.75; }
+        /* ── STAT BOXES ── */
+        .stats-bloc-title{font-size:.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;}
+        .stats-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+        .stat-box{background:#fafbfc;border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;transition:transform .2s;}
+        .stat-box:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,.05);}
+        .stat-period{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+        .stat-val{font-size:1.5rem;font-weight:800;color:var(--primary);line-height:1.1;margin-bottom:2px;}
+        .stat-sub{font-size:.72rem;color:var(--muted);}
+        .stat-box.blue .stat-val{color:var(--primary);}
+        .stat-box.green .stat-val{color:var(--accent);}
+        .stat-box.purple .stat-val{color:var(--purple);}
+        .stat-box.gold .stat-val{color:var(--gold-dark);}
 
-        .connection-badge {
-            background: rgba(14,164,114,0.2); border: 1px solid rgba(14,164,114,0.4);
-            color: #7dffd0; font-size: 0.75rem; font-weight: 700;
-            padding: 5px 12px; border-radius: 20px;
-        }
+        /* ── TOTAL HIGHLIGHT ── */
+        .total-row{display:flex;gap:16px;margin-bottom:24px;}
+        .total-card{flex:1;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;}
+        .total-card.green{background:linear-gradient(135deg,var(--accent),#0b8a5f);}
+        .total-card .tc-label{font-size:.8rem;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+        .total-card .tc-val{font-size:1.8rem;font-weight:800;line-height:1;}
+        .total-card .tc-icon{font-size:2rem;opacity:.5;}
 
-        /* ── PAGE LAYOUT ── */
-        .page { padding: 28px; max-width: 1400px; margin: 0 auto; }
-        .main-grid { display: grid; grid-template-columns: 1fr 450px; gap: 24px; }
-        @media (max-width: 1024px) { .main-grid { grid-template-columns: 1fr; } }
+        /* ── MAIN GRID ── */
+        .main-grid{display:grid;grid-template-columns:1fr 420px;gap:24px;}
+        @media(max-width:1024px){.main-grid{grid-template-columns:1fr;}}
 
-        /* ── PANEL ── */
-        .panel {
-            background: var(--card-bg); border-radius: 14px;
-            border: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-            margin-bottom: 24px; overflow: hidden; display: flex; flex-direction: column;
-        }
-        .panel-head {
-            padding: 18px 22px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        .panel-head h2 { font-size: 1rem; font-weight: 700; color: var(--primary); }
-        .panel-head p  { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
-        .panel-body { padding: 22px; flex: 1; }
+        /* ── EXPORT ── */
+        .export-actions{display:flex;flex-direction:column;gap:10px;background:var(--gold-bg);padding:18px;border-radius:10px;border:1px dashed var(--gold);}
+        .export-title{font-size:.88rem;font-weight:700;color:var(--gold-dark);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+        .btn-export{width:100%;padding:11px;border:none;border-radius:8px;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s,transform .15s;}
+        .btn-pdf{background:var(--primary);color:white;}
+        .btn-export:hover{opacity:.9;transform:translateY(-1px);}
 
-        /* ── INDICATEURS STATISTIQUES ── */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-box {
-            background: #fafbfc; border: 1px solid var(--border); border-radius: 10px; padding: 16px;
-            text-align: center; transition: transform 0.2s;
-        }
-        .stat-box:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.05); }
-        .stat-icon { font-size: 1.8rem; margin-bottom: 8px; }
-        .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 4px; }
-        .stat-label { font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        /* ── AGENDA ── */
+        .agenda-list{display:flex;flex-direction:column;gap:12px;max-height:55vh;overflow-y:auto;padding-right:4px;}
+        .agenda-card{display:flex;align-items:stretch;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:transform .2s,box-shadow .2s;}
+        .agenda-card:hover{transform:translateX(4px);box-shadow:0 4px 12px rgba(0,0,0,.05);}
+        .agenda-date-box{background:var(--gold-bg);padding:12px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--border);min-width:80px;}
+        .agenda-day{font-size:1.5rem;font-weight:800;color:var(--gold-dark);line-height:1;}
+        .agenda-month{font-size:.72rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;margin-top:4px;}
+        .agenda-content{padding:12px 14px;flex:1;}
+        .agenda-patient{font-weight:700;color:var(--primary);font-size:.9rem;margin-bottom:3px;}
+        .agenda-motif{font-size:.82rem;color:var(--text);}
+        .badge-status{font-size:.63rem;font-weight:800;padding:3px 7px;border-radius:12px;text-transform:uppercase;margin-top:7px;display:inline-block;}
+        .status-soon{background:var(--danger-bg);color:var(--danger);}
+        .status-later{background:var(--accent-bg);color:#0a7a55;}
 
-        /* ── ACTIONS D'EXPORTATION ── */
-        .export-actions { display: flex; flex-direction: column; gap: 12px; background: var(--gold-bg); padding: 20px; border-radius: 10px; border: 1px dashed var(--gold); }
-        .export-title { font-size: 0.9rem; font-weight: 700; color: var(--gold-dark); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        
-        .btn-export {
-            width: 100%; padding: 12px; border: none; border-radius: 8px;
-            font-family: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            transition: opacity 0.2s, transform 0.15s;
-        }
-        .btn-pdf { background: var(--primary); color: white; }
-        .btn-csv { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
-        .btn-export:hover { opacity: 0.9; transform: translateY(-1px); }
+        /* ── FORMS ── */
+        .form-group{margin-bottom:14px;}
+        .form-group label{display:block;font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+        .form-control{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;color:var(--text);background:#fafbfc;}
+        .form-control:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,137,16,.12);background:#fff;}
+        .btn-primary{width:100%;padding:12px;border:none;border-radius:8px;font-family:inherit;font-size:.92rem;font-weight:700;background:var(--gold);color:white;cursor:pointer;transition:all .2s;margin-top:8px;}
+        .btn-primary:hover{background:var(--gold-dark);transform:translateY(-1px);}
 
-        /* ── AGENDA DES VISITES ── */
-        .agenda-list { display: flex; flex-direction: column; gap: 14px; max-height: 55vh; overflow-y: auto; padding-right: 5px; }
-        .agenda-card {
-            display: flex; align-items: stretch; background: #fff;
-            border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .agenda-card:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        
-        .agenda-date-box {
-            background: var(--gold-bg); padding: 12px 16px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            border-right: 1px solid var(--border); min-width: 90px;
-        }
-        .agenda-day { font-size: 1.6rem; font-weight: 800; color: var(--gold-dark); line-height: 1; }
-        .agenda-month { font-size: 0.75rem; font-weight: 700; color: var(--gold-dark); text-transform: uppercase; margin-top: 4px; }
-        
-        .agenda-content { padding: 14px 16px; flex: 1; }
-        .agenda-patient { font-weight: 700; color: var(--primary); font-size: 0.95rem; margin-bottom: 4px; }
-        .agenda-motif { font-size: 0.85rem; color: var(--text); }
-        
-        .badge-status { font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 12px; text-transform: uppercase; margin-top: 8px; display: inline-block; }
-        .status-soon { background: var(--danger-bg); color: var(--danger); }
-        .status-later { background: #e6f7f1; color: var(--accent-dark); }
+        .empty-state{text-align:center;color:var(--muted);font-size:.88rem;padding:32px 20px;}
+        .divider{height:1px;background:var(--border);margin:16px 0;}
+        ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
 
-        /* ── FORMULAIRES ── */
-        .form-group { margin-bottom: 16px; }
-        .form-group label {
-            display: block; font-size: 0.78rem; font-weight: 700;
-            color: var(--primary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px;
-        }
-        .form-control {
-            width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px;
-            font-size: 0.9rem; font-family: inherit; color: var(--text); background: #fafbfc;
-        }
-        .form-control:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(214,137,16,0.12); background: #fff; }
+        @media(max-width:900px){.stats-grid-5{grid-template-columns:repeat(3,1fr);}.total-row{flex-direction:column;}}
+        @media(max-width:600px){.stats-grid-5{grid-template-columns:repeat(2,1fr);}.page{padding:14px;}.period-tabs{gap:6px;}.period-btn{padding:6px 12px;font-size:.76rem;}}
 
-        .btn-primary {
-            width: 100%; padding: 13px; border: none; border-radius: 8px;
-            font-family: inherit; font-size: 0.95rem; font-weight: 700;
-            background: var(--gold); color: white; cursor: pointer;
-            transition: opacity 0.2s, transform 0.15s; margin-top: 10px;
-        }
-        .btn-primary:hover:not(:disabled) { background: var(--gold-dark); transform: translateY(-1px); }
-
-        .empty-state { text-align: center; color: var(--muted); font-size: 0.9rem; padding: 40px 20px; }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        /* ── STYLES D'IMPRESSION (Génération PDF) ── */
         @media print {
-            body { background: white; color: black; }
-            .topbar, .back-btn, .btn-export, .panel:nth-child(2), form { display: none !important; }
-            .page { padding: 0; margin: 0; }
-            .panel { border: none; box-shadow: none; margin-bottom: 0; }
-            .panel-head { border-bottom: 2px solid black; }
-            .stat-box { border: 1px solid #ccc; break-inside: avoid; }
-            .export-actions { border: none; padding: 0; background: transparent; }
-            .export-title { display: none; }
+            body{background:white;color:black;}
+            .topbar,.back-btn,.btn-export,.panel:nth-child(2),form,.period-tabs,.export-actions{display:none!important;}
+            .page{padding:0;margin:0;}
+            .main-grid{grid-template-columns:1fr;}
+            .panel{border:none;box-shadow:none;margin-bottom:0;}
+            .panel-head{border-bottom:2px solid black;}
         }
     </style>
 </head>
 <body>
 
-    <!-- TOP BAR -->
-    <nav class="topbar">
-        <div class="topbar-left">
-            <a href="menu.html" class="back-btn">⬅ Menu</a>
-            <div>
-                <h1>Planification & Rapports</h1>
-                <p>Module 5 · Statistiques du District · Agenda</p>
-            </div>
+<nav class="topbar">
+    <div class="topbar-left">
+        <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
+        <div>
+            <h1>Planification & Rapports</h1>
+            <p>Module 5 · Statistiques Facturation · Agenda</p>
         </div>
-        <div class="connection-badge">● Synchronisé</div>
-    </nav>
+    </div>
+    <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+</nav>
 
-    <!-- PAGE -->
-    <div class="page">
-        <div class="main-grid">
+<div class="page">
 
-            <!-- COLONNE GAUCHE : STATISTIQUES ET RAPPORTS -->
-            <div class="panel" id="print-zone">
-                <div class="panel-head" style="border-left: 4px solid var(--primary);">
+    <!-- PÉRIODE SELECTOR -->
+    <div class="period-tabs">
+        <button class="period-btn active" onclick="setPeriode('jour')">📅 Journalier</button>
+        <button class="period-btn" onclick="setPeriode('semaine')">📅 Hebdomadaire</button>
+        <button class="period-btn" onclick="setPeriode('mois')">📅 Mensuel</button>
+        <button class="period-btn" onclick="setPeriode('trimestre')">📅 Trimestriel</button>
+        <button class="period-btn" onclick="setPeriode('annee')">📅 Annuel</button>
+    </div>
+
+    <div class="main-grid">
+
+        <!-- COLONNE GAUCHE -->
+        <div>
+            <!-- TOTAL HIGHLIGHT -->
+            <div class="total-row">
+                <div class="total-card">
                     <div>
-                        <h2>📊 Tableau de Bord du District</h2>
-                        <p>Vue consolidée pour le mois en cours</p>
+                        <div class="tc-label" id="lbl-periode">Période : Aujourd'hui</div>
+                        <div class="tc-label">Tickets vendus</div>
+                        <div class="tc-val" id="total-tickets-nb">—</div>
+                    </div>
+                    <div class="tc-icon">🎟️</div>
+                </div>
+                <div class="total-card green">
+                    <div>
+                        <div class="tc-label" id="lbl-periode2">Recettes totales</div>
+                        <div class="tc-label">Tickets + Médicaments</div>
+                        <div class="tc-val" id="total-recettes">—</div>
+                    </div>
+                    <div class="tc-icon">💰</div>
+                </div>
+            </div>
+
+            <!-- PANEL TICKETS -->
+            <div class="panel" id="print-zone">
+                <div class="panel-head" style="border-left:4px solid var(--primary);">
+                    <div>
+                        <h2>🎟️ Tickets de Consultation</h2>
+                        <p id="tickets-periode-desc">Statistiques sur toutes les périodes</p>
                     </div>
                 </div>
                 <div class="panel-body">
-                    
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-icon">👥</div>
-                            <div class="stat-value" id="stat-patients">...</div>
-                            <div class="stat-label">Patients Actifs</div>
+                    <div class="stats-bloc-title">📊 Nombre de tickets vendus</div>
+                    <div class="stats-grid-5">
+                        <div class="stat-box blue">
+                            <div class="stat-period">Journalier</div>
+                            <div class="stat-val" id="tk-jour">—</div>
+                            <div class="stat-sub">tickets</div>
                         </div>
-                        <div class="stat-box">
-                            <div class="stat-icon">🩺</div>
-                            <div class="stat-value" id="stat-consults">...</div>
-                            <div class="stat-label">Consultations (Mois)</div>
+                        <div class="stat-box blue">
+                            <div class="stat-period">Hebdo.</div>
+                            <div class="stat-val" id="tk-semaine">—</div>
+                            <div class="stat-sub">tickets</div>
                         </div>
-                        <div class="stat-box">
-                            <div class="stat-icon">🤱</div>
-                            <div class="stat-value" id="stat-suivis">...</div>
-                            <div class="stat-label">Suivis Préventifs</div>
+                        <div class="stat-box blue">
+                            <div class="stat-period">Mensuel</div>
+                            <div class="stat-val" id="tk-mois">—</div>
+                            <div class="stat-sub">tickets</div>
+                        </div>
+                        <div class="stat-box blue">
+                            <div class="stat-period">Trimestriel</div>
+                            <div class="stat-val" id="tk-trim">—</div>
+                            <div class="stat-sub">tickets</div>
+                        </div>
+                        <div class="stat-box blue">
+                            <div class="stat-period">Annuel</div>
+                            <div class="stat-val" id="tk-annee">—</div>
+                            <div class="stat-sub">tickets</div>
                         </div>
                     </div>
 
-                    <div class="export-actions">
-                        <div class="export-title">
-                            <span>📥</span> Exporter les données réglementaires
+                    <div class="stats-bloc-title">💰 Somme encaissée (FCFA)</div>
+                    <div class="stats-grid-5">
+                        <div class="stat-box green">
+                            <div class="stat-period">Journalier</div>
+                            <div class="stat-val" id="ts-jour">—</div>
+                            <div class="stat-sub">FCFA</div>
                         </div>
-                        <p style="font-size: 0.8rem; color: var(--text); margin-bottom: 10px;">Générez les documents requis par le médecin chef du district pour le reporting mensuel SNIS.</p>
-                        
-                        <button class="btn-export btn-pdf" onclick="window.print()">
-                            📄 Générer le Rapport PDF (Impression)
-                        </button>
-                        <button class="btn-export btn-csv" onclick="exporterCSV()">
-                            📊 Exporter l'Agenda (CSV)
-                        </button>
+                        <div class="stat-box green">
+                            <div class="stat-period">Hebdo.</div>
+                            <div class="stat-val" id="ts-semaine">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                        <div class="stat-box green">
+                            <div class="stat-period">Mensuel</div>
+                            <div class="stat-val" id="ts-mois">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                        <div class="stat-box green">
+                            <div class="stat-period">Trimestriel</div>
+                            <div class="stat-val" id="ts-trim">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                        <div class="stat-box green">
+                            <div class="stat-period">Annuel</div>
+                            <div class="stat-val" id="ts-annee">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- PANEL MÉDICAMENTS -->
+                    <div class="stats-bloc-title">💊 Ventes de Médicaments – Nombre de ventes</div>
+                    <div class="stats-grid-5">
+                        <div class="stat-box purple">
+                            <div class="stat-period">Journalier</div>
+                            <div class="stat-val" id="mn-jour">—</div>
+                            <div class="stat-sub">ventes</div>
+                        </div>
+                        <div class="stat-box purple">
+                            <div class="stat-period">Hebdo.</div>
+                            <div class="stat-val" id="mn-semaine">—</div>
+                            <div class="stat-sub">ventes</div>
+                        </div>
+                        <div class="stat-box purple">
+                            <div class="stat-period">Mensuel</div>
+                            <div class="stat-val" id="mn-mois">—</div>
+                            <div class="stat-sub">ventes</div>
+                        </div>
+                        <div class="stat-box purple">
+                            <div class="stat-period">Trimestriel</div>
+                            <div class="stat-val" id="mn-trim">—</div>
+                            <div class="stat-sub">ventes</div>
+                        </div>
+                        <div class="stat-box purple">
+                            <div class="stat-period">Annuel</div>
+                            <div class="stat-val" id="mn-annee">—</div>
+                            <div class="stat-sub">ventes</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-bloc-title">💰 Ventes de Médicaments – Montants (FCFA)</div>
+                    <div class="stats-grid-5">
+                        <div class="stat-box gold">
+                            <div class="stat-period">Journalier</div>
+                            <div class="stat-val" id="ms-jour">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                        <div class="stat-box gold">
+                            <div class="stat-period">Hebdo.</div>
+                            <div class="stat-val" id="ms-semaine">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                        <div class="stat-box gold">
+                            <div class="stat-period">Mensuel</div>
+                            <div class="stat-val" id="ms-mois">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                        <div class="stat-box gold">
+                            <div class="stat-period">Trimestriel</div>
+                            <div class="stat-val" id="ms-trim">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                        <div class="stat-box gold">
+                            <div class="stat-period">Annuel</div>
+                            <div class="stat-val" id="ms-annee">—</div>
+                            <div class="stat-sub">FCFA</div>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="export-actions">
+                        <div class="export-title"><span>📥</span> Exporter les données</div>
+                        <button class="btn-export btn-pdf" onclick="window.print()">📄 Générer le Rapport PDF (Impression)</button>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- COLONNE DROITE : AGENDA -->
+        <!-- COLONNE DROITE : AGENDA -->
+        <div>
             <div class="panel">
-                <div class="panel-head" style="border-left: 4px solid var(--gold);">
+                <div class="panel-head" style="border-left:4px solid var(--gold);">
                     <div>
                         <h2>📅 Agenda des Visites</h2>
                         <p>Programmation des rendez-vous à venir</p>
                     </div>
                 </div>
                 <div class="panel-body">
-                    
-                    <!-- Formulaire Nouveau RDV -->
-                    <form id="agenda-form" novalidate style="margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px dashed var(--border);">
+                    <form id="agenda-form" novalidate style="margin-bottom:22px;padding-bottom:22px;border-bottom:1px dashed var(--border);">
                         <div class="form-group">
                             <label>Patient concerné</label>
                             <input type="text" id="a-patient" class="form-control" placeholder="Nom du patient..." required>
@@ -255,176 +319,221 @@
                         </div>
                         <div class="form-group">
                             <label>Motif de la visite</label>
-                            <input type="text" id="a-motif" class="form-control" placeholder="Ex: Renouvellement pilule, Vaccin 9 mois..." required>
+                            <input type="text" id="a-motif" class="form-control" placeholder="Ex: Renouvellement, Vaccin…" required>
                         </div>
                         <button type="submit" class="btn-primary" id="submit-btn">Programmer le rendez-vous</button>
                     </form>
-
-                    <!-- Liste des RDV -->
-                    <h3 style="font-size:0.85rem; color:var(--muted); text-transform:uppercase; margin-bottom:12px; letter-spacing:0.5px;">Rendez-vous programmés</h3>
+                    <h3 style="font-size:.82rem;color:var(--muted);text-transform:uppercase;margin-bottom:12px;letter-spacing:.5px;">Rendez-vous programmés</h3>
                     <div class="agenda-list" id="agenda-container">
                         <div class="empty-state">Chargement de l'agenda...</div>
                     </div>
-
                 </div>
             </div>
-
         </div>
+
     </div>
-   <script type="module">
-        import { db, auth } from '../firebase-config.js';
-        import { ref, push, onValue, get, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+</div>
 
-        onAuthStateChanged(auth, (user) => {
-            if (!user) window.location.href = '../index.html';
-        });
+<script type="module">
+    import { db, auth } from '../firebase-config.js';
+    import { ref, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        const agendaRef   = ref(db, 'db_agenda');
-        const patientsRef = ref(db, 'db_patients');
-        const consultsRef = ref(db, 'db_consultations');
-        const suivisRef   = ref(db, 'db_suivi_vulnerables');
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = '../index.html'; return; }
+        const role = sessionStorage.getItem('userRole');
+        if (role === 'caissier') { window.location.href = '../accueil/menu_caissier.html'; }
+    });
 
-        // ── 1. STATISTIQUES GLOBALES ──
-        onValue(patientsRef, (snap) => {
-            document.getElementById('stat-patients').textContent = snap.size || Object.keys(snap.val() || {}).length;
-        });
-        onValue(consultsRef, (snap) => {
-            document.getElementById('stat-consults').textContent = snap.size || Object.keys(snap.val() || {}).length;
-        });
-        onValue(suivisRef, (snap) => {
-            document.getElementById('stat-suivis').textContent = snap.size || Object.keys(snap.val() || {}).length;
-        });
+    let allTickets   = [];
+    let allMedVentes = [];
 
-        // ── 2. AGENDA TEMPS RÉEL ──
-        let allAppointments = [];
-
-        onValue(agendaRef, (snapshot) => {
-            allAppointments = [];
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            snapshot.forEach(child => {
-                const data = child.val();
-                if (data.date_prevue) {
-                    const rdvDate = new Date(data.date_prevue);
-                    if (rdvDate >= today) {
-                        allAppointments.push({ id: child.key, ...data, rdvObj: rdvDate });
-                    }
-                }
-            });
-
-            allAppointments.sort((a, b) => a.rdvObj - b.rdvObj);
-            renderAgenda();
-        });
-
-        function renderAgenda() {
-            const container = document.getElementById('agenda-container');
-            container.innerHTML = '';
-
-            if (allAppointments.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <span style="font-size:2rem; display:block; margin-bottom:10px;">☕</span>
-                        Aucun rendez-vous à venir.
-                    </div>`;
-                return;
+    // ── HELPERS DATE ──
+    function getSafeTs(val) {
+        if (val.date_heure_ts) return val.date_heure_ts;
+        if (val.date) {
+            const p=val.date.split('/');
+            if(p.length===3){
+                const day=parseInt(p[0]),month=parseInt(p[1])-1,year=parseInt(p[2]);
+                let hr=0,min=0;
+                if(val.heure){const hp=val.heure.split(':');if(hp.length>=2){hr=parseInt(hp[0]);min=parseInt(hp[1]);}}
+                return new Date(year,month,day,hr,min).getTime();
             }
-
-            const today = new Date(); today.setHours(0,0,0,0);
-            const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-
-            allAppointments.forEach(rdv => {
-                const dateParts = rdv.date_prevue.split('-');
-                const d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-                const dayStr   = d.toLocaleDateString('fr-FR', { day: '2-digit' });
-                const monthStr = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
-
-                let badgeClass = 'status-later', badgeText = 'À VENIR';
-                if (d.getTime() === today.getTime())    { badgeClass = 'status-soon'; badgeText = "AUJOURD'HUI"; }
-                else if (d.getTime() === tomorrow.getTime()) { badgeClass = 'status-soon'; badgeText = 'DEMAIN'; }
-
-                const card = document.createElement('div');
-                card.className = 'agenda-card';
-                card.innerHTML = `
-                    <div class="agenda-date-box">
-                        <div class="agenda-day">${dayStr}</div>
-                        <div class="agenda-month">${monthStr}</div>
-                    </div>
-                    <div class="agenda-content">
-                        <div class="agenda-patient">👤 ${rdv.patient}</div>
-                        <div class="agenda-motif">${rdv.motif}</div>
-                        <span class="badge-status ${badgeClass}">${badgeText}</span>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
         }
+        return Date.now();
+    }
+    function isToday(ts) { const d=new Date(ts),n=new Date(); return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
+    function isThisWeek(ts) {
+        const d=new Date(ts),now=new Date(),dow=now.getDay(),numDay=dow===0?6:dow-1;
+        const sow=new Date(now);sow.setDate(now.getDate()-numDay);sow.setHours(0,0,0,0);
+        return d>=sow;
+    }
+    function isMonth(ts) { const d=new Date(ts),n=new Date(); return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
+    function isThisYear(ts) { return new Date(ts).getFullYear()===new Date().getFullYear(); }
+    function isThisQuarter(ts) {
+        const d=new Date(ts),n=new Date();
+        const q=Math.floor(n.getMonth()/3);
+        const qStart=new Date(n.getFullYear(),q*3,1);
+        return d>=qStart && d.getFullYear()===n.getFullYear();
+    }
+    function fmt(n) { return Number(n).toLocaleString('fr-FR'); }
 
-        // ── 3. NOUVEAU RDV ──
-        const form      = document.getElementById('agenda-form');
-        const submitBtn = document.getElementById('submit-btn');
+    // ── LISTENERS ──
+    const ticketRef  = ref(db,'ticket_dbase');
+    const medRef     = ref(db,'vente_medicaments');
+    const agendaRef  = ref(db,'db_agenda');
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const patient = document.getElementById('a-patient').value.trim();
-            const dateStr = document.getElementById('a-date').value;
-            const motif   = document.getElementById('a-motif').value.trim();
+    let loadedT=false, loadedM=false;
+    function checkLoaded() {
+        if(loadedT&&loadedM){
+            document.getElementById('conn-badge').innerHTML='● En direct';
+        }
+    }
 
-            if (!patient || !dateStr || !motif) {
-                alert('Tous les champs sont obligatoires.');
-                return;
-            }
+    onValue(ticketRef, snap => {
+        allTickets=[];
+        snap.forEach(c=>allTickets.push({_key:c.key,_ts:getSafeTs(c.val()),...c.val()}));
+        updateAllStats(); loadedT=true; checkLoaded();
+    });
 
-            submitBtn.disabled    = true;
-            submitBtn.textContent = 'Enregistrement...';
+    onValue(medRef, snap => {
+        allMedVentes=[];
+        snap.forEach(c=>allMedVentes.push({_key:c.key,_ts:getSafeTs(c.val()),...c.val()}));
+        updateAllStats(); loadedM=true; checkLoaded();
+    });
 
-            try {
-                await push(agendaRef, {
-                    patient,
-                    date_prevue: dateStr,
-                    motif,
-                    cree_le:     Date.now()
-                });
+    function updateAllStats() {
+        // Tickets — Nombre
+        document.getElementById('tk-jour').textContent    = allTickets.filter(x=>isToday(x._ts)).length;
+        document.getElementById('tk-semaine').textContent = allTickets.filter(x=>isThisWeek(x._ts)).length;
+        document.getElementById('tk-mois').textContent    = allTickets.filter(x=>isMonth(x._ts)).length;
+        document.getElementById('tk-trim').textContent    = allTickets.filter(x=>isThisQuarter(x._ts)).length;
+        document.getElementById('tk-annee').textContent   = allTickets.filter(x=>isThisYear(x._ts)).length;
 
-                form.reset();
-                submitBtn.style.background = 'var(--accent)';
-                submitBtn.textContent      = '✓ Rendez-vous programmé';
-                setTimeout(() => {
-                    submitBtn.style.background = 'var(--gold)';
-                    submitBtn.textContent      = 'Programmer le rendez-vous';
-                }, 2000);
-            } catch (error) {
-                console.error('Erreur ajout agenda:', error);
-                alert("Erreur lors de l'enregistrement.");
-            } finally {
-                submitBtn.disabled = false;
-            }
+        // Tickets — Somme
+        const sum = (arr,fn) => arr.filter(fn).reduce((s,x)=>s+(x.prix||0),0);
+        document.getElementById('ts-jour').textContent    = fmt(sum(allTickets,x=>isToday(x._ts)));
+        document.getElementById('ts-semaine').textContent = fmt(sum(allTickets,x=>isThisWeek(x._ts)));
+        document.getElementById('ts-mois').textContent    = fmt(sum(allTickets,x=>isMonth(x._ts)));
+        document.getElementById('ts-trim').textContent    = fmt(sum(allTickets,x=>isThisQuarter(x._ts)));
+        document.getElementById('ts-annee').textContent   = fmt(sum(allTickets,x=>isThisYear(x._ts)));
+
+        // Médicaments — Nombre ventes
+        document.getElementById('mn-jour').textContent    = allMedVentes.filter(x=>isToday(x._ts)).length;
+        document.getElementById('mn-semaine').textContent = allMedVentes.filter(x=>isThisWeek(x._ts)).length;
+        document.getElementById('mn-mois').textContent    = allMedVentes.filter(x=>isMonth(x._ts)).length;
+        document.getElementById('mn-trim').textContent    = allMedVentes.filter(x=>isThisQuarter(x._ts)).length;
+        document.getElementById('mn-annee').textContent   = allMedVentes.filter(x=>isThisYear(x._ts)).length;
+
+        // Médicaments — Montants
+        const sumM = (arr,fn) => arr.filter(fn).reduce((s,x)=>s+(x.total||0),0);
+        document.getElementById('ms-jour').textContent    = fmt(sumM(allMedVentes,x=>isToday(x._ts)));
+        document.getElementById('ms-semaine').textContent = fmt(sumM(allMedVentes,x=>isThisWeek(x._ts)));
+        document.getElementById('ms-mois').textContent    = fmt(sumM(allMedVentes,x=>isMonth(x._ts)));
+        document.getElementById('ms-trim').textContent    = fmt(sumM(allMedVentes,x=>isThisQuarter(x._ts)));
+        document.getElementById('ms-annee').textContent   = fmt(sumM(allMedVentes,x=>isThisYear(x._ts)));
+
+        // Update highlight (based on current period selection)
+        updateHighlight();
+    }
+
+    let currentPeriode = 'jour';
+    window.setPeriode = function(p) {
+        currentPeriode=p;
+        document.querySelectorAll('.period-btn').forEach((b,i)=>{
+            const periods=['jour','semaine','mois','trimestre','annee'];
+            b.classList.toggle('active', periods[i]===p);
         });
+        updateHighlight();
+    };
 
-        // ── 4. EXPORT CSV ──
-        window.exporterCSV = () => {
-            if (allAppointments.length === 0) {
-                alert("L'agenda est vide, rien à exporter.");
-                return;
-            }
-            let csvContent = 'data:text/csv;charset=utf-8,Date,Patient,Motif\n';
-            allAppointments.forEach(rdv => {
-                const patient = `"${rdv.patient.replace(/"/g, '""')}"`;
-                const motif   = `"${rdv.motif.replace(/"/g, '""')}"`;
-                csvContent += `${rdv.date_prevue},${patient},${motif}\n`;
-            });
-            const link = document.createElement('a');
-            link.href     = encodeURI(csvContent);
-            link.download = `Agenda_District_${new Date().toISOString().slice(0,10)}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+    function updateHighlight() {
+        const labels = {jour:"Aujourd'hui",semaine:"Cette semaine",mois:"Ce mois",trimestre:"Ce trimestre",annee:"Cette année"};
+        const label  = labels[currentPeriode]||'';
+        document.getElementById('lbl-periode').textContent  = 'Période : '+label;
+        document.getElementById('lbl-periode2').textContent = label;
+
+        const fnMap = {
+            jour: isToday, semaine: isThisWeek, mois: isMonth,
+            trimestre: isThisQuarter, annee: isThisYear
         };
+        const fn=fnMap[currentPeriode]||isToday;
+        const nbTk  = allTickets.filter(x=>fn(x._ts)).length;
+        const sumTk = allTickets.filter(x=>fn(x._ts)).reduce((s,x)=>s+(x.prix||0),0);
+        const sumMd = allMedVentes.filter(x=>fn(x._ts)).reduce((s,x)=>s+(x.total||0),0);
+        document.getElementById('total-tickets-nb').textContent = nbTk+' ticket'+(nbTk>1?'s':'');
+        document.getElementById('total-recettes').textContent   = fmt(sumTk+sumMd)+' FCFA';
+    }
 
-        window.addEventListener('beforeunload', () => {
-            off(agendaRef); off(patientsRef); off(consultsRef); off(suivisRef);
+    // ── AGENDA ──
+    let allAppointments=[];
+    onValue(agendaRef, (snapshot)=>{
+        allAppointments=[];
+        const today=new Date(); today.setHours(0,0,0,0);
+        snapshot.forEach(child=>{
+            const data=child.val();
+            if(data.date_prevue){
+                const rdvDate=new Date(data.date_prevue);
+                if(rdvDate>=today) allAppointments.push({id:child.key,...data,rdvObj:rdvDate});
+            }
         });
-    </script>
+        allAppointments.sort((a,b)=>a.rdvObj-b.rdvObj);
+        renderAgenda();
+    });
+
+    function renderAgenda(){
+        const container=document.getElementById('agenda-container');
+        container.innerHTML='';
+        if(!allAppointments.length){
+            container.innerHTML=`<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">☕</span>Aucun rendez-vous à venir.</div>`;
+            return;
+        }
+        const today=new Date();today.setHours(0,0,0,0);
+        const tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
+        allAppointments.forEach(rdv=>{
+            const dp=rdv.date_prevue.split('-');
+            const d=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
+            const dayStr=d.toLocaleDateString('fr-FR',{day:'2-digit'});
+            const monthStr=d.toLocaleDateString('fr-FR',{month:'short'}).replace('.','');
+            let badgeClass='status-later',badgeText='À VENIR';
+            if(d.getTime()===today.getTime()){badgeClass='status-soon';badgeText="AUJOURD'HUI";}
+            else if(d.getTime()===tomorrow.getTime()){badgeClass='status-soon';badgeText='DEMAIN';}
+            const card=document.createElement('div');
+            card.className='agenda-card';
+            card.innerHTML=`
+                <div class="agenda-date-box">
+                    <div class="agenda-day">${dayStr}</div>
+                    <div class="agenda-month">${monthStr}</div>
+                </div>
+                <div class="agenda-content">
+                    <div class="agenda-patient">👤 ${rdv.patient}</div>
+                    <div class="agenda-motif">${rdv.motif}</div>
+                    <span class="badge-status ${badgeClass}">${badgeText}</span>
+                </div>`;
+            container.appendChild(card);
+        });
+    }
+
+    // ── NOUVEAU RDV ──
+    const form=document.getElementById('agenda-form');
+    const submitBtn=document.getElementById('submit-btn');
+    form.addEventListener('submit', async(e)=>{
+        e.preventDefault();
+        const patient=document.getElementById('a-patient').value.trim();
+        const dateStr=document.getElementById('a-date').value;
+        const motif  =document.getElementById('a-motif').value.trim();
+        if(!patient||!dateStr||!motif){alert('Tous les champs sont obligatoires.');return;}
+        submitBtn.disabled=true;submitBtn.textContent='Enregistrement...';
+        try {
+            await push(agendaRef,{patient,date_prevue:dateStr,motif,cree_le:Date.now()});
+            form.reset();
+            submitBtn.style.background='var(--accent)';submitBtn.textContent='✓ Programmé';
+            setTimeout(()=>{submitBtn.style.background='var(--gold)';submitBtn.textContent='Programmer le rendez-vous';},2000);
+        } catch(err){console.error(err);alert('Erreur lors de l\'enregistrement.');}
+        finally{submitBtn.disabled=false;}
+    });
+
+    window.addEventListener('beforeunload',()=>{off(ticketRef);off(medRef);off(agendaRef);});
+</script>
 </body>
 </html>
