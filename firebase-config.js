@@ -8,12 +8,27 @@
 //  Ces clés sont exposées côté client (comportement normal pour Firebase).
 //  La sécurité réelle repose sur les RÈGLES RTDB & AUTHENTICATION.
 //
-//  Règles Realtime Database recommandées (Firebase Console > RTDB > Rules) :
+//  ⚠️  ATTENTION : la règle ".read"/".write": "auth != null" ne suffit PAS.
+//  Elle autorise N'IMPORTE QUEL utilisateur authentifié (donc un(e) caissier(ère))
+//  à lire/écrire TOUTES les données, y compris le stock pharmacie, les rapports,
+//  etc., même si l'interface (UI) le lui interdit. Le contrôle de rôle actuel
+//  (sessionStorage côté navigateur) n'est qu'un confort d'affichage : il peut
+//  être contourné en modifiant le sessionStorage ou en appelant l'API REST
+//  Firebase directement.
+//
+//  RECOMMANDATION : stocker le rôle de chaque utilisateur côté serveur, par ex.
+//  dans un nœud "db_users/{uid}/role" écrit UNIQUEMENT par un administrateur
+//  (ou via des "custom claims" Firebase Auth), puis écrire des règles RTDB du type :
 //
 //    {
 //      "rules": {
-//        ".read":  "auth != null",
-//        ".write": "auth != null"
+//        "db_pharmacie_stock":   { ".read": "auth != null", ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'" },
+//        "db_pharmacie_reappro": { ".read": "auth != null", ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'" },
+//        "db_agenda":            { ".read": "auth != null", ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'" },
+//        "ticket_dbase":         { ".read": "auth != null", ".write": "auth != null" },
+//        "vente_medicaments":    { ".read": "auth != null", ".write": "auth != null" },
+//        "compteurs":            { ".read": "auth != null", ".write": "auth != null" },
+//        "db_users":             { ".read": "auth != null", ".write": false }
 //      }
 //    }
 //

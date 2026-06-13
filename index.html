@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Portail de connexion sécurisé - Poste de Santé de Diandioly">
     <title>Connexion – Poste de Santé de Diandioly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,249 +20,247 @@
             --border:    #d8e0e8;
             --shadow:    0 12px 40px rgba(26,58,92,0.10);
         }
-
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\n        body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background: var(--bg);
             min-height: 100vh;
             display: flex;
+            align-items: center;
             justify-content: center;
-            align-items: center;
+            padding: 20px;
             color: var(--text);
-            position: relative;
-            overflow: hidden;
         }
-
-        /* Background decoration */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -120px; right: -120px;
-            width: 420px; height: 420px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(14,164,114,0.12) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        body::after {
-            content: '';
-            position: fixed;
-            bottom: -100px; left: -100px;
-            width: 360px; height: 360px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(26,58,92,0.09) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .card {
-            background: var(--card-bg);
-            padding: 44px 40px 36px;
-            border-radius: 16px;
-            box-shadow: var(--shadow);
+        .login-container {
             width: 100%;
-            max-width: 420px;
-            position: relative;
-            border-top: 5px solid var(--primary);
-            animation: slideUp 0.45s cubic-bezier(.22,.68,0,1.2) both;
+            max-width: 440px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 40px 35px;
+            border: 1px solid rgba(216,224,232,0.6);
         }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(24px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Logo zone */
-        .logo-zone {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .header {
+            text-align: center;
             margin-bottom: 30px;
         }
-
-        .logo-icon {
-            width: 56px; height: 56px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
+        .header h1 {
             font-size: 1.6rem;
-            margin-bottom: 14px;
-            box-shadow: 0 4px 14px rgba(26,58,92,0.22);
-        }
-
-        .logo-zone h1 {
-            font-size: 1.35rem;
-            font-weight: 700;
             color: var(--primary);
-            letter-spacing: -0.3px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
         }
-
-        .logo-zone p {
-            font-size: 0.85rem;
+        .header p {
             color: var(--muted);
-            margin-top: 4px;
-            text-align: center;
+            font-size: 0.9rem;
         }
-
-        /* Form */
-        .form-group { margin-bottom: 18px; }
-
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 30px;
+            background: #f4f7fa;
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .role-btn {
+            border: none;
+            background: transparent;
+            padding: 12px;
+            border-radius: 9px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .role-btn:hover {
+            color: var(--primary);
+        }
+        .role-btn.active {
+            background: var(--card-bg);
+            color: var(--primary);
+            box-shadow: 0 4px 12px rgba(26,58,92,0.08);
+            border: 1px solid rgba(216,224,232,0.5);
+        }
+        .form-group {
+            margin-bottom: 24px;
+        }
         .form-group label {
             display: block;
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: var(--primary);
-            margin-bottom: 7px;
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
-        .input-wrapper { position: relative; }
-
-        .input-icon {
-            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-            font-size: 1rem; pointer-events: none; opacity: 0.5;
+        .input-wrapper {
+            position: relative;
         }
-
-        .form-control {
+        .input-wrapper input[type="email"] {
             width: 100%;
-            padding: 11px 12px 11px 38px;
+            padding: 14px 16px;
             border: 1.5px solid var(--border);
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 0.95rem;
             font-family: inherit;
             color: var(--text);
-            transition: border-color 0.2s, box-shadow 0.2s;
             background: #fafbfc;
+            transition: all 0.2s ease;
         }
-
-        .form-control:focus {
+        .input-wrapper input[type="email"]:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(14,164,114,0.15);
-            background: #fff;
+            border-color: var(--primary);
+            background: var(--card-bg);
+            box-shadow: 0 0 0 4px rgba(26,58,92,0.06);
         }
-
-        /* Error */
-        .error-box {
-            background: #fdf1f0;
-            border: 1px solid #f5b7b1;
-            color: var(--danger);
-            padding: 11px 14px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 18px;
-            display: none;
-            align-items: center;
-            gap: 8px;
+        .passcode-container {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-top: 5px;
         }
-        .error-box.visible { display: flex; }
-
-        /* Button */
-        .btn {
+        .passcode-container input {
             width: 100%;
-            padding: 13px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 0.95rem;
+            height: 52px;
+            text-align: center;
+            font-size: 1.4rem;
             font-weight: 700;
-            font-family: inherit;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.15s;
-            margin-top: 6px;
-            letter-spacing: 0.2px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            background: #fafbfc;
+            color: var(--primary);
+            transition: all 0.15s ease;
         }
-        .btn:hover:not(:disabled) {
-            opacity: 0.92;
+        .passcode-container input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--card-bg);
+            box-shadow: 0 0 0 4px rgba(26,58,92,0.06);
+        }
+        .passcode-container input.filled {
+            background: #f0f4f8;
+            border-color: var(--border);
+        }
+        .error-box {
+            background: #fdf2f2;
+            border: 1px solid #f8b4b4;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            display: none;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .error-box.visible {
+            display: flex;
+        }
+        .error-box svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--danger);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .error-box span {
+            font-size: 0.85rem;
+            color: var(--danger);
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .submit-btn:hover:not(:disabled) {
+            background: var(--primary-light);
             transform: translateY(-1px);
         }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .btn.success { background: linear-gradient(135deg, var(--accent), #0b8a5f); }
-
-        /* Forgot password */
-        .forgot-link {
-            display: block;
-            text-align: right;
-            font-size: 0.8rem;
-            color: var(--accent);
-            text-decoration: none;
-            margin-top: -10px;
-            margin-bottom: 18px;
-            font-weight: 500;
-            cursor: pointer;
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(0);
         }
-        .forgot-link:hover { text-decoration: underline; }
-
-        /* Reset success msg */
-        .reset-msg {
-            background: var(--accent-bg);
-            color: #0b6e4c;
-            border: 1px solid #a7e3ce;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 0.85rem;
-            margin-bottom: 16px;
-            display: none;
+        .submit-btn:disabled {
+            background: var(--muted);
+            opacity: 0.6;
+            cursor: not-allowed;
         }
-        .reset-msg.visible { display: block; }
-
-        /* Footer */
-        .card-footer {
+        .submit-btn.success {
+            background: var(--accent) !important;
+        }
+        .footer-note {
             text-align: center;
-            font-size: 0.75rem;
+            margin-top: 25px;
+            font-size: 0.78rem;
             color: var(--muted);
-            margin-top: 24px;
-            border-top: 1px solid var(--border);
-            padding-top: 16px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
         }
-        .card-footer span { color: var(--accent); font-weight: 600; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="logo-zone">
-            <div class="logo-icon">🏥</div>
-            <h1>Portail Médical</h1>
-            <p>Poste de Santé de Diandioly<br>Veuillez vous identifier pour continuer</p>
+
+    <div class="login-container">
+        <div class="header">
+            <h1>Poste de Santé de Diandioly</h1>
+            <p>Portail d'accès sécurisé</p>
         </div>
 
-        <div id="error-box" class="error-box">
-            <span>⚠️</span>
+        <div class="role-selector">
+            <button type="button" class="role-btn active" id="btn-admin" onclick="selectRole('admin')">
+                🛡️ Admin
+            </button>
+            <button type="button" class="role-btn" id="btn-caissier" onclick="selectRole('caissier')">
+                🧾 Caisse / Facturation
+            </button>
+        </div>
+
+        <div class="error-box" id="error-box">
+            <svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/></svg>
             <span id="error-text">Identifiants incorrects.</span>
         </div>
 
-        <div id="reset-msg" class="reset-msg">
-            ✅ Un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception.
-        </div>
-
-        <form id="login-form" novalidate>
+        <form onsubmit="event.preventDefault(); handleLogin();" novalidate>
             <div class="form-group">
                 <label for="email">Adresse Email</label>
                 <div class="input-wrapper">
-                    <span class="input-icon">✉️</span>
-                    <input type="email" id="email" class="form-control"
-                           placeholder="admin@exemple.com" autocomplete="email" required>
+                    <input type="email" id="email" autocomplete="username" placeholder="exemple@sante.sn" required>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="password">Mot de passe</label>
-                <div class="input-wrapper">
-                    <span class="input-icon">🔒</span>
-                    <input type="password" id="password" class="form-control"
-                           placeholder="••••••••" autocomplete="current-password" required>
+                <label>Code Secret (6 chiffres)</label>
+                <div class="passcode-container" id="passcode-fields">
+                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" required>
+                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" required>
+                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" required>
+                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" required>
+                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" required>
+                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" required>
                 </div>
             </div>
 
-            <span class="forgot-link" id="forgot-btn">Mot de passe oublié ?</span>
-
-            <button type="submit" class="btn" id="submit-btn">Se Connecter</button>
+            <button type="submit" class="submit-btn" id="submit-btn">Se Connecter</button>
         </form>
 
-        <div class="card-footer">
-            Système sécurisé – <span>District Sanitaire</span> · Accès réservé au personnel autorisé
+        <div class="footer-note">
+            République du Sénégal · Système National d'Information Sanitaire
         </div>
     </div>
 
@@ -271,62 +268,137 @@
         import { auth } from './firebase-config.js';
         import {
             signInWithEmailAndPassword,
-            onAuthStateChanged,
-            sendPasswordResetEmail
+            onAuthStateChanged
         } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-        // Gardien : redirige si déjà connecté
-        onAuthStateChanged(auth, (user) => {
-            if (user) window.location.href = 'accueil/menu.html';
+        // ─── Rôles & redirections ──────────────────────────────────────
+        let currentRole = 'admin';
+
+        window.selectRole = function(role) {
+            currentRole = role;
+            const btnAdmin    = document.getElementById('btn-admin');
+            const btnCaissier = document.getElementById('btn-caissier');
+            if (role === 'admin') {
+                btnAdmin.classList.add('active');
+                btnAdmin.style.cssText = '';
+                btnCaissier.classList.remove('active');
+                btnCaissier.style.borderColor = 'var(--border)';
+                btnCaissier.style.background   = '#fafbfc';
+                btnCaissier.style.color        = 'var(--muted)';
+            } else {
+                btnCaissier.classList.add('active');
+                btnCaissier.style.cssText = '';
+                btnAdmin.classList.remove('active');
+                btnAdmin.style.borderColor = 'var(--border)';
+                btnAdmin.style.background   = '#fafbfc';
+                btnAdmin.style.color        = 'var(--muted)';
+            }
+        };
+
+        // Gestion automatique des champs passcode
+        const digits = document.querySelectorAll('.digit');
+        digits.forEach((inp, i) => {
+            inp.addEventListener('input', () => {
+                inp.value = inp.value.replace(/[^0-9]/g, '');
+                if (inp.value) {
+                    inp.classList.add('filled');
+                    if (i < 5) digits[i + 1].focus();
+                } else {
+                    inp.classList.remove('filled');
+                }
+            });
+            inp.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !inp.value && i > 0) {
+                    digits[i - 1].focus();
+                    digits[i - 1].value = '';
+                    digits[i - 1].classList.remove('filled');
+                }
+                if (e.key === 'Enter') handleLogin();
+            });
         });
 
-        const loginForm  = document.getElementById('login-form');
-        const submitBtn  = document.getElementById('submit-btn');
-        const errorBox   = document.getElementById('error-box');
-        const errorText  = document.getElementById('error-text');
-        const resetMsg   = document.getElementById('reset-msg');
-        const forgotBtn  = document.getElementById('forgot-btn');
-
         function showError(msg) {
-            errorText.textContent = msg;
-            errorBox.classList.add('visible');
-            resetMsg.classList.remove('visible');
+            document.getElementById('error-text').textContent = msg;
+            document.getElementById('error-box').classList.add('visible');
         }
-
         function hideError() {
-            errorBox.classList.remove('visible');
+            document.getElementById('error-box').classList.remove('visible');
         }
 
-        // Soumission du formulaire
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            hideError();
-
-            const email    = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-
-            if (!email || !password) {
-                showError('Veuillez remplir tous les champs.');
-                return;
+        // Si déjà connecté dans l'historique de session, rediriger directement
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const savedRole = sessionStorage.getItem('userRole');
+                if (savedRole === 'admin') {
+                    window.location.href = 'accueil/menu_admin.html';
+                } else if (savedRole === 'caissier') {
+                    window.location.href = 'accueil/menu_caissier.html';
+                }
             }
+        });
 
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Authentification…';
+        // Fonction d'authentification principale liée à Firebase
+        window.handleLogin = async function() {
+            hideError();
+            const email    = document.getElementById('email').value.trim();
+            const passcode = Array.from(digits).map(d => d.value).join('');
+
+            if (!email) { showError('Veuillez saisir votre adresse email.'); return; }
+            if (passcode.length < 6) { showError('Veuillez saisir les 6 chiffres de votre code secret.'); return; }
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Authentification…';
 
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                submitBtn.classList.add('success');
-                submitBtn.textContent = '✓ Connexion réussie – Redirection…';
-                setTimeout(() => { window.location.href = 'accueil/menu.html'; }, 900);
-            } catch (error) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Se Connecter';
+                // 1. LISTE BLANCHE DES EMAILS (Ajuster ici selon vos comptes réels)
+                const ADMIN_EMAILS = ['adminposte@diandioly.com'];
+                const CAISSIER_EMAILS = ['caisse@sante.sn'];
 
+                // 2. Authentification Firebase
+                await signInWithEmailAndPassword(auth, email, passcode);
+
+                // 3. VÉRIFICATION STRICTE DES DROITS PAR RÔLE
+                const userEmail = email.toLowerCase();
+                let accessGranted = false;
+
+                if (currentRole === 'admin' && ADMIN_EMAILS.includes(userEmail)) {
+                    accessGranted = true;
+                } else if (currentRole === 'caissier' && CAISSIER_EMAILS.includes(userEmail)) {
+                    accessGranted = true;
+                }
+
+                // 4. Blocage si l'utilisateur n'a pas sélectionné son bon rôle dédié
+                if (!accessGranted) {
+                    await auth.signOut(); // Déconnexion immédiate de la session non légitime
+                    showError(`Accès refusé. L'email ${userEmail} n'est pas configuré pour le rôle : ${currentRole}.`);
+                    btn.disabled = false;
+                    btn.textContent = 'Se Connecter';
+                    return; 
+                }
+
+                // 5. Autorisation accordée
+                sessionStorage.setItem('userRole', currentRole);
+                sessionStorage.setItem('userEmail', email);
+                btn.classList.add('success');
+                btn.textContent = '✓ Connexion réussie – Redirection…';
+                
+                setTimeout(() => {
+                    if (currentRole === 'admin') {
+                        window.location.href = 'accueil/menu_admin.html';
+                    } else {
+                        window.location.href = 'accueil/menu_caissier.html';
+                    }
+                }, 900);
+
+            } catch (error) {
+                btn.disabled = false;
+                btn.textContent = 'Se Connecter';
                 switch (error.code) {
                     case 'auth/invalid-credential':
                     case 'auth/user-not-found':
                     case 'auth/wrong-password':
-                        showError('Email ou mot de passe incorrect.'); break;
+                        showError('Email ou code secret incorrect.'); break;
                     case 'auth/invalid-email':
                         showError('Adresse email invalide.'); break;
                     case 'auth/too-many-requests':
@@ -337,23 +409,7 @@
                         showError('Une erreur inattendue est survenue. Veuillez réessayer.');
                 }
             }
-        });
-
-        // Réinitialisation du mot de passe
-        forgotBtn.addEventListener('click', async () => {
-            const email = document.getElementById('email').value.trim();
-            if (!email) {
-                showError('Entrez votre adresse email ci-dessus pour réinitialiser votre mot de passe.');
-                return;
-            }
-            try {
-                await sendPasswordResetEmail(auth, email);
-                hideError();
-                resetMsg.classList.add('visible');
-            } catch (error) {
-                showError('Impossible d\'envoyer l\'email. Vérifiez l\'adresse saisie.');
-            }
-        });
+        };
     </script>
 </body>
 </html>
