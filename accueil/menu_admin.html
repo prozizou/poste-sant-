@@ -223,7 +223,7 @@
     });
 
     onValue(stockRef, (snap) => {
-        document.getElementById('stat-stock').textContent = snap.size || snap.numChildren() || 0;
+        document.getElementById('stat-stock').textContent = snap.numChildren() || 0;
     });
 
     window.deconnexion = () => {
