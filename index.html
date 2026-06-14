@@ -3,6 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1a3a5c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PS Diandioly">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+    <meta name="msapplication-TileColor" content="#1a3a5c">
+    <meta name="description" content="Application de gestion du Poste de Santé de Diandioly – Facturation, Stock, Rapports.">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96x96.png">
     <title>Connexion – Poste de Santé de Diandioly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -216,6 +227,63 @@
             color: var(--muted);
             border-top: 1px solid #eee;
             padding-top: 15px;
+        }
+
+        /* ── PWA Install Banner ──────────────────────────── */
+        #pwa-banner {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--primary);
+            color: #fff;
+            padding: 14px 20px;
+            z-index: 9999;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 0 -4px 20px rgba(26,58,92,0.25);
+            animation: slideUp 0.35s ease;
+        }
+        #pwa-banner.visible { display: flex; }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        #pwa-banner .banner-text {
+            display: flex; align-items: center; gap: 10px; flex: 1;
+        }
+        #pwa-banner .banner-icon { font-size: 1.6rem; flex-shrink: 0; }
+        #pwa-banner .banner-copy { font-size: 0.82rem; line-height: 1.4; }
+        #pwa-banner .banner-copy strong { font-size: 0.9rem; display: block; }
+        #pwa-banner .banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        #pwa-banner .btn-install {
+            padding: 8px 16px; border-radius: 8px;
+            background: var(--accent); color: #fff;
+            border: none; font-size: 0.82rem; font-weight: 700;
+            cursor: pointer; white-space: nowrap;
+        }
+        #pwa-banner .btn-dismiss {
+            padding: 8px 12px; border-radius: 8px;
+            background: rgba(255,255,255,0.15); color: #fff;
+            border: none; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer;
+        }
+        /* Update toast */
+        #update-toast {
+            display: none; position: fixed;
+            top: 16px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: #fff;
+            padding: 12px 20px; border-radius: 10px;
+            font-size: 0.83rem; font-weight: 600;
+            z-index: 9999; white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(26,58,92,0.3);
+            align-items: center; gap: 10px;
+        }
+        #update-toast.visible { display: flex; }
+        #update-toast button {
+            background: var(--accent); border: none; color: #fff;
+            padding: 5px 12px; border-radius: 6px;
+            font-size: 0.8rem; font-weight: 700; cursor: pointer;
         }
     </style>
 </head>
@@ -463,6 +531,102 @@
                 }
             }
         });
+    </script>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-banner" role="complementary" aria-label="Installer l'application">
+        <div class="banner-text">
+            <span class="banner-icon">🏥</span>
+            <div class="banner-copy">
+                <strong>Installer l'application</strong>
+                Accès rapide depuis votre écran d'accueil
+            </div>
+        </div>
+        <div class="banner-actions">
+            <button class="btn-install" id="btn-install-pwa">Installer</button>
+            <button class="btn-dismiss" id="btn-dismiss-pwa" aria-label="Fermer">✕</button>
+        </div>
+    </div>
+
+    <!-- Update available toast -->
+    <div id="update-toast" role="alert">
+        <span>🔄 Mise à jour disponible</span>
+        <button id="btn-update-pwa">Actualiser</button>
+    </div>
+
+    <script>
+    // ── Service Worker Registration ──────────────────────────────────────
+    let deferredInstallPrompt = null;
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            try {
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                console.log('[PWA] Service Worker enregistré :', reg.scope);
+
+                // Détection mise à jour
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            document.getElementById('update-toast').classList.add('visible');
+                        }
+                    });
+                });
+            } catch (err) {
+                console.warn('[PWA] Enregistrement SW échoué :', err);
+            }
+        });
+
+        // Rechargement après mise à jour
+        document.getElementById('btn-update-pwa').addEventListener('click', () => {
+            navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
+            window.location.reload();
+        });
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+        });
+    }
+
+    // ── Install Prompt (Android / Desktop Chrome) ────────────────────────
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        // Afficher le banner seulement si pas déjà installé
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
+            document.getElementById('pwa-banner').classList.add('visible');
+        }
+    });
+
+    document.getElementById('btn-install-pwa').addEventListener('click', async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        document.getElementById('pwa-banner').classList.remove('visible');
+        console.log('[PWA] Installation :', outcome);
+    });
+
+    document.getElementById('btn-dismiss-pwa').addEventListener('click', () => {
+        document.getElementById('pwa-banner').classList.remove('visible');
+        // Ne pas reproposer avant 3 jours
+        localStorage.setItem('pwa-banner-dismissed', Date.now());
+    });
+
+    // Vérifier si déjà refusé récemment
+    window.addEventListener('DOMContentLoaded', () => {
+        const dismissed = localStorage.getItem('pwa-banner-dismissed');
+        if (dismissed && Date.now() - parseInt(dismissed) < 3 * 24 * 60 * 60 * 1000) {
+            document.getElementById('pwa-banner').style.display = 'none !important';
+        }
+    });
+
+    // ── Installed event ──────────────────────────────────────────────────
+    window.addEventListener('appinstalled', () => {
+        document.getElementById('pwa-banner').classList.remove('visible');
+        console.log('[PWA] Application installée avec succès');
+    });
     </script>
 </body>
 </html>

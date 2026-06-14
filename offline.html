@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hors ligne – Poste de Santé de Diandioly</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1a3a5c;
+      --accent:  #0ea472;
+      --bg:      #f0f4f8;
+      --muted:   #6b7a8d;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: var(--primary);
+      text-align: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 48px 36px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 12px 40px rgba(26,58,92,0.10);
+    }
+    .icon {
+      font-size: 3.5rem;
+      margin-bottom: 20px;
+      display: block;
+    }
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 13px 28px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #274e74; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="icon">📡</span>
+    <h1>Connexion indisponible</h1>
+    <p>
+      L'application nécessite une connexion Internet pour s'authentifier et
+      synchroniser les données de santé en temps réel.<br><br>
+      Vérifiez votre réseau, puis réessayez.
+    </p>
+    <button class="btn" onclick="window.location.reload()">↺ Réessayer</button>
+  </div>
+</body>
+</html>
