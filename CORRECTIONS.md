@@ -76,3 +76,27 @@ Conséquences corrigées :
 - **Mode hors-ligne** : envisager de bloquer l'encaissement de
   médicaments si les données de stock ne sont pas chargées
   (`loadedS === false`), pour éviter de vendre à un prix obsolète.
+
+---
+
+## Corrections supplémentaires (audit v2)
+
+### 6. Sécurité – XSS dans `rapports.html` (critique)
+- Ajout de la fonction `esc()` dans `planif_rapport/rapports.html`.
+- `rdv.patient` et `rdv.motif` sont désormais échappés via `esc()` avant injection dans `innerHTML` — cohérent avec le reste du code.
+
+### 7. Robustesse – Blocage encaissement médicaments si stock non chargé
+- `encaisserMedicaments()` vérifie maintenant `loadedS === true` avant de procéder.
+- Si le stock n'est pas encore synchronisé, un message d'erreur explicite est affiché et l'encaissement est bloqué, évitant tout risque de vente au prix 0 ou obsolète.
+
+### 8. UI – Filtre "Trimestre" dans `facturation.html`
+- L'option `Ce trimestre` (`value="quarter"`) a été ajoutée aux deux sélecteurs de période (tickets et médicaments), alignant l'UI avec le code `filterByPeriod('quarter')` qui existait déjà dans `script.js`.
+
+### 9. Code mort – `snap.size` dans `menu_admin.html`
+- `snap.size || snap.numChildren()` simplifié en `snap.numChildren()` : `size` n'existe pas sur un `DataSnapshot` RTDB (propriété Firestore) donc la première branche était toujours falsy. La logique est identique, le code est moins trompeur.
+
+### 10. Gestion agenda dans `rapports.html`
+- Ajout des fonctions `marquerHonore(key)` et `supprimerRdv(key)` (avec `update` et `remove` Firebase).
+- Chaque carte de rendez-vous affiche désormais un bouton "✓ Honoré" et un bouton "🗑 Suppr." permettant de gérer le cycle de vie des RDV sans accumulation indéfinie.
+- Validation côté JS : la date saisie doit être ≥ aujourd'hui (complète la contrainte HTML `required`).
+- Import `remove` et `update` ajoutés à la ligne d'import `firebase-database.js`.
