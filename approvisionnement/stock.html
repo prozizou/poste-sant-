@@ -3,135 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#1a3a5c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PS Diandioly">
+    <link rel="apple-touch-icon" href="../icons/icon-152x152.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-96x96.png">
     <title>Stock Pharmacie – Poste de Santé de Diandioly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* ══════════════════════════════════════════
+           VARIABLES
+        ══════════════════════════════════════════ */
         :root {
-            --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
-            --purple:#7b5ea7;--purple-light:#9b7ec8;--purple-bg:#f0ebf8;
-            --danger:#c0392b;--danger-bg:#fdf1f0;
-            --warning:#d68910;--warning-bg:#fef9ec;
-            --green:#0ea472;--green-bg:#e6f7f1;
-            --bg:#f0f4f8;--card-bg:#ffffff;
-            --text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
+            --primary:       #1a3a5c;
+            --primary-light: #274e74;
+            --accent:        #0ea472;
+            --purple:        #7b5ea7;
+            --purple-light:  #9b7ec8;
+            --purple-bg:     #f0ebf8;
+            --danger:        #c0392b;
+            --danger-bg:     #fdf1f0;
+            --warning:       #d68910;
+            --warning-bg:    #fef9ec;
+            --green:         #0ea472;
+            --green-bg:      #e6f7f1;
+            --req-bg:        #fff8f7;
+            --req-border:    #f5b7b1;
+            --bg:            #f0f4f8;
+            --card-bg:       #ffffff;
+            --text:          #1e2a38;
+            --muted:         #6b7a8d;
+            --border:        #d8e0e8;
         }
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-        /* TOPBAR */
-        .topbar{background:linear-gradient(135deg,var(--purple),var(--purple-light));color:white;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(123,94,167,.3);position:sticky;top:0;z-index:100;}
-        .topbar-left{display:flex;align-items:center;gap:12px;}
-        .back-btn{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:white;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .2s;}
-        .back-btn:hover{background:rgba(255,255,255,.25);}
-        .topbar h1{font-size:1.05rem;font-weight:700;}
-        .topbar p{font-size:.72rem;opacity:.8;}
-        .conn-badge{background:rgba(14,164,114,.25);border:1px solid rgba(14,164,114,.4);color:#7dffd0;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;}
+        /* ── TOPBAR ── */
+        .topbar {
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; padding: 0 28px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(123,94,167,.3);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .back-btn {
+            background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.3);
+            color: white; padding: 7px 14px; border-radius: 8px;
+            font-family: inherit; font-size: .82rem; font-weight: 600;
+            cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px; transition: background .2s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,.25); }
+        .topbar h1 { font-size: 1.05rem; font-weight: 700; }
+        .topbar p  { font-size: .72rem; opacity: .8; }
+        .conn-badge {
+            background: rgba(14,164,114,.25); border: 1px solid rgba(14,164,114,.4);
+            color: #7dffd0; font-size: .75rem; font-weight: 700; padding: 5px 12px; border-radius: 20px;
+        }
 
-        .page{padding:24px;max-width:1400px;margin:0 auto;}
+        .page { padding: 24px; max-width: 1400px; margin: 0 auto; }
 
-        /* TABS */
-        .tabs-wrap{display:flex;gap:4px;background:var(--card-bg);padding:4px;border-radius:12px;border:1px solid var(--border);margin-bottom:24px;width:fit-content;}
-        .tab-btn{padding:9px 20px;border:none;border-radius:9px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted);}
-        .tab-btn.active{background:var(--purple);color:white;box-shadow:0 2px 8px rgba(123,94,167,.3);}
+        /* ── TABS ── */
+        .tabs-wrap {
+            display: flex; gap: 4px; background: var(--card-bg);
+            padding: 4px; border-radius: 12px; border: 1px solid var(--border);
+            margin-bottom: 24px; width: fit-content;
+        }
+        .tab-btn {
+            padding: 9px 20px; border: none; border-radius: 9px;
+            font-family: inherit; font-size: .85rem; font-weight: 700;
+            cursor: pointer; transition: all .2s; background: transparent; color: var(--muted);
+        }
+        .tab-btn.active { background: var(--purple); color: white; box-shadow: 0 2px 8px rgba(123,94,167,.3); }
 
-        /* STATS */
-        .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px;}
-        .stat-card{background:var(--card-bg);border-radius:12px;padding:16px 18px;border:1px solid var(--border);box-shadow:0 2px 6px rgba(0,0,0,.03);}
-        .stat-label{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
-        .stat-val{font-size:1.4rem;font-weight:800;color:var(--primary);}
-        .stat-val.red{color:var(--danger);}
-        .stat-val.orange{color:var(--warning);}
+        /* ── STATS ── */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; margin-bottom: 24px; }
+        .stat-card {
+            background: var(--card-bg); border-radius: 12px; padding: 16px 18px;
+            border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,.03);
+        }
+        .stat-label { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+        .stat-val   { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+        .stat-val.red    { color: var(--danger); }
+        .stat-val.orange { color: var(--warning); }
 
-        /* PANEL */
-        .panel{background:var(--card-bg);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.03);margin-bottom:24px;overflow:hidden;}
-        .panel-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-        .panel-head-left{display:flex;align-items:center;gap:10px;}
-        .panel-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--purple-bg);}
-        .panel-head h2{font-size:.95rem;font-weight:700;color:var(--primary);}
-        .panel-head p{font-size:.76rem;color:var(--muted);margin-top:1px;}
-        .panel-body{padding:22px;}
+        /* ── PANEL ── */
+        .panel {
+            background: var(--card-bg); border-radius: 14px; border: 1px solid var(--border);
+            box-shadow: 0 2px 10px rgba(0,0,0,.03); margin-bottom: 24px; overflow: hidden;
+        }
+        .panel-head {
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        }
+        .panel-head-left { display: flex; align-items: center; gap: 10px; }
+        .panel-icon {
+            width: 36px; height: 36px; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; background: var(--purple-bg);
+        }
+        .panel-head h2 { font-size: .95rem; font-weight: 700; color: var(--primary); }
+        .panel-head p  { font-size: .76rem; color: var(--muted); margin-top: 1px; }
+        .panel-body { padding: 22px; }
 
-        /* FORM GRID */
-        .form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
-        .form-grid.three{grid-template-columns:repeat(3,1fr);}
-        .form-grid.two{grid-template-columns:1fr 1fr;}
-        .fg{display:flex;flex-direction:column;gap:5px;}
-        .fg.span2{grid-column:span 2;}
-        .fg.span3{grid-column:span 3;}
-        label{font-size:.78rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.4px;}
-        label .req{color:var(--danger);}
-        label .opt{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;}
-        .fc{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;color:var(--text);background:#fafbfc;transition:border-color .2s,box-shadow .2s;}
-        .fc:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(123,94,167,.15);background:#fff;}
-        select.fc{cursor:pointer;}
+        /* ── SECTION DIVIDER ── */
+        .sect-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0 14px; }
+        .sect-divider span {
+            font-size: .75rem; font-weight: 800; color: var(--muted);
+            text-transform: uppercase; letter-spacing: .6px; white-space: nowrap;
+        }
+        .sect-divider.req-section span { color: var(--danger); }
+        .sect-divider::before, .sect-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        .sect-divider.req-section::before, .sect-divider.req-section::after { background: var(--req-border); }
 
-        /* SECTION DIVIDER */
-        .sect-divider{display:flex;align-items:center;gap:10px;margin:20px 0 14px;}
-        .sect-divider span{font-size:.75rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;}
-        .sect-divider::before,.sect-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+        /* ── FORM GRID ── */
+        .form-grid   { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 14px; }
+        .form-grid.two   { grid-template-columns: 1fr 1fr; }
+        .form-grid.three { grid-template-columns: repeat(3,1fr); }
+        .fg { display: flex; flex-direction: column; gap: 5px; }
+        .fg.span2 { grid-column: span 2; }
+        .fg.span3 { grid-column: span 3; }
 
-        /* PRIX GRID */
-        .prix-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
-        .prix-card{background:#fafbfc;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;}
-        .prix-card label{font-size:.72rem;}
-        .prix-card .fc{font-size:.88rem;padding:8px 10px;}
+        /* ── CHAMPS OBLIGATOIRES (highlight) ── */
+        .req-band {
+            background: var(--req-bg); border: 1.5px solid var(--req-border);
+            border-radius: 12px; padding: 18px; margin-bottom: 6px;
+        }
+        .req-band .form-grid { margin-top: 0; }
 
-        /* ALERTS */
-        .alert{padding:10px 14px;border-radius:8px;font-size:.85rem;margin-bottom:16px;display:none;align-items:center;gap:8px;}
-        .alert.visible{display:flex;}
-        .alert.success{background:var(--green-bg);border:1px solid #a7e3ce;color:#0b6e4c;}
-        .alert.error{background:var(--danger-bg);border:1px solid #f5b7b1;color:var(--danger);}
+        /* ── LABELS ── */
+        label { font-size: .78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .4px; }
+        label .req { color: var(--danger); margin-left: 2px; }
+        label .opt { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: .76rem; }
 
-        /* BTN */
-        .btn-submit{padding:11px 24px;background:linear-gradient(135deg,var(--purple),var(--purple-light));color:white;border:none;border-radius:9px;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .15s;display:flex;align-items:center;gap:8px;}
-        .btn-submit:hover{opacity:.9;transform:translateY(-1px);}
-        .btn-submit:disabled{opacity:.6;cursor:not-allowed;transform:none;}
-        .btn-secondary{padding:10px 18px;background:var(--bg);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;}
-        .btn-secondary:hover{border-color:var(--purple);color:var(--purple);}
+        /* ── FORM CONTROLS ── */
+        .fc {
+            width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: .88rem; font-family: inherit;
+            color: var(--text); background: #fafbfc;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .fc:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(123,94,167,.15); background: #fff; }
+        .fc.req-field { border-color: var(--req-border); background: var(--req-bg); }
+        .fc.req-field:focus { border-color: var(--purple); background: #fff; box-shadow: 0 0 0 3px rgba(123,94,167,.15); }
+        .fc.invalid { border-color: var(--danger) !important; background: var(--danger-bg) !important; }
+        select.fc { cursor: pointer; }
 
-        /* SEARCH + FILTER */
-        .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
-        .search-wrap{position:relative;flex:1;min-width:200px;}
-        .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.45;font-size:.9rem;}
-        .search-input{width:100%;padding:9px 12px 9px 32px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;background:#fafbfc;}
-        .search-input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(123,94,167,.12);}
-        .filter-select{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;background:#fafbfc;cursor:pointer;color:var(--text);}
+        /* ── PRIX GRID ── */
+        .prix-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 12px; }
+        .prix-card { background: #fafbfc; border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+        .prix-card.req-prix { background: var(--req-bg); border-color: var(--req-border); }
+        .prix-card label { font-size: .72rem; }
+        .prix-card .fc   { font-size: .88rem; padding: 8px 10px; }
 
-        /* TABLE */
-        .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
-        table{width:100%;border-collapse:collapse;font-size:.82rem;}
-        thead tr{background:#f5f7fa;}
-        th{padding:11px 14px;text-align:left;font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
-        td{padding:11px 14px;border-bottom:1px solid #f0f2f5;vertical-align:middle;}
-        tr:last-child td{border-bottom:none;}
-        tr:hover td{background:#fafbfd;}
-        .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:700;white-space:nowrap;}
-        .badge.ok{background:#e6f7f1;color:#0b6e4c;}
-        .badge.warn{background:#fef9ec;color:#7a5200;}
-        .badge.expired{background:var(--danger-bg);color:var(--danger);}
-        .badge.low{background:#fdeaea;color:#c0392b;}
-        .pill-type{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:700;background:var(--purple-bg);color:var(--purple);}
-        .btn-icon{background:none;border:1.5px solid var(--border);padding:5px 9px;border-radius:7px;cursor:pointer;font-size:.85rem;transition:all .2s;color:var(--muted);}
-        .btn-icon:hover{border-color:var(--danger);color:var(--danger);}
-        .empty-state{text-align:center;padding:48px 20px;color:var(--muted);}
-        .empty-state .empty-icon{font-size:2.5rem;margin-bottom:12px;}
-        .empty-state p{font-size:.88rem;}
+        /* ── ALERTS ── */
+        .alert { padding: 10px 14px; border-radius: 8px; font-size: .85rem; margin-bottom: 16px; display: none; align-items: center; gap: 8px; }
+        .alert.visible { display: flex; }
+        .alert.success { background: var(--green-bg); border: 1px solid #a7e3ce; color: #0b6e4c; }
+        .alert.error   { background: var(--danger-bg); border: 1px solid #f5b7b1; color: var(--danger); }
 
-        /* PANE */
-        .tab-pane{display:none;}
-        .tab-pane.active{display:block;}
+        /* ── BUTTONS ── */
+        .btn-submit {
+            padding: 11px 24px;
+            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            color: white; border: none; border-radius: 9px;
+            font-family: inherit; font-size: .9rem; font-weight: 700;
+            cursor: pointer; transition: opacity .2s, transform .15s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-submit:hover    { opacity: .9; transform: translateY(-1px); }
+        .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+        .btn-secondary {
+            padding: 10px 18px; background: var(--bg); border: 1.5px solid var(--border);
+            color: var(--muted); border-radius: 9px; font-family: inherit;
+            font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .2s;
+        }
+        .btn-secondary:hover { border-color: var(--purple); color: var(--purple); }
 
-        @media(max-width:700px){
-            .form-grid.three{grid-template-columns:1fr;}
-            .fg.span2,.fg.span3{grid-column:span 1;}
-            .page{padding:14px;}
-            .panel-body{padding:14px;}
+        /* ── TOOLBAR / SEARCH ── */
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+        .search-wrap { position: relative; flex: 1; min-width: 200px; }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: .45; font-size: .9rem; }
+        .search-input {
+            width: 100%; padding: 9px 12px 9px 32px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: .85rem; font-family: inherit; background: #fafbfc;
+        }
+        .search-input:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(123,94,167,.12); }
+        .filter-select {
+            padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: .82rem; font-family: inherit; background: #fafbfc;
+            cursor: pointer; color: var(--text);
+        }
+
+        /* ── TABLE ── */
+        .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+        thead tr { background: #f5f7fa; }
+        th {
+            padding: 11px 14px; text-align: left; font-size: .72rem; font-weight: 800;
+            color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
+            border-bottom: 1px solid var(--border); white-space: nowrap;
+        }
+        td { padding: 11px 14px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafbfd; }
+
+        /* ── BADGES ── */
+        .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+        .badge.ok      { background: #e6f7f1; color: #0b6e4c; }
+        .badge.warn    { background: #fef9ec; color: #7a5200; }
+        .badge.expired { background: var(--danger-bg); color: var(--danger); }
+        .badge.low     { background: #fdeaea; color: #c0392b; }
+        .pill-type { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; background: var(--purple-bg); color: var(--purple); }
+
+        /* ── ACTION BUTTONS ── */
+        .btn-icon { background: none; border: 1.5px solid var(--border); padding: 5px 9px; border-radius: 7px; cursor: pointer; font-size: .85rem; transition: all .2s; color: var(--muted); }
+        .btn-icon:hover { border-color: var(--danger); color: var(--danger); }
+
+        /* ── EMPTY STATE ── */
+        .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+        .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+        .empty-state p { font-size: .88rem; }
+
+        /* ── TAB PANES ── */
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ── LEGEND OBLIGATOIRE ── */
+        .req-legend {
+            display: flex; align-items: center; gap: 8px;
+            font-size: .75rem; color: var(--muted); margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .req-legend .dot-req { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); display: inline-block; }
+        .req-legend .dot-opt { width: 8px; height: 8px; border-radius: 50%; background: var(--border); display: inline-block; }
+
+        /* ── OPTIONAL BLOCK (collapsible) ── */
+        .opt-toggle {
+            display: flex; align-items: center; gap: 8px; cursor: pointer;
+            padding: 10px 14px; background: var(--bg); border: 1.5px solid var(--border);
+            border-radius: 9px; margin: 18px 0 0; font-size: .82rem; font-weight: 700;
+            color: var(--muted); transition: all .2s; user-select: none;
+        }
+        .opt-toggle:hover { border-color: var(--purple); color: var(--purple); }
+        .opt-toggle .arrow { transition: transform .25s; font-size: .7rem; }
+        .opt-toggle.open .arrow { transform: rotate(90deg); }
+        .opt-block { display: none; margin-top: 14px; }
+        .opt-block.open { display: block; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 700px) {
+            .form-grid.three { grid-template-columns: 1fr; }
+            .form-grid.two   { grid-template-columns: 1fr; }
+            .fg.span2, .fg.span3 { grid-column: span 1; }
+            .page { padding: 14px; }
+            .panel-body { padding: 14px; }
         }
     </style>
 </head>
 <body>
 
+<!-- ══════════════════════════════════════════
+     TOPBAR
+══════════════════════════════════════════ -->
 <nav class="topbar">
     <div class="topbar-left">
         <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
@@ -145,7 +282,9 @@
 
 <div class="page">
 
-    <!-- Statistiques rapides -->
+    <!-- ══════════════════════════════════════════
+         STATISTIQUES RAPIDES
+    ══════════════════════════════════════════ -->
     <div class="stats-row">
         <div class="stat-card">
             <div class="stat-label">Total références</div>
@@ -169,14 +308,18 @@
         </div>
     </div>
 
-    <!-- Onglets -->
+    <!-- ══════════════════════════════════════════
+         ONGLETS
+    ══════════════════════════════════════════ -->
     <div class="tabs-wrap">
-        <button class="tab-btn active" onclick="switchTab('inventaire')">📋 Inventaire</button>
-        <button class="tab-btn" onclick="switchTab('entree')">➕ Nouvelle Entrée</button>
-        <button class="tab-btn" onclick="switchTab('reappro')">🔄 Réapprovisionnement</button>
+        <button class="tab-btn active" onclick="switchTab('inventaire', this)">📋 Inventaire</button>
+        <button class="tab-btn"        onclick="switchTab('entree',     this)">➕ Nouvelle Entrée</button>
+        <button class="tab-btn"        onclick="switchTab('reappro',    this)">🔄 Réapprovisionnement</button>
     </div>
 
-    <!-- ══════════════ TAB 1 : INVENTAIRE ══════════════ -->
+    <!-- ══════════════════════════════════════════
+         TAB 1 : INVENTAIRE
+    ══════════════════════════════════════════ -->
     <div class="tab-pane active" id="pane-inventaire">
         <div class="panel">
             <div class="panel-head">
@@ -192,7 +335,9 @@
                 <div class="toolbar">
                     <div class="search-wrap">
                         <span class="search-icon">🔍</span>
-                        <input type="text" class="search-input" id="search-inv" placeholder="Rechercher un médicament…" oninput="filterInventaire()">
+                        <input type="text" class="search-input" id="search-inv"
+                               placeholder="Rechercher un médicament ou un lot…"
+                               oninput="filterInventaire()">
                     </div>
                     <select class="filter-select" id="filter-cat" onchange="filterInventaire()">
                         <option value="">Toutes catégories</option>
@@ -223,20 +368,26 @@
                         <thead>
                             <tr>
                                 <th>Médicament</th>
-                                <th>Catégorie</th>
                                 <th>Forme</th>
+                                <th>Catégorie</th>
                                 <th>Qté</th>
                                 <th>Unité</th>
-                                <th>Lot</th>
-                                <th>Fabrication</th>
                                 <th>Péremption</th>
                                 <th>P. Unitaire</th>
+                                <th>Lot</th>
                                 <th>Statut</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="inv-tbody">
-                            <tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📦</div><p>Chargement du stock…</p></div></td></tr>
+                            <tr>
+                                <td colspan="10">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">📦</div>
+                                        <p>Chargement du stock…</p>
+                                    </div>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -244,7 +395,9 @@
         </div>
     </div>
 
-    <!-- ══════════════ TAB 2 : NOUVELLE ENTRÉE ══════════════ -->
+    <!-- ══════════════════════════════════════════
+         TAB 2 : NOUVELLE ENTRÉE
+    ══════════════════════════════════════════ -->
     <div class="tab-pane" id="pane-entree">
         <div class="panel">
             <div class="panel-head">
@@ -252,7 +405,7 @@
                     <div class="panel-icon">➕</div>
                     <div>
                         <h2>Enregistrer une Entrée en Stock</h2>
-                        <p>Saisie complète d'un médicament ou produit pharmaceutique</p>
+                        <p>Renseignez les 5 champs obligatoires, puis complétez les informations optionnelles si disponibles</p>
                     </div>
                 </div>
             </div>
@@ -260,209 +413,262 @@
 
                 <div id="alert-entree" class="alert"></div>
 
-                <!-- IDENTIFICATION -->
-                <div class="sect-divider"><span>🏷️ Identification du Produit</span></div>
-                <div class="form-grid">
-                    <div class="fg span2">
-                        <label>Dénomination commune internationale (DCI) / Nom commercial <span class="req">*</span></label>
-                        <input type="text" class="fc" id="e-nom" placeholder="Ex: Amoxicilline 500mg – CLAMOX">
-                    </div>
-                    <div class="fg">
-                        <label>Catégorie thérapeutique <span class="req">*</span></label>
-                        <select class="fc" id="e-categorie">
-                            <option value="">— Sélectionner —</option>
-                            <option>Antibiotique</option>
-                            <option>Antalgique</option>
-                            <option>Antipaludéen</option>
-                            <option>Antihypertenseur</option>
-                            <option>Antidiabétique</option>
-                            <option>Antiparasitaire</option>
-                            <option>Vitamines & Suppléments</option>
-                            <option>Contraceptif</option>
-                            <option>Vaccin</option>
-                            <option>Soluté & Perfusion</option>
-                            <option>Désinfectant & Antiseptique</option>
-                            <option>Matériel médical</option>
-                            <option>Autre</option>
-                        </select>
-                    </div>
-                    <div class="fg">
-                        <label>Forme pharmaceutique <span class="req">*</span></label>
-                        <select class="fc" id="e-forme">
-                            <option value="">— Sélectionner —</option>
-                            <option>Comprimé</option>
-                            <option>Gélule</option>
-                            <option>Sirop</option>
-                            <option>Solution injectable</option>
-                            <option>Suppositoire</option>
-                            <option>Pommade / Crème</option>
-                            <option>Collyre</option>
-                            <option>Sachet</option>
-                            <option>Ampoule</option>
-                            <option>Flacon</option>
-                            <option>Spray / Inhalateur</option>
-                            <option>Patch</option>
-                            <option>Gouttes</option>
-                            <option>Autre</option>
-                        </select>
-                    </div>
-                    <div class="fg">
-                        <label>Dosage / Concentration <span class="opt">(optionnel)</span></label>
-                        <input type="text" class="fc" id="e-dosage" placeholder="Ex: 500mg, 250mg/5ml">
-                    </div>
-                    <div class="fg">
-                        <label>Fabricant / Laboratoire <span class="opt">(optionnel)</span></label>
-                        <input type="text" class="fc" id="e-fabricant" placeholder="Ex: Sanofi, GSK, CAMEG">
-                    </div>
-                    <div class="fg">
-                        <label>Pays d'origine <span class="opt">(optionnel)</span></label>
-                        <input type="text" class="fc" id="e-pays" placeholder="Ex: France, Inde, Sénégal">
-                    </div>
-                    <div class="fg">
-                        <label>Numéro de lot <span class="req">*</span></label>
-                        <input type="text" class="fc" id="e-lot" placeholder="Ex: BT2024-007">
-                    </div>
-                    <div class="fg">
-                        <label>Numéro AMM <span class="opt">(optionnel)</span></label>
-                        <input type="text" class="fc" id="e-amm" placeholder="Ex: DMP/2023/0142">
-                    </div>
-                    <div class="fg">
-                        <label>Ordonnance requise</label>
-                        <select class="fc" id="e-ordonnance">
-                            <option value="non">Non</option>
-                            <option value="oui">Oui</option>
-                        </select>
-                    </div>
+                <!-- LÉGENDE -->
+                <div class="req-legend">
+                    <span class="dot-req"></span><span>Champ obligatoire</span>
+                    <span style="margin-left:12px" class="dot-opt"></span><span>Champ optionnel</span>
                 </div>
 
-                <!-- DATES -->
-                <div class="sect-divider"><span>📅 Dates</span></div>
-                <div class="form-grid three">
-                    <div class="fg">
-                        <label>Date de fabrication <span class="opt">(optionnel)</span></label>
-                        <input type="date" class="fc" id="e-date-fab">
-                    </div>
-                    <div class="fg">
-                        <label>Date d'entrée en stock <span class="req">*</span></label>
-                        <input type="date" class="fc" id="e-date-entree">
-                    </div>
-                    <div class="fg">
-                        <label>Date de péremption <span class="req">*</span></label>
-                        <input type="date" class="fc" id="e-date-peremption">
-                    </div>
-                    <div class="fg">
-                        <label>Heure d'enregistrement</label>
-                        <input type="time" class="fc" id="e-heure" readonly style="background:#f5f7fa;color:var(--muted);">
-                    </div>
-                    <div class="fg">
-                        <label>Enregistré par <span class="opt">(optionnel)</span></label>
-                        <input type="text" class="fc" id="e-agent" placeholder="Nom de l'agent">
-                    </div>
-                    <div class="fg">
-                        <label>Source d'approvisionnement <span class="opt">(optionnel)</span></label>
-                        <select class="fc" id="e-source">
-                            <option value="">— Sélectionner —</option>
-                            <option>District sanitaire</option>
-                            <option>PNA – Pharmacie Nationale</option>
-                            <option>Donation / ONG</option>
-                            <option>Achat direct</option>
-                            <option>Transfert interne</option>
-                            <option>Autre</option>
-                        </select>
-                    </div>
+                <!-- ════════════════════════════════
+                     BLOC 1 — CHAMPS OBLIGATOIRES
+                ════════════════════════════════ -->
+                <div class="sect-divider req-section">
+                    <span>🔴 Informations obligatoires</span>
                 </div>
 
-                <!-- QUANTITÉS -->
-                <div class="sect-divider"><span>📦 Quantités</span></div>
-                <div class="form-grid">
-                    <div class="fg">
-                        <label>Quantité reçue <span class="req">*</span></label>
-                        <input type="number" class="fc" id="e-qte" placeholder="Ex: 100" min="0">
-                    </div>
-                    <div class="fg">
-                        <label>Unité de mesure <span class="req">*</span></label>
-                        <select class="fc" id="e-unite">
-                            <option value="comprimé(s)">Comprimé(s)</option>
-                            <option value="gélule(s)">Gélule(s)</option>
-                            <option value="flacon(s)">Flacon(s)</option>
-                            <option value="boîte(s)">Boîte(s)</option>
-                            <option value="bouteille(s)">Bouteille(s)</option>
-                            <option value="ampoule(s)">Ampoule(s)</option>
-                            <option value="sachet(s)">Sachet(s)</option>
-                            <option value="tube(s)">Tube(s)</option>
-                            <option value="unité(s)">Unité(s)</option>
-                        </select>
-                    </div>
-                    <div class="fg">
-                        <label>Conditionnement <span class="opt">(optionnel)</span></label>
-                        <input type="text" class="fc" id="e-cond" placeholder="Ex: Boîte de 30 cp, Flacon 250ml">
-                    </div>
-                    <div class="fg">
-                        <label>Seuil alerte stock bas <span class="opt">(optionnel)</span></label>
-                        <input type="number" class="fc" id="e-seuil" placeholder="Ex: 20" min="0">
-                    </div>
-                </div>
+                <div class="req-band">
+                    <div class="form-grid">
 
-                <!-- PRIX -->
-                <div class="sect-divider"><span>💰 Tarification</span></div>
-                <div class="prix-grid">
-                    <div class="prix-card">
-                        <label>Prix unitaire (FCFA) <span class="req">*</span></label>
-                        <input type="number" class="fc" id="e-prix-unitaire" placeholder="Ex: 150" min="0">
-                    </div>
-                    <div class="prix-card">
-                        <label>Prix par boîte <span class="opt">(optionnel)</span></label>
-                        <input type="number" class="fc" id="e-prix-boite" placeholder="Ex: 3000" min="0">
-                    </div>
-                    <div class="prix-card">
-                        <label>Prix par bouteille <span class="opt">(optionnel)</span></label>
-                        <input type="number" class="fc" id="e-prix-bouteille" placeholder="Ex: 1500" min="0">
-                    </div>
-                    <div class="prix-card">
-                        <label>Prix d'achat (coût) <span class="opt">(optionnel)</span></label>
-                        <input type="number" class="fc" id="e-prix-achat" placeholder="Ex: 100" min="0">
-                    </div>
-                    <div class="prix-card">
-                        <label>Prix demi-gros <span class="opt">(optionnel)</span></label>
-                        <input type="number" class="fc" id="e-prix-demigros" placeholder="Ex: 120" min="0">
-                    </div>
-                    <div class="prix-card">
-                        <label>Prix gros <span class="opt">(optionnel)</span></label>
-                        <input type="number" class="fc" id="e-prix-gros" placeholder="Ex: 100" min="0">
-                    </div>
-                </div>
+                        <!-- 1. Nom du médicament -->
+                        <div class="fg span2">
+                            <label>Nom du médicament / DCI <span class="req">*</span></label>
+                            <input type="text" class="fc req-field" id="e-nom"
+                                   placeholder="Ex : Amoxicilline 500mg – CLAMOX"
+                                   required autocomplete="off">
+                        </div>
 
-                <!-- OBSERVATIONS -->
-                <div class="sect-divider"><span>📝 Observations</span></div>
-                <div class="form-grid">
-                    <div class="fg span2">
-                        <label>Conditions de stockage <span class="opt">(optionnel)</span></label>
-                        <select class="fc" id="e-stockage">
-                            <option value="">— Sélectionner —</option>
-                            <option>Température ambiante (15–30°C)</option>
-                            <option>Réfrigéré (2–8°C)</option>
-                            <option>Congelé (–20°C)</option>
-                            <option>À l'abri de la lumière</option>
-                            <option>Lieu sec</option>
-                        </select>
-                    </div>
-                    <div class="fg span2">
-                        <label>Observations / Remarques <span class="opt">(optionnel)</span></label>
-                        <textarea class="fc" id="e-obs" rows="3" placeholder="Informations complémentaires, instructions particulières…" style="resize:vertical;"></textarea>
-                    </div>
-                </div>
+                        <!-- 2. Forme pharmaceutique -->
+                        <div class="fg">
+                            <label>Forme pharmaceutique <span class="req">*</span></label>
+                            <select class="fc req-field" id="e-forme" required>
+                                <option value="">— Sélectionner —</option>
+                                <option>Comprimé</option>
+                                <option>Gélule</option>
+                                <option>Sirop</option>
+                                <option>Solution injectable</option>
+                                <option>Suppositoire</option>
+                                <option>Pommade / Crème</option>
+                                <option>Collyre</option>
+                                <option>Sachet</option>
+                                <option>Ampoule</option>
+                                <option>Flacon</option>
+                                <option>Spray / Inhalateur</option>
+                                <option>Patch</option>
+                                <option>Gouttes</option>
+                                <option>Autre</option>
+                            </select>
+                        </div>
 
-                <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+                        <!-- 3. Date de péremption -->
+                        <div class="fg">
+                            <label>Date de péremption <span class="req">*</span></label>
+                            <input type="date" class="fc req-field" id="e-date-peremption" required>
+                        </div>
+
+                        <!-- 4. Quantité reçue -->
+                        <div class="fg">
+                            <label>Quantité reçue <span class="req">*</span></label>
+                            <input type="number" class="fc req-field" id="e-qte"
+                                   placeholder="Ex : 100" min="0" step="1" required>
+                        </div>
+
+                        <!-- 5. Prix unitaire -->
+                        <div class="fg">
+                            <label>Prix unitaire (FCFA) <span class="req">*</span></label>
+                            <input type="number" class="fc req-field" id="e-prix-unitaire"
+                                   placeholder="Ex : 150" min="0" step="1" required>
+                        </div>
+
+                    </div>
+                </div><!-- /req-band -->
+
+                <!-- ════════════════════════════════
+                     BLOC 2 — INFORMATIONS OPTIONNELLES
+                ════════════════════════════════ -->
+                <button type="button" class="opt-toggle" id="opt-toggle-btn" onclick="toggleOptional()">
+                    <span class="arrow">▶</span>
+                    <span>Afficher les informations complémentaires</span>
+                    <span style="margin-left:auto;font-size:.72rem;font-weight:400;color:var(--muted)">Dosage, fabricant, lot, tarifs, stockage…</span>
+                </button>
+
+                <div class="opt-block" id="opt-block">
+
+                    <!-- IDENTIFICATION COMPLÈTE -->
+                    <div class="sect-divider"><span>🏷️ Identification complémentaire</span></div>
+                    <div class="form-grid">
+                        <div class="fg">
+                            <label>Catégorie thérapeutique <span class="opt">(optionnel)</span></label>
+                            <select class="fc" id="e-categorie">
+                                <option value="">— Sélectionner —</option>
+                                <option>Antibiotique</option>
+                                <option>Antalgique</option>
+                                <option>Antipaludéen</option>
+                                <option>Antihypertenseur</option>
+                                <option>Antidiabétique</option>
+                                <option>Antiparasitaire</option>
+                                <option>Vitamines & Suppléments</option>
+                                <option>Contraceptif</option>
+                                <option>Vaccin</option>
+                                <option>Soluté & Perfusion</option>
+                                <option>Désinfectant & Antiseptique</option>
+                                <option>Matériel médical</option>
+                                <option>Autre</option>
+                            </select>
+                        </div>
+                        <div class="fg">
+                            <label>Dosage / Concentration <span class="opt">(optionnel)</span></label>
+                            <input type="text" class="fc" id="e-dosage" placeholder="Ex : 500mg, 250mg/5ml">
+                        </div>
+                        <div class="fg">
+                            <label>Fabricant / Laboratoire <span class="opt">(optionnel)</span></label>
+                            <input type="text" class="fc" id="e-fabricant" placeholder="Ex : Sanofi, GSK, CAMEG">
+                        </div>
+                        <div class="fg">
+                            <label>Pays d'origine <span class="opt">(optionnel)</span></label>
+                            <input type="text" class="fc" id="e-pays" placeholder="Ex : France, Inde, Sénégal">
+                        </div>
+                        <div class="fg">
+                            <label>Numéro de lot <span class="opt">(optionnel)</span></label>
+                            <input type="text" class="fc" id="e-lot" placeholder="Ex : BT2024-007">
+                        </div>
+                        <div class="fg">
+                            <label>Numéro AMM <span class="opt">(optionnel)</span></label>
+                            <input type="text" class="fc" id="e-amm" placeholder="Ex : DMP/2023/0142">
+                        </div>
+                        <div class="fg">
+                            <label>Ordonnance requise <span class="opt">(optionnel)</span></label>
+                            <select class="fc" id="e-ordonnance">
+                                <option value="non">Non</option>
+                                <option value="oui">Oui</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- DATES & TRAÇABILITÉ -->
+                    <div class="sect-divider"><span>📅 Dates & traçabilité</span></div>
+                    <div class="form-grid three">
+                        <div class="fg">
+                            <label>Date de fabrication <span class="opt">(optionnel)</span></label>
+                            <input type="date" class="fc" id="e-date-fab">
+                        </div>
+                        <div class="fg">
+                            <label>Date d'entrée en stock <span class="opt">(optionnel)</span></label>
+                            <input type="date" class="fc" id="e-date-entree">
+                        </div>
+                        <div class="fg">
+                            <label>Heure d'enregistrement</label>
+                            <input type="time" class="fc" id="e-heure" readonly
+                                   style="background:#f5f7fa;color:var(--muted);">
+                        </div>
+                        <div class="fg">
+                            <label>Enregistré par <span class="opt">(optionnel)</span></label>
+                            <input type="text" class="fc" id="e-agent" placeholder="Nom de l'agent">
+                        </div>
+                        <div class="fg">
+                            <label>Source d'approvisionnement <span class="opt">(optionnel)</span></label>
+                            <select class="fc" id="e-source">
+                                <option value="">— Sélectionner —</option>
+                                <option>District sanitaire</option>
+                                <option>PNA – Pharmacie Nationale</option>
+                                <option>Donation / ONG</option>
+                                <option>Achat direct</option>
+                                <option>Transfert interne</option>
+                                <option>Autre</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- QUANTITÉS & CONDITIONNEMENT -->
+                    <div class="sect-divider"><span>📦 Conditionnement & stock</span></div>
+                    <div class="form-grid">
+                        <div class="fg">
+                            <label>Unité de mesure <span class="opt">(optionnel)</span></label>
+                            <select class="fc" id="e-unite">
+                                <option value="comprimé(s)">Comprimé(s)</option>
+                                <option value="gélule(s)">Gélule(s)</option>
+                                <option value="flacon(s)">Flacon(s)</option>
+                                <option value="boîte(s)">Boîte(s)</option>
+                                <option value="bouteille(s)">Bouteille(s)</option>
+                                <option value="ampoule(s)">Ampoule(s)</option>
+                                <option value="sachet(s)">Sachet(s)</option>
+                                <option value="tube(s)">Tube(s)</option>
+                                <option value="unité(s)">Unité(s)</option>
+                            </select>
+                        </div>
+                        <div class="fg">
+                            <label>Conditionnement <span class="opt">(optionnel)</span></label>
+                            <input type="text" class="fc" id="e-cond" placeholder="Ex : Boîte de 30 cp, Flacon 250ml">
+                        </div>
+                        <div class="fg">
+                            <label>Seuil alerte stock bas <span class="opt">(optionnel)</span></label>
+                            <input type="number" class="fc" id="e-seuil" placeholder="Ex : 20" min="0">
+                        </div>
+                    </div>
+
+                    <!-- TARIFICATION COMPLÈTE -->
+                    <div class="sect-divider"><span>💰 Tarification complémentaire</span></div>
+                    <div class="prix-grid">
+                        <div class="prix-card">
+                            <label>Prix par boîte <span class="opt">(optionnel)</span></label>
+                            <input type="number" class="fc" id="e-prix-boite" placeholder="Ex : 3 000" min="0">
+                        </div>
+                        <div class="prix-card">
+                            <label>Prix par bouteille <span class="opt">(optionnel)</span></label>
+                            <input type="number" class="fc" id="e-prix-bouteille" placeholder="Ex : 1 500" min="0">
+                        </div>
+                        <div class="prix-card">
+                            <label>Prix d'achat (coût) <span class="opt">(optionnel)</span></label>
+                            <input type="number" class="fc" id="e-prix-achat" placeholder="Ex : 100" min="0">
+                        </div>
+                        <div class="prix-card">
+                            <label>Prix demi-gros <span class="opt">(optionnel)</span></label>
+                            <input type="number" class="fc" id="e-prix-demigros" placeholder="Ex : 120" min="0">
+                        </div>
+                        <div class="prix-card">
+                            <label>Prix gros <span class="opt">(optionnel)</span></label>
+                            <input type="number" class="fc" id="e-prix-gros" placeholder="Ex : 100" min="0">
+                        </div>
+                    </div>
+
+                    <!-- OBSERVATIONS -->
+                    <div class="sect-divider"><span>📝 Stockage & observations</span></div>
+                    <div class="form-grid two">
+                        <div class="fg">
+                            <label>Conditions de stockage <span class="opt">(optionnel)</span></label>
+                            <select class="fc" id="e-stockage">
+                                <option value="">— Sélectionner —</option>
+                                <option>Température ambiante (15–30°C)</option>
+                                <option>Réfrigéré (2–8°C)</option>
+                                <option>Congelé (–20°C)</option>
+                                <option>À l'abri de la lumière</option>
+                                <option>Lieu sec</option>
+                            </select>
+                        </div>
+                        <div class="fg span2">
+                            <label>Observations / Remarques <span class="opt">(optionnel)</span></label>
+                            <textarea class="fc" id="e-obs" rows="3"
+                                      placeholder="Informations complémentaires, instructions particulières…"
+                                      style="resize:vertical;"></textarea>
+                        </div>
+                    </div>
+
+                </div><!-- /opt-block -->
+
+                <!-- BOUTONS D'ACTION -->
+                <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;">
                     <button class="btn-submit" id="btn-save-entree" onclick="saveEntree()">
                         <span>💾</span> Enregistrer dans le stock
                     </button>
                     <button class="btn-secondary" onclick="clearFormEntree()">🗑️ Effacer le formulaire</button>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- ══════════════ TAB 3 : RÉAPPROVISIONNEMENT ══════════════ -->
+            </div><!-- /panel-body -->
+        </div><!-- /panel -->
+    </div><!-- /pane-entree -->
+
+    <!-- ══════════════════════════════════════════
+         TAB 3 : RÉAPPROVISIONNEMENT
+    ══════════════════════════════════════════ -->
     <div class="tab-pane" id="pane-reappro">
         <div class="panel">
             <div class="panel-head">
@@ -475,29 +681,35 @@
                 </div>
             </div>
             <div class="panel-body">
+
                 <div id="alert-reappro" class="alert"></div>
+
                 <div class="form-grid two" style="max-width:700px;margin-bottom:16px;">
+
+                    <!-- Champs obligatoires réappro -->
                     <div class="fg">
                         <label>Sélectionner le médicament <span class="req">*</span></label>
-                        <select class="fc" id="r-med-select">
+                        <select class="fc req-field" id="r-med-select">
                             <option value="">— Choisir un médicament —</option>
                         </select>
                     </div>
                     <div class="fg">
                         <label>Quantité à ajouter <span class="req">*</span></label>
-                        <input type="number" class="fc" id="r-qte" placeholder="Ex: 50" min="1">
+                        <input type="number" class="fc req-field" id="r-qte" placeholder="Ex : 50" min="1">
                     </div>
                     <div class="fg">
+                        <label>Date de réapprovisionnement <span class="req">*</span></label>
+                        <input type="date" class="fc req-field" id="r-date">
+                    </div>
+
+                    <!-- Champs optionnels réappro -->
+                    <div class="fg">
                         <label>Nouveau numéro de lot <span class="opt">(optionnel)</span></label>
-                        <input type="text" class="fc" id="r-lot" placeholder="Ex: BT2025-001">
+                        <input type="text" class="fc" id="r-lot" placeholder="Ex : BT2025-001">
                     </div>
                     <div class="fg">
                         <label>Nouvelle date de péremption <span class="opt">(optionnel)</span></label>
                         <input type="date" class="fc" id="r-perempion">
-                    </div>
-                    <div class="fg">
-                        <label>Date de réapprovisionnement <span class="req">*</span></label>
-                        <input type="date" class="fc" id="r-date">
                     </div>
                     <div class="fg">
                         <label>Source <span class="opt">(optionnel)</span></label>
@@ -512,20 +724,26 @@
                     </div>
                     <div class="fg span2">
                         <label>Observations <span class="opt">(optionnel)</span></label>
-                        <textarea class="fc" id="r-obs" rows="2" placeholder="Informations complémentaires…" style="resize:vertical;"></textarea>
+                        <textarea class="fc" id="r-obs" rows="2"
+                                  placeholder="Informations complémentaires…"
+                                  style="resize:vertical;"></textarea>
                     </div>
                 </div>
+
                 <!-- Aperçu médicament sélectionné -->
                 <div id="r-preview" style="display:none;background:#fafbfc;border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:.83rem;max-width:700px;">
                     <div style="font-weight:700;color:var(--primary);margin-bottom:6px;">📋 Médicament sélectionné</div>
                     <div id="r-preview-content"></div>
                 </div>
+
                 <button class="btn-submit" id="btn-save-reappro" onclick="saveReappro()">
                     <span>🔄</span> Enregistrer le réapprovisionnement
                 </button>
 
                 <!-- Historique réapprovisionnements -->
-                <div class="sect-divider" style="margin-top:30px;"><span>📜 Historique des réapprovisionnements</span></div>
+                <div class="sect-divider" style="margin-top:30px;">
+                    <span>📜 Historique des réapprovisionnements</span>
+                </div>
                 <div class="table-wrap">
                     <table>
                         <thead>
@@ -540,74 +758,90 @@
                             </tr>
                         </thead>
                         <tbody id="reappro-tbody">
-                            <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔄</div><p>Aucun réapprovisionnement enregistré.</p></div></td></tr>
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">🔄</div>
+                                        <p>Aucun réapprovisionnement enregistré.</p>
+                                    </div>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
-    </div>
+
+            </div><!-- /panel-body -->
+        </div><!-- /panel -->
+    </div><!-- /pane-reappro -->
 
 </div><!-- /page -->
 
+<!-- ══════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════ -->
 <script type="module">
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { ref, push, onValue, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-// ── Auth guard ──────────────────────────────────────────
+// ── Auth guard ──────────────────────────────────────────────────
 onAuthStateChanged(auth, (user) => {
     if (!user) { window.location.href = '../index.html'; return; }
     const role = sessionStorage.getItem('userRole');
     if (role !== 'admin') { window.location.href = '../accueil/menu_caissier.html'; return; }
-    document.getElementById('conn-badge').textContent = '● Connecté';
-    document.getElementById('conn-badge').style.background = 'rgba(14,164,114,.25)';
+    const badge = document.getElementById('conn-badge');
+    badge.textContent = '● Connecté';
+    badge.style.background = 'rgba(14,164,114,.25)';
     // Pré-remplir agent
     document.getElementById('e-agent').value = (user.email || '').split('@')[0];
 });
 
-// ── Init dates/heure ────────────────────────────────────
+// ── Init dates / heure ─────────────────────────────────────────
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('e-date-entree').value = today;
 document.getElementById('r-date').value = today;
+
 function updateHeure() {
     const now = new Date();
     document.getElementById('e-heure').value =
         String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 }
-updateHeure(); setInterval(updateHeure, 60000);
+updateHeure();
+setInterval(updateHeure, 60000);
 
-// ── Refs Firebase ───────────────────────────────────────
+// ── Refs Firebase ───────────────────────────────────────────────
 const stockRef   = ref(db, 'db_pharmacie_stock');
 const reapproRef = ref(db, 'db_pharmacie_reappro');
 
-// ── Données locales ─────────────────────────────────────
-let allStock = {};
+// ── Données locales ─────────────────────────────────────────────
+let allStock   = {};
 let allReappro = [];
 
-// ── Utilitaires ─────────────────────────────────────────
-function fmt(n) { return Number(n||0).toLocaleString('fr-FR'); }
-// Échappement XSS (cohérent avec facturation/script.js)
+// ── Utilitaires ─────────────────────────────────────────────────
+function fmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
+
 function esc(str) {
     const div = document.createElement('div');
     div.textContent = String(str ?? '');
     return div.innerHTML;
 }
+
 function diffJours(dateStr) {
     if (!dateStr) return Infinity;
-    const d = new Date(dateStr);
+    const d   = new Date(dateStr);
     const auj = new Date(); auj.setHours(0,0,0,0);
     return Math.floor((d - auj) / 86400000);
 }
+
 function statutPeremption(dateStr, qte) {
     const j = diffJours(dateStr);
-    if (j < 0)  return { cls:'expired', txt:'❌ Périmé' };
-    if (j <= 90) return { cls:'warn',    txt:`⚠️ ${j}j` };
-    if ((qte||0) <= 10) return { cls:'low', txt:'📉 Stock bas' };
-    return { cls:'ok', txt:'✅ OK' };
+    if (j < 0)   return { cls: 'expired', txt: '❌ Périmé' };
+    if (j <= 90)  return { cls: 'warn',    txt: `⚠️ ${j}j` };
+    if ((qte||0) <= 10) return { cls: 'low', txt: '📉 Stock bas' };
+    return { cls: 'ok', txt: '✅ OK' };
 }
 
-// ── Écoute temps réel stock ─────────────────────────────
+// ── Écoute temps réel — stock ───────────────────────────────────
 onValue(stockRef, (snap) => {
     allStock = {};
     snap.forEach(c => { allStock[c.key] = { id: c.key, ...c.val() }; });
@@ -616,7 +850,7 @@ onValue(stockRef, (snap) => {
     updateStats();
 });
 
-// ── Écoute temps réel réappro ───────────────────────────
+// ── Écoute temps réel — réappro ────────────────────────────────
 onValue(reapproRef, (snap) => {
     allReappro = [];
     snap.forEach(c => allReappro.push({ id: c.key, ...c.val() }));
@@ -624,7 +858,7 @@ onValue(reapproRef, (snap) => {
     renderReapproHistorique();
 });
 
-// ── Statistiques ────────────────────────────────────────
+// ── Statistiques ────────────────────────────────────────────────
 function updateStats() {
     const arr = Object.values(allStock);
     document.getElementById('s-total').textContent = arr.length;
@@ -632,49 +866,46 @@ function updateStats() {
     const todayStr = new Date().toISOString().split('T')[0];
     arr.forEach(m => {
         valeur += (m.prix_unitaire||0) * (m.quantite||0);
-        const j = diffJours(m.date_peremption);
-        if (j < 0 || j <= 90) perimes++;
+        if (diffJours(m.date_peremption) <= 90) perimes++;
         if ((m.quantite||0) <= (m.seuil_alerte||10) && (m.quantite||0) > 0) faible++;
     });
-    document.getElementById('s-valeur').textContent = fmt(valeur) + ' F';
+    document.getElementById('s-valeur').textContent  = fmt(valeur) + ' F';
     document.getElementById('s-perimes').textContent = perimes;
-    document.getElementById('s-faible').textContent = faible;
-    const todayEntries = arr.filter(m => (m.date_entree||'').startsWith(todayStr)).length;
-    document.getElementById('s-today').textContent = todayEntries;
+    document.getElementById('s-faible').textContent  = faible;
+    document.getElementById('s-today').textContent   =
+        arr.filter(m => (m.date_entree||'').startsWith(todayStr)).length;
 }
 
-// ── Rendu inventaire ────────────────────────────────────
-function renderInventaire(filtre = '') {
+// ── Rendu inventaire ────────────────────────────────────────────
+function renderInventaire() {
     const tbody = document.getElementById('inv-tbody');
-    const cat  = document.getElementById('filter-cat')?.value || '';
-    const stat = document.getElementById('filter-statut')?.value || '';
-    const q = (document.getElementById('search-inv')?.value || '').toLowerCase();
+    const cat   = document.getElementById('filter-cat')?.value   || '';
+    const stat  = document.getElementById('filter-statut')?.value || '';
+    const q     = (document.getElementById('search-inv')?.value  || '').toLowerCase();
 
     let arr = Object.values(allStock);
     if (cat)  arr = arr.filter(m => m.categorie === cat);
-    if (q)    arr = arr.filter(m => (m.nom||'').toLowerCase().includes(q) || (m.lot||'').toLowerCase().includes(q));
-    if (stat) arr = arr.filter(m => {
-        const s = statutPeremption(m.date_peremption, m.quantite).cls;
-        return s === stat;
-    });
+    if (q)    arr = arr.filter(m =>
+        (m.nom||'').toLowerCase().includes(q) || (m.lot||'').toLowerCase().includes(q));
+    if (stat) arr = arr.filter(m =>
+        statutPeremption(m.date_peremption, m.quantite).cls === stat);
 
     if (!arr.length) {
-        tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📦</div><p>Aucun médicament trouvé.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">📦</div><p>Aucun médicament trouvé.</p></div></td></tr>`;
         return;
     }
 
     tbody.innerHTML = arr.map(m => {
         const s = statutPeremption(m.date_peremption, m.quantite);
         return `<tr>
-            <td><strong>${esc(m.nom||'—')}</strong><br><small style="color:var(--muted)">${esc(m.dosage||'')}</small></td>
-            <td>${esc(m.categorie||'—')}</td>
+            <td><strong>${esc(m.nom||'—')}</strong>${m.dosage ? `<br><small style="color:var(--muted)">${esc(m.dosage)}</small>` : ''}</td>
             <td><span class="pill-type">${esc(m.forme||'—')}</span></td>
+            <td>${esc(m.categorie||'—')}</td>
             <td><strong>${fmt(m.quantite)}</strong></td>
-            <td>${esc(m.unite||'—')}</td>
-            <td style="font-size:.78rem">${esc(m.lot||'—')}</td>
-            <td style="font-size:.78rem">${esc(m.date_fabrication||'—')}</td>
+            <td style="font-size:.78rem">${esc(m.unite||'—')}</td>
             <td style="font-size:.78rem">${esc(m.date_peremption||'—')}</td>
             <td>${fmt(m.prix_unitaire)} F</td>
+            <td style="font-size:.78rem">${esc(m.lot||'—')}</td>
             <td><span class="badge ${s.cls}">${esc(s.txt)}</span></td>
             <td><button class="btn-icon" title="Supprimer" onclick="deleteStock('${esc(m.id)}')">🗑️</button></td>
         </tr>`;
@@ -683,34 +914,36 @@ function renderInventaire(filtre = '') {
 
 window.filterInventaire = () => renderInventaire();
 
-// ── Select réappro ───────────────────────────────────────
+// ── Select réappro ──────────────────────────────────────────────
 function renderSelectReappro() {
-    const sel = document.getElementById('r-med-select');
+    const sel  = document.getElementById('r-med-select');
     const curr = sel.value;
     sel.innerHTML = '<option value="">— Choisir un médicament —</option>';
-    Object.values(allStock).sort((a,b)=>(a.nom||'').localeCompare(b.nom||'')).forEach(m => {
-        sel.innerHTML += `<option value="${esc(m.id)}">${esc(m.nom||'—')} (${fmt(m.quantite)} ${esc(m.unite||'')})</option>`;
-    });
+    Object.values(allStock)
+        .sort((a,b) => (a.nom||'').localeCompare(b.nom||''))
+        .forEach(m => {
+            sel.innerHTML += `<option value="${esc(m.id)}">${esc(m.nom||'—')} (${fmt(m.quantite)} ${esc(m.unite||'')})</option>`;
+        });
     if (curr) sel.value = curr;
 }
 
-// ── Aperçu médicament sélectionné ──────────────────────
+// ── Aperçu médicament sélectionné ─────────────────────────────
 document.addEventListener('change', (e) => {
     if (e.target.id !== 'r-med-select') return;
-    const id = e.target.value;
+    const id   = e.target.value;
     const prev = document.getElementById('r-preview');
     if (!id || !allStock[id]) { prev.style.display = 'none'; return; }
     const m = allStock[id];
     prev.style.display = 'block';
     document.getElementById('r-preview-content').innerHTML = `
-        <span style="color:var(--muted)">Forme:</span> ${esc(m.forme||'—')} &nbsp;|&nbsp;
-        <span style="color:var(--muted)">Stock actuel:</span> <strong>${fmt(m.quantite)} ${esc(m.unite||'')}</strong> &nbsp;|&nbsp;
-        <span style="color:var(--muted)">Péremption:</span> ${esc(m.date_peremption||'—')} &nbsp;|&nbsp;
-        <span style="color:var(--muted)">P. unitaire:</span> ${fmt(m.prix_unitaire)} F
+        <span style="color:var(--muted)">Forme :</span> ${esc(m.forme||'—')} &nbsp;|&nbsp;
+        <span style="color:var(--muted)">Stock actuel :</span> <strong>${fmt(m.quantite)} ${esc(m.unite||'')}</strong> &nbsp;|&nbsp;
+        <span style="color:var(--muted)">Péremption :</span> ${esc(m.date_peremption||'—')} &nbsp;|&nbsp;
+        <span style="color:var(--muted)">P. unitaire :</span> ${fmt(m.prix_unitaire)} F
     `;
 });
 
-// ── Rendu historique réappro ────────────────────────────
+// ── Rendu historique réappro ────────────────────────────────────
 function renderReapproHistorique() {
     const tbody = document.getElementById('reappro-tbody');
     if (!allReappro.length) {
@@ -728,165 +961,216 @@ function renderReapproHistorique() {
     </tr>`).join('');
 }
 
-// ── Alerte ───────────────────────────────────────────────
+// ── Alert helper ────────────────────────────────────────────────
 function showAlert(id, type, msg) {
     const el = document.getElementById(id);
     el.className = `alert ${type} visible`;
-    el.innerHTML = `<span>${type==='success'?'✅':'⚠️'}</span><span>${msg}</span>`;
+    el.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span><span>${msg}</span>`;
     setTimeout(() => el.classList.remove('visible'), 5000);
 }
 
-// ── SAVE ENTRÉE ─────────────────────────────────────────
-window.saveEntree = async function() {
-    const nom  = document.getElementById('e-nom').value.trim();
-    const cat  = document.getElementById('e-categorie').value;
-    const forme= document.getElementById('e-forme').value;
-    const lot  = document.getElementById('e-lot').value.trim();
-    const datE = document.getElementById('e-date-entree').value;
-    const datP = document.getElementById('e-date-peremption').value;
-    const qte  = parseFloat(document.getElementById('e-qte').value);
-    const unite= document.getElementById('e-unite').value;
-    const pu   = parseFloat(document.getElementById('e-prix-unitaire').value);
+// ── Validation champs requis (surlignage) ───────────────────────
+function markInvalid(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('invalid');
+}
+function clearInvalid() {
+    document.querySelectorAll('.fc.invalid').forEach(el => el.classList.remove('invalid'));
+}
 
-    if (!nom)    { showAlert('alert-entree','error','Le nom du médicament est obligatoire.'); return; }
-    if (!cat)    { showAlert('alert-entree','error','Veuillez sélectionner une catégorie.'); return; }
-    if (!forme)  { showAlert('alert-entree','error','Veuillez sélectionner une forme pharmaceutique.'); return; }
-    if (!lot)    { showAlert('alert-entree','error','Le numéro de lot est obligatoire.'); return; }
-    if (!datE)   { showAlert('alert-entree','error','La date d\'entrée est obligatoire.'); return; }
-    if (!datP)   { showAlert('alert-entree','error','La date de péremption est obligatoire.'); return; }
-    if (isNaN(qte)||qte<0) { showAlert('alert-entree','error','La quantité doit être un nombre positif.'); return; }
-    if (isNaN(pu)||pu<0)   { showAlert('alert-entree','error','Le prix unitaire est obligatoire.'); return; }
+// ══════════════════════════════════════════════════════════════
+// SAVE ENTRÉE — validation stricte sur les 5 champs obligatoires
+// ══════════════════════════════════════════════════════════════
+window.saveEntree = async function () {
+    clearInvalid();
+
+    // — Lecture des 5 champs obligatoires —
+    const nom   = document.getElementById('e-nom').value.trim();
+    const forme = document.getElementById('e-forme').value;
+    const datP  = document.getElementById('e-date-peremption').value;
+    const qte   = parseFloat(document.getElementById('e-qte').value);
+    const pu    = parseFloat(document.getElementById('e-prix-unitaire').value);
+
+    // — Validation —
+    let valid = true;
+    if (!nom)                    { markInvalid('e-nom');              valid = false; }
+    if (!forme)                  { markInvalid('e-forme');            valid = false; }
+    if (!datP)                   { markInvalid('e-date-peremption');  valid = false; }
+    if (isNaN(qte) || qte < 0)  { markInvalid('e-qte');             valid = false; }
+    if (isNaN(pu)  || pu  < 0)  { markInvalid('e-prix-unitaire');   valid = false; }
+
+    if (!valid) {
+        showAlert('alert-entree', 'error',
+            'Veuillez renseigner les 5 champs obligatoires : Nom, Forme pharmaceutique, Date de péremption, Quantité et Prix unitaire.');
+        return;
+    }
 
     const btn = document.getElementById('btn-save-entree');
-    btn.disabled = true; btn.innerHTML = '<span>⏳</span> Enregistrement…';
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Enregistrement…';
 
+    // — Construction de l'objet à persister —
     const data = {
+        // ── CHAMPS OBLIGATOIRES ──
         nom,
-        categorie:          cat,
         forme,
-        dosage:             document.getElementById('e-dosage').value.trim(),
-        fabricant:          document.getElementById('e-fabricant').value.trim(),
-        pays_origine:       document.getElementById('e-pays').value.trim(),
-        lot,
-        amm:                document.getElementById('e-amm').value.trim(),
-        ordonnance:         document.getElementById('e-ordonnance').value,
-        date_fabrication:   document.getElementById('e-date-fab').value,
-        date_entree:        datE,
-        date_peremption:    datP,
-        heure_entree:       document.getElementById('e-heure').value,
-        agent:              document.getElementById('e-agent').value.trim(),
-        source:             document.getElementById('e-source').value,
-        quantite:           qte,
-        unite,
-        conditionnement:    document.getElementById('e-cond').value.trim(),
-        seuil_alerte:       parseFloat(document.getElementById('e-seuil').value)||10,
-        prix_unitaire:      pu,
-        prix_boite:         parseFloat(document.getElementById('e-prix-boite').value)||0,
-        prix_bouteille:     parseFloat(document.getElementById('e-prix-bouteille').value)||0,
-        prix_achat:         parseFloat(document.getElementById('e-prix-achat').value)||0,
-        prix_demi_gros:     parseFloat(document.getElementById('e-prix-demigros').value)||0,
-        prix_gros:          parseFloat(document.getElementById('e-prix-gros').value)||0,
-        conditions_stockage:document.getElementById('e-stockage').value,
-        observations:       document.getElementById('e-obs').value.trim(),
-        timestamp:          Date.now()
+        date_peremption: datP,
+        quantite:        qte,
+        prix_unitaire:   pu,
+
+        // ── CHAMPS OPTIONNELS ──
+        categorie:          document.getElementById('e-categorie').value           || '',
+        dosage:             document.getElementById('e-dosage').value.trim()       || '',
+        fabricant:          document.getElementById('e-fabricant').value.trim()    || '',
+        pays_origine:       document.getElementById('e-pays').value.trim()         || '',
+        lot:                document.getElementById('e-lot').value.trim()          || '',
+        amm:                document.getElementById('e-amm').value.trim()          || '',
+        ordonnance:         document.getElementById('e-ordonnance').value          || 'non',
+        date_fabrication:   document.getElementById('e-date-fab').value            || '',
+        date_entree:        document.getElementById('e-date-entree').value         || '',
+        heure_entree:       document.getElementById('e-heure').value               || '',
+        agent:              document.getElementById('e-agent').value.trim()        || '',
+        source:             document.getElementById('e-source').value              || '',
+        unite:              document.getElementById('e-unite').value               || 'unité(s)',
+        conditionnement:    document.getElementById('e-cond').value.trim()         || '',
+        seuil_alerte:       parseFloat(document.getElementById('e-seuil').value)   || 10,
+        prix_boite:         parseFloat(document.getElementById('e-prix-boite').value)     || 0,
+        prix_bouteille:     parseFloat(document.getElementById('e-prix-bouteille').value) || 0,
+        prix_achat:         parseFloat(document.getElementById('e-prix-achat').value)     || 0,
+        prix_demi_gros:     parseFloat(document.getElementById('e-prix-demigros').value)  || 0,
+        prix_gros:          parseFloat(document.getElementById('e-prix-gros').value)      || 0,
+        conditions_stockage:document.getElementById('e-stockage').value            || '',
+        observations:       document.getElementById('e-obs').value.trim()          || '',
+
+        timestamp: Date.now()
     };
 
     try {
         await push(stockRef, data);
-        showAlert('alert-entree','success',`✅ "${nom}" enregistré avec succès dans le stock.`);
+        showAlert('alert-entree', 'success', `✅ "${nom}" enregistré avec succès dans le stock.`);
         clearFormEntree();
-    } catch(err) {
-        showAlert('alert-entree','error','Erreur lors de l\'enregistrement : ' + err.message);
+    } catch (err) {
+        showAlert('alert-entree', 'error', 'Erreur lors de l\'enregistrement : ' + err.message);
     }
-    btn.disabled = false; btn.innerHTML = '<span>💾</span> Enregistrer dans le stock';
+
+    btn.disabled = false;
+    btn.innerHTML = '<span>💾</span> Enregistrer dans le stock';
 };
 
-// ── SAVE RÉAPPRO ─────────────────────────────────────────
-window.saveReappro = async function() {
+// ── SAVE RÉAPPRO ────────────────────────────────────────────────
+window.saveReappro = async function () {
     const medId = document.getElementById('r-med-select').value;
     const qte   = parseFloat(document.getElementById('r-qte').value);
     const date  = document.getElementById('r-date').value;
 
-    if (!medId) { showAlert('alert-reappro','error','Veuillez sélectionner un médicament.'); return; }
-    if (isNaN(qte)||qte<=0) { showAlert('alert-reappro','error','La quantité doit être un nombre positif.'); return; }
-    if (!date) { showAlert('alert-reappro','error','La date est obligatoire.'); return; }
+    let valid = true;
+    if (!medId)              { markInvalid('r-med-select'); valid = false; }
+    if (isNaN(qte) || qte <= 0) { markInvalid('r-qte');   valid = false; }
+    if (!date)               { markInvalid('r-date');       valid = false; }
+
+    if (!valid) {
+        showAlert('alert-reappro', 'error',
+            'Veuillez renseigner : le médicament, la quantité et la date.');
+        return;
+    }
 
     const med = allStock[medId];
-    if (!med) { showAlert('alert-reappro','error','Médicament introuvable.'); return; }
+    if (!med) { showAlert('alert-reappro', 'error', 'Médicament introuvable.'); return; }
 
     const btn = document.getElementById('btn-save-reappro');
-    btn.disabled = true; btn.innerHTML = '<span>⏳</span> Enregistrement…';
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Enregistrement…';
 
     const nvPeremption = document.getElementById('r-perempion').value;
-    const lot = document.getElementById('r-lot').value.trim();
+    const lot          = document.getElementById('r-lot').value.trim();
 
     try {
-        // Mise à jour quantité dans stock
         const updates = { quantite: (med.quantite||0) + qte };
         if (nvPeremption) updates.date_peremption = nvPeremption;
-        if (lot) updates.lot = lot;
+        if (lot)          updates.lot = lot;
         await update(ref(db, `db_pharmacie_stock/${medId}`), updates);
 
-        // Enregistrement dans historique réappro
         await push(reapproRef, {
-            med_id:             medId,
-            nom_medicament:     med.nom||'—',
-            quantite_ajoutee:   qte,
-            ancienne_quantite:  med.quantite||0,
-            nouvelle_quantite:  (med.quantite||0) + qte,
-            lot:                lot||med.lot||'—',
-            nouvelle_peremption:nvPeremption||med.date_peremption||'—',
-            source:             document.getElementById('r-source').value,
-            observations:       document.getElementById('r-obs').value.trim(),
+            med_id:              medId,
+            nom_medicament:      med.nom || '—',
+            quantite_ajoutee:    qte,
+            ancienne_quantite:   med.quantite || 0,
+            nouvelle_quantite:   (med.quantite||0) + qte,
+            lot:                 lot || med.lot || '—',
+            nouvelle_peremption: nvPeremption || med.date_peremption || '—',
+            source:              document.getElementById('r-source').value,
+            observations:        document.getElementById('r-obs').value.trim(),
             date,
             timestamp: Date.now()
         });
 
-        showAlert('alert-reappro','success',`✅ Réapprovisionnement de ${qte} ${med.unite||''} enregistré pour "${med.nom}".`);
-        document.getElementById('r-med-select').value = '';
-        document.getElementById('r-qte').value = '';
-        document.getElementById('r-lot').value = '';
-        document.getElementById('r-perempion').value = '';
-        document.getElementById('r-obs').value = '';
-        document.getElementById('r-source').value = '';
+        showAlert('alert-reappro', 'success',
+            `✅ Réapprovisionnement de ${qte} enregistré pour "${med.nom}".`);
+        ['r-med-select','r-qte','r-lot','r-perempion','r-obs','r-source']
+            .forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = id === 'r-date' ? date : '';
+            });
         document.getElementById('r-preview').style.display = 'none';
-    } catch(err) {
-        showAlert('alert-reappro','error','Erreur : ' + err.message);
+    } catch (err) {
+        showAlert('alert-reappro', 'error', 'Erreur : ' + err.message);
     }
-    btn.disabled = false; btn.innerHTML = '<span>🔄</span> Enregistrer le réapprovisionnement';
+
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔄</span> Enregistrer le réapprovisionnement';
 };
 
-// ── SUPPRIMER ────────────────────────────────────────────
-window.deleteStock = async function(id) {
+// ── SUPPRIMER ───────────────────────────────────────────────────
+window.deleteStock = async function (id) {
     const m = allStock[id];
     if (!confirm(`Supprimer "${m?.nom||id}" du stock ? Cette action est irréversible.`)) return;
     const { remove } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js");
     await remove(ref(db, `db_pharmacie_stock/${id}`));
 };
 
-// ── CLEAR FORM ───────────────────────────────────────────
-window.clearFormEntree = function() {
-    ['e-nom','e-dosage','e-fabricant','e-pays','e-lot','e-amm','e-date-fab','e-cond','e-obs',
-     'e-qte','e-seuil','e-prix-unitaire','e-prix-boite','e-prix-bouteille','e-prix-achat',
-     'e-prix-demigros','e-prix-gros'].forEach(id => {
+// ── EFFACER FORMULAIRE ──────────────────────────────────────────
+window.clearFormEntree = function () {
+    clearInvalid();
+    // Champs obligatoires
+    ['e-nom','e-date-peremption','e-qte','e-prix-unitaire'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
-    ['e-categorie','e-forme','e-ordonnance','e-source','e-unite','e-stockage'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.selectedIndex = 0;
-    });
+    document.getElementById('e-forme').selectedIndex = 0;
+
+    // Champs optionnels
+    ['e-dosage','e-fabricant','e-pays','e-lot','e-amm',
+     'e-date-fab','e-cond','e-seuil',
+     'e-prix-boite','e-prix-bouteille','e-prix-achat','e-prix-demigros','e-prix-gros']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['e-categorie','e-ordonnance','e-source','e-unite','e-stockage']
+        .forEach(id => { const el = document.getElementById(id); if (el) el.selectedIndex = 0; });
+
     document.getElementById('e-date-entree').value = new Date().toISOString().split('T')[0];
+    document.getElementById('e-obs').value = '';
     updateHeure();
 };
+</script>
 
-// ── TABS ─────────────────────────────────────────────────
-window.switchTab = function(tab) {
+<!-- ── Script non-module (toggles + tabs) ─────────────────────── -->
+<script>
+window.switchTab = function (tab, btn) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('pane-' + tab).classList.add('active');
-    event.currentTarget.classList.add('active');
+    if (btn) btn.classList.add('active');
+};
+
+window.toggleOptional = function () {
+    const btn   = document.getElementById('opt-toggle-btn');
+    const block = document.getElementById('opt-block');
+    const open  = block.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    btn.querySelector('span:nth-child(2)').textContent =
+        open ? 'Masquer les informations complémentaires'
+             : 'Afficher les informations complémentaires';
 };
 </script>
+
 </body>
 </html>
