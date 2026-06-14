@@ -1,1 +1,322 @@
-factu
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facturation – Poste de Santé de Diandioly</title>
+    <link rel="icon" href="data:,"> 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="progress-container" id="loading-container"><progress id="main-loader"></progress></div>
+
+<nav class="topbar">
+    <div class="topbar-left">
+        <a href="../accueil/menu_caissier.html" class="back-btn">⬅ <span class="txt">Menu</span></a>
+        <div class="topbar-title">
+            <h1>🧾 Facturation</h1>
+            <p>Tickets de consultation &amp; Médicaments</p>
+        </div>
+    </div>
+    <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+</nav>
+
+<div class="page">
+
+    <h3 class="sect-title">💰 Recettes Globales (Consultations + Pharmacie)</h3>
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+        <div class="stat-card">
+            <div><div class="stat-label">Aujourd'hui</div><div class="stat-value" id="s-g-day">—</div></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="stat-label">Semaine</div><div class="stat-value" id="s-g-week">—</div></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="stat-label">Mois</div><div class="stat-value" id="s-g-month">—</div></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="stat-label">Trimestre</div><div class="stat-value" id="s-g-quarter">—</div></div>
+        </div>
+        <div class="stat-card">
+            <div><div class="stat-label">Année</div><div class="stat-value" id="s-g-year">—</div></div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="tabs-wrap">
+        <button class="tab-btn active" id="tbtn-ticket" onclick="switchTab('ticket')">
+            🎟️ Ticket de Consultation
+            <span class="tab-count" id="cnt-ticket">0</span>
+        </button>
+        <button class="tab-btn" id="tbtn-med" onclick="switchTab('med')">
+            💊 Médicaments Ordonnance
+            <span class="tab-count" id="cnt-med">0</span>
+        </button>
+    </div>
+
+    <div class="tab-pane active" id="pane-ticket">
+        <div class="tab-body">
+            <div class="two-col">
+                <div>
+                    <div class="card">
+                        <div class="card-head" style="border-left:4px solid var(--primary);">
+                            <div class="card-head-icon" style="background:var(--blue-bg);">🎟️</div>
+                            <div><h3>Nouveau Ticket de Consultation</h3><p>Enregistrez le patient et émettez le ticket</p></div>
+                        </div>
+                        <div class="card-body">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                <div class="fg">
+                                    <label>Prénom <span class="req">*</span></label>
+                                    <input type="text" id="t-prenom" class="fc" placeholder="Ex: Aminata">
+                                </div>
+                                <div class="fg">
+                                    <label>Nom <span class="req">*</span></label>
+                                    <input type="text" id="t-nom" class="fc" placeholder="Ex: Diallo">
+                                </div>
+                            </div>
+                            <div class="fg">
+                                <label>Âge <span class="req">*</span></label>
+                                <input type="number" id="t-age" class="fc" placeholder="Ex: 35" min="0" max="120">
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <div class="tarif-label">Choisir le type de consultation <span style="color:var(--danger);">*</span></div>
+                            <div class="tarif-grid">
+                                <div class="tarif-card" data-prest="Consultation Générale – Adulte" data-prix="500" onclick="selectTarif(this)">
+                                    <span class="tarif-emoji">🩺</span>
+                                    <div class="tarif-nom">Consultation – Adulte</div>
+                                    <div class="tarif-prix">500 FCFA</div>
+                                    <div class="tarif-sub">≥ 15 ans</div>
+                                </div>
+                                <div class="tarif-card" data-prest="Consultation Générale – Enfant" data-prix="300" onclick="selectTarif(this)">
+                                    <span class="tarif-emoji">👶</span>
+                                    <div class="tarif-nom">Consultation – Enfant</div>
+                                    <div class="tarif-prix">300 FCFA</div>
+                                    <div class="tarif-sub">&lt; 15 ans</div>
+                                </div>
+                                <div class="tarif-card" data-prest="CPN – Consultation Prénatale" data-prix="500" onclick="selectTarif(this)">
+                                    <span class="tarif-emoji">🤱</span>
+                                    <div class="tarif-nom">CPN</div>
+                                    <div class="tarif-prix">500 FCFA</div>
+                                    <div class="tarif-sub">Consultation prénatale</div>
+                                </div>
+                                <div class="tarif-card" data-prest="Pansement" data-prix="200" onclick="selectTarif(this)">
+                                    <span class="tarif-emoji">🩹</span>
+                                    <div class="tarif-nom">Pansement</div>
+                                    <div class="tarif-prix">200 FCFA</div>
+                                    <div class="tarif-sub">Soins locaux</div>
+                                </div>
+                                <div class="tarif-card full" data-prest="Accouchement" data-prix="5000" onclick="selectTarif(this)">
+                                    <span class="tarif-emoji">👶</span>
+                                    <div class="tarif-nom">Accouchement</div>
+                                    <div class="tarif-prix">5 000 FCFA</div>
+                                    <div class="tarif-sub">Prise en charge complète</div>
+                                </div>
+                            </div>
+
+                            <div class="recap-box" style="margin-top:16px;">
+                                <div class="recap-row">
+                                    <span class="recap-lbl">Prestation</span>
+                                    <span class="recap-val" id="r-prest">—</span>
+                                </div>
+                                <div class="recap-row">
+                                    <span class="recap-lbl">Montant dû</span>
+                                    <span class="recap-big" id="r-prix">— FCFA</span>
+                                </div>
+                                <div class="recap-row">
+                                    <span class="recap-lbl">N° d'attente</span>
+                                    <span class="recap-big" id="r-attente" style="color:var(--accent);">—</span>
+                                </div>
+                                <div class="recap-row">
+                                    <span class="recap-lbl">Validité</span>
+                                    <span class="recap-val" id="r-validite">24 heures</span>
+                                </div>
+                            </div>
+
+                            <div class="monnaie-box">
+                                <div class="monnaie-title">💰 Calcul de la monnaie</div>
+                                <div class="monnaie-row">
+                                    <div class="monnaie-field">
+                                        <label>Argent remis par le patient (FCFA)</label>
+                                        <input type="number" id="t-recu" class="fc" placeholder="Ex: 1 000" oninput="calcMonnaieT()">
+                                    </div>
+                                    <div>
+                                        <div class="monnaie-result" id="t-monnaie">—</div>
+                                        <div class="monnaie-hint">Monnaie à rendre</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-green" id="btn-ticket" onclick="encaisserTicket()" disabled>
+                                🖨️ Encaisser &amp; Imprimer le Ticket
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card">
+                        <div class="card-head flex-between" style="border-left:4px solid var(--accent);">
+                            <div class="card-head-left">
+                                <div class="card-head-icon" style="background:var(--accent-bg);">📋</div>
+                                <div><h3>Historique Tickets <span id="hist-tickets-count" style="font-size:0.75rem;color:var(--muted);font-weight:400;"></span></h3><p>Consultations encaissées</p></div>
+                            </div>
+                            <select id="filter-tickets" class="filter-select" onchange="renderHistTickets()">
+                                <option value="day">Aujourd'hui</option>
+                                <option value="week">Cette semaine</option>
+                                <option value="month">Ce mois</option>
+                                <option value="quarter">Ce trimestre</option>
+                                <option value="year">Cette année</option>
+                                <option value="all" selected>Tout l'historique</option>
+                            </select>
+                        </div>
+                        <div class="hist-wrap">
+                            <table class="hist-table">
+                                <thead>
+                                    <tr>
+                                        <th>N° Att.</th>
+                                        <th>Patient</th>
+                                        <th>Âge</th>
+                                        <th>Prestation</th>
+                                        <th>Montant</th>
+                                        <th>Date &amp; Heure</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hist-tickets">
+                                    <tr><td colspan="6" class="hist-empty">Chargement…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane" id="pane-med">
+        <div class="tab-body">
+            <div class="two-col">
+                <div>
+                    <div class="card">
+                        <div class="card-head" style="border-left:4px solid var(--purple);">
+                            <div class="card-head-icon" style="background:var(--purple-bg);">💊</div>
+                            <div><h3>Paiement des Médicaments</h3><p>Sélectionnez les médicaments de l'ordonnance</p></div>
+                        </div>
+                        <div class="card-body">
+                            <div class="patient-lookup">
+                                <div class="fg">
+                                    <label>🔍 Rechercher le patient par nom (ticket du jour)</label>
+                                    <input type="text" id="m-search-patient" class="fc" placeholder="Saisir le nom du patient…" oninput="filtrerPatients()">
+                                </div>
+                                <div id="patient-suggestions" class="patient-list"></div>
+                                <div class="recap-box" id="patient-selectionne" style="display:none;">
+                                    <div class="recap-row">
+                                        <span class="recap-lbl">Patient sélectionné</span>
+                                        <span class="recap-val" id="ps-nom">—</span>
+                                    </div>
+                                    <div class="recap-row">
+                                        <span class="recap-lbl">N° d'attente</span>
+                                        <span class="recap-val" id="ps-attente">—</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <div class="fg">
+                                <label>🔍 Rechercher un médicament</label>
+                                <input type="text" id="m-search" class="fc" placeholder="Nom du médicament…" oninput="filtrerMeds()">
+                            </div>
+
+                            <div id="med-liste" class="med-grid">
+                                <div class="med-empty" id="med-loading">Chargement des médicaments…</div>
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <h4 class="panier-title">🛒 Médicaments sélectionnés</h4>
+                            <div id="panier-liste" class="panier-vide">Aucun médicament sélectionné</div>
+
+                            <div class="recap-box" style="margin-top:12px;">
+                                <div class="recap-row">
+                                    <span class="recap-lbl">Nombre d'articles</span>
+                                    <span class="recap-val" id="panier-count">0</span>
+                                </div>
+                                <div class="recap-row">
+                                    <span class="recap-lbl">TOTAL À PAYER</span>
+                                    <span class="recap-big" id="panier-total">0 FCFA</span>
+                                </div>
+                            </div>
+
+                            <div class="monnaie-box">
+                                <div class="monnaie-title">💰 Calcul de la monnaie</div>
+                                <div class="monnaie-row">
+                                    <div class="monnaie-field">
+                                        <label>Somme remise par le patient (FCFA)</label>
+                                        <input type="number" id="m-recu" class="fc" placeholder="Ex: 5 000" oninput="calcMonnaieM()">
+                                    </div>
+                                    <div>
+                                        <div class="monnaie-result" id="m-monnaie">—</div>
+                                        <div class="monnaie-hint">Monnaie à rendre</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-purple" id="btn-med" onclick="encaisserMedicaments()" disabled>
+                                🖨️ Encaisser &amp; Générer le Ticket Ordonnance
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card">
+                        <div class="card-head flex-between" style="border-left:4px solid var(--purple);">
+                            <div class="card-head-left">
+                                <div class="card-head-icon" style="background:var(--purple-bg);">📋</div>
+                                <div><h3>Historique Ventes Médicaments <span id="hist-meds-count" style="font-size:0.75rem;color:var(--muted);font-weight:400;"></span></h3><p>Ordonnances payées</p></div>
+                            </div>
+                            <select id="filter-meds" class="filter-select" onchange="renderHistMeds()">
+                                <option value="day">Aujourd'hui</option>
+                                <option value="week">Cette semaine</option>
+                                <option value="month">Ce mois</option>
+                                <option value="quarter">Ce trimestre</option>
+                                <option value="year">Cette année</option>
+                                <option value="all" selected>Tout l'historique</option>
+                            </select>
+                        </div>
+                        <div class="hist-wrap">
+                            <table class="hist-table">
+                                <thead>
+                                    <tr>
+                                        <th>Réf</th>
+                                        <th>Patient</th>
+                                        <th>Total</th>
+                                        <th>Nb Méd.</th>
+                                        <th>Date &amp; Heure</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hist-meds">
+                                    <tr><td colspan="5" class="hist-empty">Chargement…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="print-zone"><div class="receipt" id="print-content"></div></div>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
