@@ -86,6 +86,8 @@
         .badge-status{font-size:.63rem;font-weight:800;padding:3px 7px;border-radius:12px;text-transform:uppercase;margin-top:7px;display:inline-block;}
         .status-soon{background:var(--danger-bg);color:var(--danger);}
         .status-later{background:var(--accent-bg);color:#0a7a55;}
+        .status-honore{background:#e8f0e8;color:#2d7a2d;}
+        .agenda-actions{display:flex;flex-direction:column;gap:4px;justify-content:center;padding:8px 10px;border-left:1px solid var(--border);}
 
         /* ── FORMS ── */
         .form-group{margin-bottom:14px;}
@@ -298,46 +300,13 @@
             </div>
         </div>
 
-        <!-- COLONNE DROITE : AGENDA -->
-        <div>
-            <div class="panel">
-                <div class="panel-head" style="border-left:4px solid var(--gold);">
-                    <div>
-                        <h2>📅 Agenda des Visites</h2>
-                        <p>Programmation des rendez-vous à venir</p>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <form id="agenda-form" novalidate style="margin-bottom:22px;padding-bottom:22px;border-bottom:1px dashed var(--border);">
-                        <div class="form-group">
-                            <label>Patient concerné</label>
-                            <input type="text" id="a-patient" class="form-control" placeholder="Nom du patient..." required>
-                        </div>
-                        <div class="form-group">
-                            <label>Date prévue</label>
-                            <input type="date" id="a-date" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Motif de la visite</label>
-                            <input type="text" id="a-motif" class="form-control" placeholder="Ex: Renouvellement, Vaccin…" required>
-                        </div>
-                        <button type="submit" class="btn-primary" id="submit-btn">Programmer le rendez-vous</button>
-                    </form>
-                    <h3 style="font-size:.82rem;color:var(--muted);text-transform:uppercase;margin-bottom:12px;letter-spacing:.5px;">Rendez-vous programmés</h3>
-                    <div class="agenda-list" id="agenda-container">
-                        <div class="empty-state">Chargement de l'agenda...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
 <script type="module">
     import { db, auth } from '../firebase-config.js';
-    import { ref, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    import { ref, push, onValue, off, remove, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+    // ── SÉCURITÉ XSS : échappement systématique des données dynamiques ──
+    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
 
     onAuthStateChanged(auth, (user) => {
         if (!user) { window.location.href = '../index.html'; return; }
@@ -474,12 +443,28 @@
             const data=child.val();
             if(data.date_prevue){
                 const rdvDate=new Date(data.date_prevue);
-                if(rdvDate>=today) allAppointments.push({id:child.key,...data,rdvObj:rdvDate});
+                // Afficher RDV à venir + ceux honorés du jour (pas les passés non honorés)
+                if(rdvDate>=today || data.statut==='honore')
+                    allAppointments.push({_key:child.key,...data,rdvObj:rdvDate});
             }
         });
         allAppointments.sort((a,b)=>a.rdvObj-b.rdvObj);
         renderAgenda();
     });
+
+    // Marquer un RDV comme honoré
+    window.marquerHonore = async function(key) {
+        if(!confirm('Marquer ce rendez-vous comme honoré ?')) return;
+        try { await update(ref(db,'db_agenda/'+key),{statut:'honore'}); }
+        catch(e){ alert('Erreur : '+e.message); }
+    };
+
+    // Supprimer un RDV
+    window.supprimerRdv = async function(key) {
+        if(!confirm('Supprimer ce rendez-vous ? Cette action est irréversible.')) return;
+        try { await remove(ref(db,'db_agenda/'+key)); }
+        catch(e){ alert('Erreur : '+e.message); }
+    };
 
     function renderAgenda(){
         const container=document.getElementById('agenda-container');
@@ -500,15 +485,20 @@
             else if(d.getTime()===tomorrow.getTime()){badgeClass='status-soon';badgeText='DEMAIN';}
             const card=document.createElement('div');
             card.className='agenda-card';
+            const isHonore = rdv.statut === 'honore';
             card.innerHTML=`
                 <div class="agenda-date-box">
                     <div class="agenda-day">${dayStr}</div>
                     <div class="agenda-month">${monthStr}</div>
                 </div>
                 <div class="agenda-content">
-                    <div class="agenda-patient">👤 ${rdv.patient}</div>
-                    <div class="agenda-motif">${rdv.motif}</div>
-                    <span class="badge-status ${badgeClass}">${badgeText}</span>
+                    <div class="agenda-patient">👤 ${esc(rdv.patient)}</div>
+                    <div class="agenda-motif">${esc(rdv.motif)}</div>
+                    <span class="badge-status ${isHonore ? 'status-honore' : badgeClass}">${isHonore ? '✓ HONORÉ' : badgeText}</span>
+                </div>
+                <div class="agenda-actions">
+                    ${!isHonore ? `<button onclick="marquerHonore('${rdv._key}')" title="Marquer comme honoré" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:.75rem;cursor:pointer;font-family:inherit;font-weight:700;">✓ Honoré</button>` : ''}
+                    <button onclick="supprimerRdv('${rdv._key}')" title="Supprimer" style="background:var(--danger-bg);color:var(--danger);border:1px solid #f5c6c3;border-radius:6px;padding:5px 10px;font-size:.75rem;cursor:pointer;font-family:inherit;font-weight:700;">🗑 Suppr.</button>
                 </div>`;
             container.appendChild(card);
         });
@@ -523,6 +513,9 @@
         const dateStr=document.getElementById('a-date').value;
         const motif  =document.getElementById('a-motif').value.trim();
         if(!patient||!dateStr||!motif){alert('Tous les champs sont obligatoires.');return;}
+        // Validation : la date doit être aujourd'hui ou dans le futur
+        const todayStr = new Date().toISOString().split('T')[0];
+        if(dateStr < todayStr){alert('La date du rendez-vous doit être aujourd\'hui ou dans le futur.');return;}
         submitBtn.disabled=true;submitBtn.textContent='Enregistrement...';
         try {
             await push(agendaRef,{patient,date_prevue:dateStr,motif,cree_le:Date.now()});
