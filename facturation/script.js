@@ -3,6 +3,7 @@ import { ref, push, onValue, off, get, runTransaction }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import * as printer from './escpos-printer.js';
 
 // ── AUTH GUARD ──────────────────────────────────
 onAuthStateChanged(auth, u => {
@@ -74,6 +75,59 @@ function toast(msg, type='ok') {
     setTimeout(()=>el.classList.remove('show'), 4000);
 }
 
+// ── GABARITS HTML DES REÇUS (aperçu écran + repli navigateur) ───
+function buildConsultationHTML(d) {
+    return `
+        <div class="r-logo">🏥</div>
+        <div class="r-title">POSTE DE SANTÉ DE DIANDIOLY</div>
+        <div class="r-sub">TICKET DE CONSULTATION</div>
+        <hr class="r-div">
+        <div class="r-row"><span>Réf :</span><strong>${esc(d.refNum)}</strong></div>
+        <div class="r-row"><span>Date :</span><strong>${esc(d.dateStr)}</strong></div>
+        <hr class="r-div">
+        <div class="r-row"><span>Prénom :</span><strong>${esc(d.prenom)}</strong></div>
+        <div class="r-row"><span>Nom :</span><strong>${esc(d.nom)}</strong></div>
+        <div class="r-row"><span>Âge :</span><strong>${esc(d.age)} ans</strong></div>
+        <div class="r-row"><span>Prestation :</span><strong>${esc(d.choix)}</strong></div>
+        <hr class="r-div">
+        <div style="text-align:center; margin:8px 0;">
+            <div style="font-size:0.75rem;color:#666;margin-bottom:4px;">NUMÉRO D'ATTENTE</div>
+            <div class="attente-badge">${esc(d.numAttente)}</div>
+        </div>
+        <hr class="r-div">
+        <div class="r-total">TOTAL : ${esc(d.total)} FCFA</div>
+        ${d.recu>0?`<div class="r-change">Remis : ${esc(d.recuFmt)} FCFA &nbsp;|&nbsp; Monnaie : ${esc(d.monnaieFmt)} FCFA</div>`:''}
+        <hr class="r-div">
+        <div class="r-row" style="font-size:0.75rem;color:#666;"><span>⏰ Valide jusqu'au :</span><strong>${esc(d.validiteStr)}</strong></div>
+        <div class="r-foot">Conservez ce ticket pour accéder au médecin.<br>Validité : 24 heures.</div>
+    `;
+}
+function buildMedicamentsHTML(d) {
+    const lignesMeds = d.lignes.map(p=>`
+        <div class="r-row">
+            <span>${esc(p.qte)}x ${esc(p.nom)}</span>
+            <strong>${esc(p.montant)} FCFA</strong>
+        </div>`).join('');
+    return `
+        <div class="r-logo">🏥</div>
+        <div class="r-title">POSTE DE SANTÉ DE DIANDIOLY</div>
+        <div class="r-sub">TICKET MÉDICAMENTS – À AGRAFER SUR L'ORDONNANCE</div>
+        <hr class="r-div">
+        <div class="r-row"><span>Réf :</span><strong>${esc(d.refNum)}</strong></div>
+        <div class="r-row"><span>Date :</span><strong>${esc(d.dateStr)}</strong></div>
+        <hr class="r-div">
+        <div class="r-row"><span>Patient :</span><strong>${esc(d.patientNom)}</strong></div>
+        <div class="r-row"><span>N° Attente :</span><strong>${esc(d.patientAtt)}</strong></div>
+        <hr class="r-div">
+        <div style="font-size:0.72rem;font-weight:800;color:#666;text-transform:uppercase;margin-bottom:6px;">Médicaments</div>
+        ${lignesMeds}
+        <hr class="r-div">
+        <div class="r-total">TOTAL : ${esc(d.total)} FCFA</div>
+        ${d.recu>0?`<div class="r-change">Remis : ${esc(d.recuFmt)} FCFA &nbsp;|&nbsp; Monnaie : ${esc(d.monnaieFmt)} FCFA</div>`:''}
+        <div class="r-foot">Ce ticket est à AGRAFER sur l'ordonnance.<br>À présenter à la pharmacie pour la livraison.</div>
+    `;
+}
+
 // ── NETTOYAGE FIABLE DE LA ZONE D'IMPRESSION ─────
 function printAndClear() {
     window.print();
@@ -87,6 +141,58 @@ function printAndClear() {
     window.addEventListener('afterprint', clear, { once: true });
     setTimeout(clear, 5000);
 }
+// ── IMPRESSION THERMIQUE USB (ESC/POS) ───────────
+function updatePrinterBadge() {
+    const b = document.getElementById('printer-badge');
+    if (!b) return;
+    if (printer.isPrinterConnected()) {
+        b.textContent = '🖨️ Imprimante connectée (USB)';
+        b.className = 'printer-badge ok';
+    } else if (!printer.isWebUSBSupported()) {
+        b.textContent = '🖨️ Impression via navigateur';
+        b.className = 'printer-badge off';
+    } else {
+        b.textContent = '🖨️ Imprimante non connectée';
+        b.className = 'printer-badge off';
+    }
+}
+
+printer.tryAutoReconnect().finally(updatePrinterBadge);
+
+window.connectPrinter = async function() {
+    try {
+        await printer.connectPrinter();
+        updatePrinterBadge();
+        toast('Imprimante connectée avec succès.', 'ok');
+    } catch (e) {
+        console.error(e);
+        toast("Connexion impossible : " + e.message, 'err');
+    }
+};
+
+window.printTestTicket = async function() {
+    if (!printer.isPrinterConnected()) { toast('Connectez d\'abord l\'imprimante.', 'err'); return; }
+    try { await printer.printTestTicket(); toast('Ticket de test envoyé.', 'ok'); }
+    catch (e) { toast('Échec de l\'impression test : ' + e.message, 'err'); }
+};
+
+// Impression unifiée : ESC/POS direct par USB si l'imprimante est
+// connectée (rapide, fiable, sans boîte de dialogue) ; sinon repli
+// automatique sur window.print() via le HTML injecté dans #print-content.
+async function imprimerTicket(kind, data) {
+    if (printer.isPrinterConnected()) {
+        try {
+            if (kind === 'consultation') await printer.printTicketConsultation(data);
+            else await printer.printTicketMedicaments(data);
+            return;
+        } catch (e) {
+            console.warn('Impression USB échouée, repli navigateur :', e);
+            toast('Imprimante USB indisponible — impression via le navigateur.', 'err');
+        }
+    }
+    printAndClear();
+}
+
 function checkLoadState() {
     if (loadedT && loadedM && loadedS) {
         document.getElementById('loading-container').style.display='none';
@@ -296,31 +402,14 @@ window.encaisserTicket = async function() {
         const refNum='TK-'+newRef.key.substring(0,6).toUpperCase();
         const dateStr=dateISO();
 
-        document.getElementById('print-content').innerHTML = `
-            <div class="r-logo">🏥</div>
-            <div class="r-title">POSTE DE SANTÉ DE DIANDIOLY</div>
-            <div class="r-sub">TICKET DE CONSULTATION</div>
-            <hr class="r-div">
-            <div class="r-row"><span>Réf :</span><strong>${esc(refNum)}</strong></div>
-            <div class="r-row"><span>Date :</span><strong>${esc(dateStr)}</strong></div>
-            <hr class="r-div">
-            <div class="r-row"><span>Prénom :</span><strong>${esc(prenom)}</strong></div>
-            <div class="r-row"><span>Nom :</span><strong>${esc(nom)}</strong></div>
-            <div class="r-row"><span>Âge :</span><strong>${esc(age)} ans</strong></div>
-            <div class="r-row"><span>Prestation :</span><strong>${esc(choix)}</strong></div>
-            <hr class="r-div">
-            <div style="text-align:center; margin:8px 0;">
-                <div style="font-size:0.75rem;color:#666;margin-bottom:4px;">NUMÉRO D'ATTENTE</div>
-                <div class="attente-badge">${esc(numAttente)}</div>
-            </div>
-            <hr class="r-div">
-            <div class="r-total">TOTAL : ${esc(fmt(prixActuel))} FCFA</div>
-            ${recu>0?`<div class="r-change">Remis : ${esc(fmt(recu))} FCFA &nbsp;|&nbsp; Monnaie : ${esc(fmt(monnaie))} FCFA</div>`:''}
-            <hr class="r-div">
-            <div class="r-row" style="font-size:0.75rem;color:#666;"><span>⏰ Valide jusqu'au :</span><strong>${esc(validiteStr)}</strong></div>
-            <div class="r-foot">Conservez ce ticket pour accéder au médecin.<br>Validité : 24 heures.</div>
-        `;
-        printAndClear();
+        const ticketData = {
+            refNum, dateStr, prenom, nom, age, choix, numAttente,
+            total: fmt(prixActuel),
+            recu, recuFmt: fmt(recu), monnaieFmt: fmt(monnaie),
+            validiteStr
+        };
+        document.getElementById('print-content').innerHTML = buildConsultationHTML(ticketData);
+        await imprimerTicket('consultation', ticketData);
         toast('Ticket enregistré et imprimé avec succès.','ok');
 
         document.getElementById('t-prenom').value='';
@@ -360,8 +449,27 @@ window.renderHistTickets = function() {
             <td><span class="tbadge">${esc(x.choix||'—')}</span></td>
             <td><strong>${esc(fmt(x.prix||0))} FCFA</strong></td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
+            <td><button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">🖨️ Réimprimer</button></td>
         </tr>
     `).join('');
+};
+
+window.reimprimerTicket = async function(key) {
+    const x = allTickets.find(t => t._key === key);
+    if (!x) { toast('Ticket introuvable.', 'err'); return; }
+    const validiteTs = x.validite_ts || (x._ts + 24*60*60*1000);
+    const data = {
+        refNum: 'TK-'+key.substring(0,6).toUpperCase(),
+        dateStr: (x.date||'')+' '+(x.heure||''),
+        prenom: x.prenom||'', nom: x.nom||'', age: x.age||'', choix: x.choix||'',
+        numAttente: x.num_attente||'—',
+        total: fmt(x.prix||0),
+        recu: x.argent_remis||0, recuFmt: fmt(x.argent_remis||0), monnaieFmt: fmt(x.monnaie_rendue||0),
+        validiteStr: new Date(validiteTs).toLocaleDateString('fr-FR')+' à '+new Date(validiteTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})
+    };
+    document.getElementById('print-content').innerHTML = buildConsultationHTML(data);
+    await imprimerTicket('consultation', data);
+    toast('Ticket réimprimé.', 'ok');
 };
 // ═══════════════════════════════════════════════
 //  ONGLET 2 — MÉDICAMENTS ORDONNANCE
@@ -613,31 +721,14 @@ window.encaisserMedicaments = async function() {
         const refNum='MED-'+newRef.key.substring(0,6).toUpperCase();
         const dateStr=dateISO();
 
-        const lignesMeds=panier.map(p=>`
-            <div class="r-row">
-                <span>${p.qte}x ${esc(p.nom)}</span>
-                <strong>${esc(fmt(p.prix * p.qte))} FCFA</strong>
-            </div>`).join('');
-
-        document.getElementById('print-content').innerHTML = `
-            <div class="r-logo">🏥</div>
-            <div class="r-title">POSTE DE SANTÉ DE DIANDIOLY</div>
-            <div class="r-sub">TICKET MÉDICAMENTS – À AGRAFER SUR L'ORDONNANCE</div>
-            <hr class="r-div">
-            <div class="r-row"><span>Réf :</span><strong>${esc(refNum)}</strong></div>
-            <div class="r-row"><span>Date :</span><strong>${esc(dateStr)}</strong></div>
-            <hr class="r-div">
-            <div class="r-row"><span>Patient :</span><strong>${esc(patientNom)}</strong></div>
-            <div class="r-row"><span>N° Attente :</span><strong>${esc(patientAtt)}</strong></div>
-            <hr class="r-div">
-            <div style="font-size:0.72rem;font-weight:800;color:#666;text-transform:uppercase;margin-bottom:6px;">Médicaments</div>
-            ${lignesMeds}
-            <hr class="r-div">
-            <div class="r-total">TOTAL : ${esc(fmt(total))} FCFA</div>
-            ${recu>0?`<div class="r-change">Remis : ${esc(fmt(recu))} FCFA &nbsp;|&nbsp; Monnaie : ${esc(fmt(monnaie))} FCFA</div>`:''}
-            <div class="r-foot">Ce ticket est à AGRAFER sur l'ordonnance.<br>À présenter à la pharmacie pour la livraison.</div>
-        `;
-        printAndClear();
+        const medData = {
+            refNum, dateStr, patientNom, patientAtt,
+            lignes: panier.map(p => ({ nom: p.nom, qte: p.qte, montant: fmt(p.prix * p.qte) })),
+            total: fmt(total),
+            recu, recuFmt: fmt(recu), monnaieFmt: fmt(monnaie)
+        };
+        document.getElementById('print-content').innerHTML = buildMedicamentsHTML(medData);
+        await imprimerTicket('medicaments', medData);
         toast('Vente enregistrée et ticket imprimé.','ok');
 
         panier=[];
@@ -678,8 +769,25 @@ window.renderHistMeds = function() {
             <td><strong>${esc(fmt(x.total||0))} FCFA</strong></td>
             <td>${esc(String((x.medicaments||[]).length))}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
+            <td><button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">🖨️ Réimprimer</button></td>
         </tr>
     `).join('');
+};
+
+window.reimprimerMed = async function(key) {
+    const x = allMedVentes.find(m => m._key === key);
+    if (!x) { toast('Vente introuvable.', 'err'); return; }
+    const data = {
+        refNum: 'MED-'+key.substring(0,6).toUpperCase(),
+        dateStr: (x.date||'')+' '+(x.heure||''),
+        patientNom: x.patient_nom||'(non identifié)', patientAtt: x.num_attente||'—',
+        lignes: (x.medicaments||[]).map(m => ({ nom: m.nom, qte: m.qte, montant: fmt((m.prix||0) * (m.qte||0)) })),
+        total: fmt(x.total||0),
+        recu: x.argent_remis||0, recuFmt: fmt(x.argent_remis||0), monnaieFmt: fmt(x.monnaie_rendue||0)
+    };
+    document.getElementById('print-content').innerHTML = buildMedicamentsHTML(data);
+    await imprimerTicket('medicaments', data);
+    toast('Ticket réimprimé.', 'ok');
 };
 
 function filterByPeriod(list, period) {

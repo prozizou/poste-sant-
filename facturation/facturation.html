@@ -21,7 +21,11 @@
             <p>Tickets de consultation &amp; Médicaments</p>
         </div>
     </div>
-    <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+    <div class="topbar-right">
+        <button type="button" class="printer-badge off" id="printer-badge" onclick="connectPrinter()" title="Cliquer pour connecter l'imprimante USB">🖨️ Imprimante non connectée</button>
+        <button type="button" class="btn-reprint" onclick="printTestTicket()" title="Imprime un ticket de test">🧪 Test</button>
+        <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+    </div>
 </nav>
 
 <div class="page">
@@ -185,10 +189,11 @@
                                         <th>Prestation</th>
                                         <th>Montant</th>
                                         <th>Date &amp; Heure</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="hist-tickets">
-                                    <tr><td colspan="6" class="hist-empty">Chargement…</td></tr>
+                                    <tr><td colspan="7" class="hist-empty">Chargement…</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -299,10 +304,11 @@
                                         <th>Total</th>
                                         <th>Nb Méd.</th>
                                         <th>Date &amp; Heure</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="hist-meds">
-                                    <tr><td colspan="5" class="hist-empty">Chargement…</td></tr>
+                                    <tr><td colspan="6" class="hist-empty">Chargement…</td></tr>
                                 </tbody>
                             </table>
                         </div>
