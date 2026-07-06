@@ -1,21 +1,32 @@
 /* ═══════════════════════════════════════════════════════════════
    ESCPOS-PRINTER.JS
-   Pilote d'impression thermique ESC/POS via WebUSB, pour imprimante
-   58mm (ex : POS58B — modèle utilisé au Poste de Santé de Diandioly).
+   Pilote d'impression thermique ESC/POS pour imprimante 58mm
+   (POS58B — Poste de Santé de Diandioly), avec DEUX canaux de
+   transport possibles :
 
-   Pourquoi WebUSB plutôt que window.print() ?
-   - Aucune boîte de dialogue navigateur, aucun en-tête/pied de page
-     parasite, aucune variation de mise en page selon le navigateur.
-   - Contrôle exact des caractères par ligne, du gras, des tailles.
-   - Fonctionne identiquement sur tous les postes (Chrome/Edge desktop
-     ET Chrome Android), tant que le câble est branché en USB.
-   - NB : Web Bluetooth ne fonctionne PAS avec ce type d'imprimante
-     (Bluetooth "classique" SPP, pas BLE), d'où le choix de l'USB.
+   1) WebUSB — direct depuis le navigateur, sans app tierce.
+      Marche bien sur desktop (Chrome/Edge/Opera). Sur Android,
+      dépend fortement du téléphone : si un service système a déjà
+      "réservé" l'interface USB de l'imprimante, le navigateur ne
+      pourra pas la voir dans la liste WebUSB.
 
-   Compatibilité : Chrome / Edge / Opera desktop + Chrome Android.
-   PAS pris en charge : Safari / iOS (aucune version ne supporte
-   WebUSB). Sur ces navigateurs, on retombe automatiquement sur
-   window.print() (voir printAndClear() dans script.js).
+   2) RawBT — via l'app Android "RawBT ESC/POS" (gratuite), qui gère
+      elle-même la connexion Bluetooth classique (SPP) ou USB à
+      l'imprimante, et reçoit nos données ESC/POS via un lien
+      intent:// déclenché depuis la page web. C'est la solution la
+      plus robuste sur mobile Android car :
+      - Web Bluetooth ne supporte QUE le Bluetooth basse énergie
+        (BLE) ; le POS58B utilise le Bluetooth classique (SPP), donc
+        Web Bluetooth ne pourra JAMAIS s'y connecter directement —
+        ce n'est pas un bug corrigeable côté code.
+      - RawBT, en tant qu'app native, a un accès système complet au
+        Bluetooth/USB, sans les restrictions d'une page web.
+
+   PAS pris en charge du tout : Safari / iOS (aucune des deux
+   méthodes ne fonctionne). Sur ces navigateurs, repli automatique
+   sur window.print() (voir printAndClear() dans script.js) — avec
+   les limites connues du print natif mobile (taille de papier non
+   garantie, cf. IMPRESSION-README.md).
    ═══════════════════════════════════════════════════════════════ */
 
 // ── CONFIGURATION ────────────────────────────────
@@ -26,6 +37,7 @@ export const PRINTER_CONFIG = {
 };
 
 const STORAGE_KEY = 'escpos_last_device';
+const RAWBT_PACKAGE = 'ru.a402d.rawbtprinter';
 
 // ── ÉTAT INTERNE ─────────────────────────────────
 let _device = null;
@@ -35,6 +47,17 @@ let _interfaceNumber = null;
 // ── DÉTECTION DU SUPPORT ─────────────────────────
 export function isWebUSBSupported() {
     return typeof navigator !== 'undefined' && !!navigator.usb;
+}
+
+export function isAndroid() {
+    return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+}
+
+// RawBT n'existe que sous forme d'app Android ; on ne peut pas savoir
+// avec certitude si elle est installée avant d'essayer de l'ouvrir,
+// donc on se contente de vérifier qu'on est bien sur Android.
+export function isRawBTAvailable() {
+    return isAndroid();
 }
 
 export function isPrinterConnected() {
@@ -179,13 +202,27 @@ export async function disconnectPrinter() {
     _device = null; _outEndpoint = null; _interfaceNumber = null;
 }
 
-async function sendBytes(bytes) {
-    if (!isPrinterConnected()) throw new Error('Imprimante non connectée.');
+async function sendBytesUSB(bytes) {
+    if (!isPrinterConnected()) throw new Error('Imprimante USB non connectée.');
     await _device.transferOut(_outEndpoint, bytes);
 }
 
+// Envoie les octets ESC/POS à l'app RawBT installée sur le téléphone,
+// via un lien intent:// (mécanisme standard Android/Chrome). RawBT
+// gère ensuite elle-même la connexion Bluetooth/USB à l'imprimante.
+// Doit être appelé depuis un geste utilisateur (clic).
+function sendViaRawBT(bytes) {
+    if (!isAndroid()) throw new Error('RawBT nécessite un téléphone Android.');
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = btoa(binary);
+    const url = 'intent:base64,' + encodeURIComponent(b64)
+        + '#Intent;scheme=rawbt;package=' + RAWBT_PACKAGE + ';end;';
+    window.location.href = url;
+}
+
 // ── MISE EN PAGE DES TICKETS ──────────────────────
-export async function printTicketConsultation(d) {
+function buildConsultationBytes(d) {
     const r = new Receipt();
     r.align('center').bold(true).size(1,1).line('POSTE DE SANTE DE DIANDIOLY');
     r.bold(false).line('TICKET DE CONSULTATION');
@@ -210,10 +247,10 @@ export async function printTicketConsultation(d) {
     r.align('center').line('Conservez ce ticket pour acceder au medecin.');
     r.line('Validite : 24 heures.');
     r.cut();
-    await sendBytes(r.toBytes());
+    return r.toBytes();
 }
 
-export async function printTicketMedicaments(d) {
+function buildMedicamentsBytes(d) {
     const r = new Receipt();
     r.align('center').bold(true).line('POSTE DE SANTE DE DIANDIOLY');
     r.bold(false).line('TICKET MEDICAMENTS');
@@ -237,11 +274,10 @@ export async function printTicketMedicaments(d) {
     r.align('center').line('A AGRAFER sur l\'ordonnance.');
     r.line('A presenter a la pharmacie pour la livraison.');
     r.cut();
-    await sendBytes(r.toBytes());
+    return r.toBytes();
 }
 
-// Ticket de test, utile pour valider le branchement/calibrage.
-export async function printTestTicket() {
+function buildTestBytes() {
     const r = new Receipt();
     r.align('center').bold(true).line('TEST IMPRESSION');
     r.bold(false).line(new Date().toLocaleString('fr-FR'));
@@ -250,5 +286,21 @@ export async function printTestTicket() {
     r.line('0123456789 FCFA');
     r.row('Gauche', 'Droite');
     r.cut();
-    await sendBytes(r.toBytes());
+    return r.toBytes();
+}
+
+// `method` : 'usb' (WebUSB) ou 'rawbt' (app RawBT sur Android).
+async function dispatch(bytes, method) {
+    if (method === 'rawbt') { sendViaRawBT(bytes); return; }
+    await sendBytesUSB(bytes);
+}
+
+export async function printTicketConsultation(d, method = 'usb') {
+    await dispatch(buildConsultationBytes(d), method);
+}
+export async function printTicketMedicaments(d, method = 'usb') {
+    await dispatch(buildMedicamentsBytes(d), method);
+}
+export async function printTestTicket(method = 'usb') {
+    await dispatch(buildTestBytes(), method);
 }

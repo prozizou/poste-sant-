@@ -129,65 +129,85 @@ function buildMedicamentsHTML(d) {
 }
 
 // ── NETTOYAGE FIABLE DE LA ZONE D'IMPRESSION ─────
+// IMPORTANT : sur Android, l'événement 'afterprint' peut se déclencher
+// quasi immédiatement après l'appel à window.print() — bien avant que
+// l'utilisateur ait fini d'interagir avec la boîte de dialogue système
+// (choix de l'imprimante / "Enregistrer en PDF"). Si on vide
+// #print-content trop tôt, le PDF/impression sort VIDE. On ne vide donc
+// plus automatiquement : le contenu est de toute façon systématiquement
+// réécrit juste avant chaque impression suivante, donc rien ne traîne
+// visuellement (la zone reste masquée hors contexte d'impression).
 function printAndClear() {
     window.print();
-    let cleared = false;
-    const clear = () => {
-        if (cleared) return;
-        cleared = true;
-        const zone = document.getElementById('print-content');
-        if (zone) zone.innerHTML = '';
-    };
-    window.addEventListener('afterprint', clear, { once: true });
-    setTimeout(clear, 5000);
 }
-// ── IMPRESSION THERMIQUE USB (ESC/POS) ───────────
+// ── IMPRESSION THERMIQUE (USB, RawBT ou navigateur) ──
+const PRINT_METHOD_KEY = 'ticket_print_method';
+
+function getPrintMethod() {
+    const saved = localStorage.getItem(PRINT_METHOD_KEY);
+    if (saved) return saved;
+    // Par défaut : USB si disponible, sinon RawBT sur Android, sinon navigateur.
+    return printer.isWebUSBSupported() ? 'usb' : (printer.isRawBTAvailable() ? 'rawbt' : 'browser');
+}
+
 function updatePrinterBadge() {
     const b = document.getElementById('printer-badge');
     if (!b) return;
-    if (printer.isPrinterConnected()) {
-        b.textContent = '🖨️ Imprimante connectée (USB)';
-        b.className = 'printer-badge ok';
-    } else if (!printer.isWebUSBSupported()) {
-        b.textContent = '🖨️ Impression via navigateur';
-        b.className = 'printer-badge off';
+    const method = getPrintMethod();
+    if (method === 'usb' && printer.isPrinterConnected()) {
+        b.textContent = '🖨️ USB connectée'; b.className = 'printer-badge ok';
+    } else if (method === 'usb') {
+        b.textContent = '🖨️ Connecter USB'; b.className = 'printer-badge off';
+    } else if (method === 'rawbt') {
+        b.textContent = '📲 Impression via RawBT'; b.className = 'printer-badge ok';
     } else {
-        b.textContent = '🖨️ Imprimante non connectée';
-        b.className = 'printer-badge off';
+        b.textContent = '🖨️ Impression navigateur'; b.className = 'printer-badge off';
     }
+    const sel = document.getElementById('print-method');
+    if (sel) sel.value = method;
 }
 
 printer.tryAutoReconnect().finally(updatePrinterBadge);
 
+// Clic sur le badge : comportement dépend de la méthode active.
 window.connectPrinter = async function() {
+    const method = getPrintMethod();
+    if (method !== 'usb') { toast('Passez la méthode sur "USB" pour appairer une imprimante.', 'err'); return; }
     try {
         await printer.connectPrinter();
         updatePrinterBadge();
-        toast('Imprimante connectée avec succès.', 'ok');
+        toast('Imprimante USB connectée avec succès.', 'ok');
     } catch (e) {
         console.error(e);
         toast("Connexion impossible : " + e.message, 'err');
     }
 };
 
+window.setPrintMethod = function(method) {
+    localStorage.setItem(PRINT_METHOD_KEY, method);
+    updatePrinterBadge();
+    toast('Méthode d\'impression : ' + method.toUpperCase(), 'ok');
+};
+
 window.printTestTicket = async function() {
-    if (!printer.isPrinterConnected()) { toast('Connectez d\'abord l\'imprimante.', 'err'); return; }
-    try { await printer.printTestTicket(); toast('Ticket de test envoyé.', 'ok'); }
+    const method = getPrintMethod();
+    if (method === 'usb' && !printer.isPrinterConnected()) { toast('Connectez d\'abord l\'imprimante USB.', 'err'); return; }
+    try { await printer.printTestTicket(method); toast('Ticket de test envoyé.', 'ok'); }
     catch (e) { toast('Échec de l\'impression test : ' + e.message, 'err'); }
 };
 
-// Impression unifiée : ESC/POS direct par USB si l'imprimante est
-// connectée (rapide, fiable, sans boîte de dialogue) ; sinon repli
-// automatique sur window.print() via le HTML injecté dans #print-content.
+// Impression unifiée : utilise la méthode choisie (USB direct, RawBT,
+// ou repli navigateur via le HTML déjà injecté dans #print-content).
 async function imprimerTicket(kind, data) {
-    if (printer.isPrinterConnected()) {
+    const method = getPrintMethod();
+    if (method === 'usb' || method === 'rawbt') {
         try {
-            if (kind === 'consultation') await printer.printTicketConsultation(data);
-            else await printer.printTicketMedicaments(data);
+            if (kind === 'consultation') await printer.printTicketConsultation(data, method);
+            else await printer.printTicketMedicaments(data, method);
             return;
         } catch (e) {
-            console.warn('Impression USB échouée, repli navigateur :', e);
-            toast('Imprimante USB indisponible — impression via le navigateur.', 'err');
+            console.warn('Impression ' + method + ' échouée, repli navigateur :', e);
+            toast('Impression ' + method.toUpperCase() + ' indisponible — impression via le navigateur.', 'err');
         }
     }
     printAndClear();

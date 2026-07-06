@@ -83,7 +83,8 @@ progress:not([value])::-moz-progress-bar {
     background: rgba(14,164,114,0.22); border: 1px solid rgba(14,164,114,0.4); color: #7dffd0;
     white-space: nowrap; transition: all 0.3s ease;
 }
-.topbar-right { display: flex; align-items: center; gap: 8px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; overflow-x: auto; max-width: 62vw; }
+.topbar-right #print-method { font-size: 0.68rem; padding: 4px 6px; color: var(--primary); background: white; }
 .printer-badge {
     font-size: 0.7rem; font-weight: 700; padding: 4px 11px; border-radius: 20px; cursor: pointer;
     font-family: inherit; white-space: nowrap; transition: all 0.2s ease;

@@ -22,6 +22,11 @@
         </div>
     </div>
     <div class="topbar-right">
+        <select id="print-method" class="filter-select" onchange="setPrintMethod(this.value)" title="Méthode d'impression">
+            <option value="usb">USB (WebUSB)</option>
+            <option value="rawbt">RawBT (Android)</option>
+            <option value="browser">Navigateur</option>
+        </select>
         <button type="button" class="printer-badge off" id="printer-badge" onclick="connectPrinter()" title="Cliquer pour connecter l'imprimante USB">🖨️ Imprimante non connectée</button>
         <button type="button" class="btn-reprint" onclick="printTestTicket()" title="Imprime un ticket de test">🧪 Test</button>
         <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
