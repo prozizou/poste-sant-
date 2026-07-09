@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Chargé avant le rendu : pose html[data-view] sans flash de mise en page. -->
+    <script src="view-mode.js"></script>
 </head>
 <body>
 
@@ -30,6 +32,9 @@
         </select>
         <button type="button" class="printer-badge off" id="printer-badge" onclick="connectPrinter()" title="Cliquer pour appairer l'imprimante">🖨️ Imprimante non connectée</button>
         <button type="button" class="btn-reprint" onclick="printTestTicket()" title="Imprime un ticket de test">🧪 Test</button>
+        <button type="button" id="view-switch" class="view-switch" onclick="cycleViewMode()">
+            <span class="vs-ico">🔄</span><span class="vs-txt">Auto</span>
+        </button>
         <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
     </div>
 </nav>

@@ -262,53 +262,169 @@ progress:not([value])::-moz-progress-bar {
 .hist-empty { text-align: center; color: var(--muted); padding: 28px; font-size: 0.86rem; }
 
 /* ════════════════════════════════
-   PRINT STYLES
+   REÇU THERMIQUE 58 mm
+   Gabarit du repli navigateur. Toutes les lignes à deux colonnes sont
+   des flex avec `min-width:0` sur la partie souple : c'est ce qui
+   empêche un nom de médicament long de pousser le montant hors du
+   papier (le fameux chevauchement).
 ════════════════════════════════ */
 #print-zone { display: none; }
-.receipt { font-family: 'Courier New', monospace; max-width: 200px; margin: 0 auto; padding: 6px; text-align: center; }
-.r-logo   { font-size: 2rem; margin-bottom: 4px; }
-.r-title  { font-size: 1rem; font-weight: 800; }
-.r-sub    { font-size: 0.78rem; color: #666; margin-bottom: 8px; }
-.r-div    { border: none; border-top: 1px dashed #999; margin: 8px 0; }
-.r-row    { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; text-align: left; }
-.r-total  { font-size: 1.2rem; font-weight: 800; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #999; }
-.r-change { font-size: 0.85rem; color: #555; margin-top: 5px; }
-.r-foot   { font-size: 0.7rem; color: #888; margin-top: 12px; font-style: italic; }
+
+.receipt {
+    width: 54mm;
+    margin: 0 auto;
+    padding: 0;
+    color: #000;
+    background: #fff;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 9.5pt;
+    line-height: 1.35;
+    -webkit-font-smoothing: none;
+}
+
+/* En-tête */
+.r-head   { text-align: center; }
+.r-logo   { width: 17mm; height: 17mm; display: block; margin: 0 auto 2mm; color: #000; }
+.r-title  { font-size: 11pt; font-weight: 800; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.2; }
+.r-sub    { font-size: 9pt; margin-top: 0.6mm; }
+
+/* Bandeau inversé, équivalent du GS B de l'imprimante */
+.r-banner {
+    margin: 2mm 0 0; padding: 1mm 0;
+    background: #000; color: #fff;
+    font-size: 8.5pt; font-weight: 800; text-align: center;
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* Séparateurs */
+.r-div        { border: none; border-top: 1px dashed #000; margin: 2mm 0; }
+.r-div.solid  { border-top: 2px solid #000; }
+
+/* Titres de section */
+.r-sect {
+    font-size: 8pt; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.08em; border-bottom: 1px solid #000;
+    padding-bottom: 0.5mm; margin-bottom: 1.2mm;
+}
+
+/* Ligne libellé / valeur avec points de conduite */
+.r-row  { display: flex; align-items: baseline; gap: 1mm; margin-bottom: 0.8mm; font-size: 9pt; }
+.r-lbl  { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.r-dots { flex: 1 1 auto; min-width: 3mm; align-self: flex-end; border-bottom: 1px dotted #999; transform: translateY(-1px); }
+.r-val  { flex: 0 0 auto; white-space: nowrap; text-align: right; }
+
+.r-free { font-size: 9pt; overflow-wrap: anywhere; }
+
+/* Numéro d'attente : l'information la plus lue du ticket */
+.r-attente     { text-align: center; margin: 2.5mm 0; }
+.r-attente-lbl { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5mm; }
+.attente-badge {
+    display: inline-block; min-width: 22mm;
+    padding: 1.5mm 4mm;
+    border: 2.5px solid #000; border-radius: 2mm;
+    font-family: 'Courier New', monospace;
+    font-size: 24pt; font-weight: 900; line-height: 1;
+    letter-spacing: 0.12em; text-indent: 0.12em; /* compense l'interlettrage final */
+}
+
+/* Lignes de médicaments */
+.r-items    { list-style: none; margin: 0; padding: 0; }
+.r-item     { margin-bottom: 1.8mm; }
+.r-item-nom { font-weight: 700; font-size: 9pt; overflow-wrap: anywhere; }
+.r-item-calc {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 2mm; font-size: 8.5pt; padding-left: 3mm;
+}
+.r-item-calc span   { flex: 1 1 auto; min-width: 0; }
+.r-item-calc strong { flex: 0 0 auto; white-space: nowrap; }
+
+/* Total et règlement */
+.r-total {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 2mm;
+    margin: 2mm 0; padding: 1.2mm 2mm;
+    background: #000; color: #fff;
+    font-size: 10pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.r-total b { font-size: 12pt; white-space: nowrap; }
+.r-pay     { margin-top: 1.5mm; }
+
+.r-valid { text-align: center; font-size: 8.5pt; margin: 1.5mm 0; }
+.r-foot  { text-align: center; font-size: 8pt; margin-top: 3mm; line-height: 1.45; }
+
+/* Le papier thermique a exactement 58 mm : on le déclare pour éviter que
+   le navigateur ne compose une page A4 puis ne la réduise. */
+@page { size: 58mm auto; margin: 2mm; }
 
 @media print {
     body > *:not(#print-zone) { display: none !important; }
-    #print-zone { display: block !important; position: fixed; inset: 0; background: white; padding: 20px; }
+    #print-zone { display: block !important; position: static; background: #fff; padding: 0; }
+    .receipt { width: auto; }
+    /* Les aplats noirs ne doivent pas être « optimisés » par le navigateur. */
+    .r-banner, .r-total { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
 /* ════════════════════════════════
    DIVIDER & RESPONSIVE
+   Les règles compactes ne dépendent plus d'une @media mais de
+   l'attribut data-view posé par view-mode.js. Cela permet de forcer
+   la vue mobile sur un PC ET la vue PC sur un téléphone, avec le
+   même jeu de règles. En mode « auto », view-mode.js recalcule
+   data-view à chaque redimensionnement.
 ════════════════════════════════ */
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
-@media (max-width: 900px) { .two-col   { grid-template-columns: 1fr; } }
-@media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } }
-@media (max-width: 600px) {
-    .page { padding: 12px; }
-    .topbar { padding: 0 14px; height: 58px; }
-    .topbar-title h1 { font-size: 0.88rem; }
-    .back-btn span.txt { display: none; }
-    .stat-card { padding: 11px 12px; gap: 9px; }
-    .stat-value { font-size: 1.25rem; }
-    .tab-btn { font-size: 0.78rem; padding: 12px 10px; gap: 4px; }
-    .tab-body { padding: 14px; }
-    .tarif-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .tarif-card { padding: 11px 8px; }
-    .tarif-emoji { font-size: 1.3rem; }
-    .tarif-prix  { font-size: 0.95rem; }
-    .btn { font-size: 0.86rem; padding: 12px; }
-    .monnaie-row { flex-direction: column; }
-    .monnaie-result { width: 100%; }
+/* Bouton de bascule, dans la barre supérieure */
+#view-switch {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 8px; cursor: pointer;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.12); color: #fff;
+    font-family: inherit; font-size: 0.72rem; font-weight: 700;
+    white-space: nowrap; transition: background 0.18s, border-color 0.18s;
 }
+#view-switch:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.6); }
+
+html[data-view="mobile"] .two-col    { grid-template-columns: 1fr; }
+html[data-view="mobile"] .stats-grid { grid-template-columns: 1fr; }
+html[data-view="mobile"] .page       { padding: 12px; max-width: 560px; }
+html[data-view="mobile"] .topbar     { padding: 0 14px; height: 58px; }
+html[data-view="mobile"] .topbar-title h1  { font-size: 0.88rem; }
+html[data-view="mobile"] .back-btn span.txt { display: none; }
+html[data-view="mobile"] #view-switch .vs-txt { display: none; }
+html[data-view="mobile"] .stat-card  { padding: 11px 12px; gap: 9px; }
+html[data-view="mobile"] .stat-value { font-size: 1.25rem; }
+html[data-view="mobile"] .tab-btn    { font-size: 0.78rem; padding: 12px 10px; gap: 4px; }
+html[data-view="mobile"] .tab-body   { padding: 14px; }
+html[data-view="mobile"] .tarif-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+html[data-view="mobile"] .tarif-card { padding: 11px 8px; }
+html[data-view="mobile"] .tarif-emoji { font-size: 1.3rem; }
+html[data-view="mobile"] .tarif-prix  { font-size: 0.95rem; }
+html[data-view="mobile"] .btn         { font-size: 0.86rem; padding: 12px; }
+html[data-view="mobile"] .monnaie-row    { flex-direction: column; }
+html[data-view="mobile"] .monnaie-result { width: 100%; }
+
+/* Très petits écrans : uniquement pertinent en vue mobile réelle. */
 @media (max-width: 380px) {
-    .tarif-grid { grid-template-columns: 1fr; }
-    .tarif-card.full { grid-column: 1; }
-    .consult-choices { flex-direction: column; }
+    html[data-view="mobile"] .tarif-grid      { grid-template-columns: 1fr; }
+    html[data-view="mobile"] .tarif-card.full { grid-column: 1; }
+    html[data-view="mobile"] .consult-choices { flex-direction: column; }
 }
+
+/* Bouton de bascule d'affichage (Auto / Mobile / PC). */
+.view-switch {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.14); color: #fff;
+    border: 1px solid rgba(255,255,255,0.28); border-radius: 8px;
+    padding: 7px 11px; font: inherit; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; white-space: nowrap; transition: background 0.16s, border-color 0.16s;
+}
+.view-switch:hover { background: rgba(255,255,255,0.24); border-color: rgba(255,255,255,0.45); }
+.view-switch .vs-ico { font-size: 0.95rem; line-height: 1; }
+.view-switch[data-mode="auto"] { opacity: 0.85; }
+
+/* Vue PC forcée sur un téléphone : la barre supérieure doit rester
+   utilisable une fois la page dézoomée. */
+html[data-view="desktop"] .topbar-right { flex-wrap: wrap; row-gap: 6px; }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -75,57 +75,101 @@ function toast(msg, type='ok') {
     setTimeout(()=>el.classList.remove('show'), 4000);
 }
 
-// ── GABARITS HTML DES REÇUS (aperçu écran + repli navigateur) ───
+// ── GABARITS HTML DES REÇUS (repli navigateur) ───
+// Les logos et le formatage du numéro d'attente proviennent de
+// escpos-printer.js : une seule source de vérité, donc un reçu
+// HTML et un ticket thermique rigoureusement identiques.
+const SVG_CROIX = printer.SVG_CROIX;
+const SVG_HYGIE = printer.SVG_HYGIE;
+const attenteDigits = printer.attenteDigits;
+
+function receiptHead(svg, sousTitre, bandeau = '') {
+    return `
+        <header class="r-head">
+            ${svg}
+            <h1 class="r-title">Poste de Santé de Diandioly</h1>
+            <p class="r-sub">${esc(sousTitre)}</p>
+        </header>
+        ${bandeau ? `<div class="r-banner">${esc(bandeau)}</div>` : ''}`;
+}
+
+function rRow(label, value, strong = true) {
+    return `<div class="r-row"><span class="r-lbl">${esc(label)}</span>` +
+           `<span class="r-dots"></span>` +
+           `<${strong?'strong':'span'} class="r-val">${esc(value)}</${strong?'strong':'span'}></div>`;
+}
+
 function buildConsultationHTML(d) {
     return `
-        <div class="r-logo">🏥</div>
-        <div class="r-title">POSTE DE SANTÉ DE DIANDIOLY</div>
-        <div class="r-sub">TICKET DE CONSULTATION</div>
+        ${receiptHead(SVG_CROIX, 'Ticket de consultation')}
+        <hr class="r-div solid">
+        ${rRow('Référence', d.refNum)}
+        ${rRow('Date', d.dateStr)}
         <hr class="r-div">
-        <div class="r-row"><span>Réf :</span><strong>${esc(d.refNum)}</strong></div>
-        <div class="r-row"><span>Date :</span><strong>${esc(d.dateStr)}</strong></div>
+        <h2 class="r-sect">Patient</h2>
+        ${rRow('Nom', d.nom)}
+        ${rRow('Prénom', d.prenom)}
+        ${rRow('Âge', d.age + ' ans')}
         <hr class="r-div">
-        <div class="r-row"><span>Prénom :</span><strong>${esc(d.prenom)}</strong></div>
-        <div class="r-row"><span>Nom :</span><strong>${esc(d.nom)}</strong></div>
-        <div class="r-row"><span>Âge :</span><strong>${esc(d.age)} ans</strong></div>
-        <div class="r-row"><span>Prestation :</span><strong>${esc(d.choix)}</strong></div>
+        <h2 class="r-sect">Prestation</h2>
+        <p class="r-free">${esc(d.choix)}</p>
         <hr class="r-div">
-        <div style="text-align:center; margin:8px 0;">
-            <div style="font-size:0.75rem;color:#666;margin-bottom:4px;">NUMÉRO D'ATTENTE</div>
-            <div class="attente-badge">${esc(d.numAttente)}</div>
+        <div class="r-attente">
+            <p class="r-attente-lbl">Numéro d'attente</p>
+            <div class="attente-badge">${esc(attenteDigits(d.numAttente))}</div>
         </div>
         <hr class="r-div">
-        <div class="r-total">TOTAL : ${esc(d.total)} FCFA</div>
-        ${d.recu>0?`<div class="r-change">Remis : ${esc(d.recuFmt)} FCFA &nbsp;|&nbsp; Monnaie : ${esc(d.monnaieFmt)} FCFA</div>`:''}
+        <div class="r-total">Total à payer<b>${esc(d.total)} FCFA</b></div>
+        ${d.recu > 0 ? `
+        <div class="r-pay">
+            ${rRow('Montant remis', d.recuFmt + ' FCFA', false)}
+            ${rRow('Monnaie rendue', d.monnaieFmt + ' FCFA')}
+        </div>` : ''}
         <hr class="r-div">
-        <div class="r-row" style="font-size:0.75rem;color:#666;"><span>⏰ Valide jusqu'au :</span><strong>${esc(d.validiteStr)}</strong></div>
-        <div class="r-foot">Conservez ce ticket pour accéder au médecin.<br>Validité : 24 heures.</div>
-    `;
+        <p class="r-valid">Valide jusqu'au<br><strong>${esc(d.validiteStr)}</strong></p>
+        <footer class="r-foot">
+            Conservez ce ticket pour accéder au médecin.<br>
+            Validité : 24 heures.<br><br>
+            Merci de votre confiance.
+        </footer>`;
 }
+
 function buildMedicamentsHTML(d) {
-    const lignesMeds = d.lignes.map(p=>`
-        <div class="r-row">
-            <span>${esc(p.qte)}x ${esc(p.nom)}</span>
-            <strong>${esc(p.montant)} FCFA</strong>
-        </div>`).join('');
+    const qteTotale = d.lignes.reduce((n, i) => n + Number(i.qte || 0), 0);
+    const lignes = d.lignes.map(p => `
+        <li class="r-item">
+            <p class="r-item-nom">${esc(p.qte)} × ${esc(p.nom)}</p>
+            <div class="r-item-calc">
+                <span>à ${esc(p.pu ?? '—')} FCFA/u</span>
+                <strong>${esc(p.montant)} FCFA</strong>
+            </div>
+        </li>`).join('');
     return `
-        <div class="r-logo">🏥</div>
-        <div class="r-title">POSTE DE SANTÉ DE DIANDIOLY</div>
-        <div class="r-sub">TICKET MÉDICAMENTS – À AGRAFER SUR L'ORDONNANCE</div>
+        ${receiptHead(SVG_HYGIE, 'Ticket médicaments', "À agrafer sur l'ordonnance")}
+        <hr class="r-div solid">
+        ${rRow('Référence', d.refNum)}
+        ${rRow('Date', d.dateStr)}
         <hr class="r-div">
-        <div class="r-row"><span>Réf :</span><strong>${esc(d.refNum)}</strong></div>
-        <div class="r-row"><span>Date :</span><strong>${esc(d.dateStr)}</strong></div>
+        <h2 class="r-sect">Patient</h2>
+        ${rRow('Nom', d.patientNom)}
+        ${rRow('N° attente', attenteDigits(d.patientAtt))}
         <hr class="r-div">
-        <div class="r-row"><span>Patient :</span><strong>${esc(d.patientNom)}</strong></div>
-        <div class="r-row"><span>N° Attente :</span><strong>${esc(d.patientAtt)}</strong></div>
+        <h2 class="r-sect">Médicaments délivrés</h2>
+        <ul class="r-items">${lignes}</ul>
         <hr class="r-div">
-        <div style="font-size:0.72rem;font-weight:800;color:#666;text-transform:uppercase;margin-bottom:6px;">Médicaments</div>
-        ${lignesMeds}
-        <hr class="r-div">
-        <div class="r-total">TOTAL : ${esc(d.total)} FCFA</div>
-        ${d.recu>0?`<div class="r-change">Remis : ${esc(d.recuFmt)} FCFA &nbsp;|&nbsp; Monnaie : ${esc(d.monnaieFmt)} FCFA</div>`:''}
-        <div class="r-foot">Ce ticket est à AGRAFER sur l'ordonnance.<br>À présenter à la pharmacie pour la livraison.</div>
-    `;
+        ${rRow('Lignes', String(d.lignes.length), false)}
+        ${rRow('Quantité totale', String(qteTotale))}
+        <div class="r-total">Total à payer<b>${esc(d.total)} FCFA</b></div>
+        ${d.recu > 0 ? `
+        <div class="r-pay">
+            ${rRow('Montant remis', d.recuFmt + ' FCFA', false)}
+            ${rRow('Monnaie rendue', d.monnaieFmt + ' FCFA')}
+        </div>` : ''}
+        <footer class="r-foot">
+            Ce ticket est à <strong>agrafer sur l'ordonnance</strong>.<br>
+            À présenter à la pharmacie pour la livraison.<br><br>
+            Prompt rétablissement.
+        </footer>`;
 }
 
 // ── NETTOYAGE FIABLE DE LA ZONE D'IMPRESSION ─────
@@ -762,7 +806,7 @@ window.encaisserMedicaments = async function() {
 
         const medData = {
             refNum, dateStr, patientNom, patientAtt,
-            lignes: panier.map(p => ({ nom: p.nom, qte: p.qte, montant: fmt(p.prix * p.qte) })),
+            lignes: panier.map(p => ({ nom: p.nom, qte: p.qte, pu: fmt(p.prix), montant: fmt(p.prix * p.qte) })),
             total: fmt(total),
             recu, recuFmt: fmt(recu), monnaieFmt: fmt(monnaie)
         };
@@ -820,7 +864,7 @@ window.reimprimerMed = async function(key) {
         refNum: 'MED-'+key.substring(0,6).toUpperCase(),
         dateStr: (x.date||'')+' '+(x.heure||''),
         patientNom: x.patient_nom||'(non identifié)', patientAtt: x.num_attente||'—',
-        lignes: (x.medicaments||[]).map(m => ({ nom: m.nom, qte: m.qte, montant: fmt((m.prix||0) * (m.qte||0)) })),
+        lignes: (x.medicaments||[]).map(m => ({ nom: m.nom, qte: m.qte, pu: fmt(m.prix||0), montant: fmt((m.prix||0) * (m.qte||0)) })),
         total: fmt(x.total||0),
         recu: x.argent_remis||0, recuFmt: fmt(x.argent_remis||0), monnaieFmt: fmt(x.monnaie_rendue||0)
     };

@@ -32,8 +32,23 @@
 // ── CONFIGURATION ────────────────────────────────
 export const PRINTER_CONFIG = {
     lineWidth: 32,        // caractères par ligne (police A standard sur 58mm)
+    dotsPerLine: 384,     // points par ligne physique (58mm = 384 dots)
     hasCutter: false,     // la plupart des POS58B "desktop" n'ont pas de massicot auto
-    feedLinesEnd: 4,       // lignes de défilement en fin de ticket (place pour déchirer)
+    feedLinesEnd: 4,      // lignes de défilement en fin de ticket (place pour déchirer)
+
+    printLogo: true,      // rastérise et imprime le logo vectoriel en tête de ticket
+    logoWidth: 144,       // côté du logo en points (144 = ~21mm). Multiple de 8 conseillé.
+
+    // true  : le bitmap est complété de blanc jusqu'à 384 points et centré
+    //         nous-mêmes. Marche sur TOUS les firmwares, mais ~2,5x plus d'octets.
+    // false : bitmap étroit + centrage confié à ESC a 1. Beaucoup plus rapide en
+    //         Bluetooth, mais certains firmwares ignorent l'alignement des images.
+    centerLogoByPadding: true,
+
+    // Vidéo inverse (GS B) pour le bandeau "À AGRAFER". Si votre POS58B
+    // l'ignore ou imprime un pavé noir illisible, passez à false : on
+    // retombe alors sur un encadrement en astérisques.
+    useInvert: true,
 };
 
 const STORAGE_KEY = 'escpos_last_device';
@@ -197,12 +212,135 @@ const ACCENTS_MAP = {
     'ù':'u','û':'u','ü':'u','ú':'u','Ù':'U','Û':'U','Ü':'U',
     'ç':'c','Ç':'C','ñ':'n','Ñ':'N',
     '\u2019':"'", '\u2018':"'", '\u201c':'"', '\u201d':'"', '\u2013':'-', '\u2014':'-',
-    '°':'deg',
+    // Espaces insecables produites par toLocaleString('fr-FR') : sans cette
+    // conversion, "2 000" perdait son separateur de milliers a l'impression.
+    '\u00a0':' ', '\u202f':' ', '\u2009':' ',
+    '°':'o', '\u20ac':'EUR', '\u00d7':'x',
 };
 function normalizeText(str) {
     return String(str ?? '')
         .replace(/[^\u0000-\u007E]/g, ch => ACCENTS_MAP[ch] ?? '')
         .replace(/[^\x20-\x7E]/g, ''); // sécurité : supprime tout résidu non-ASCII imprimable
+}
+
+// ── LOGOS VECTORIELS ─────────────────────────────
+// Source unique de vérité : ces mêmes SVG servent au reçu HTML
+// (repli navigateur) ET sont rastérisés ci-dessous pour l'imprimante
+// thermique. Un seul tracé à maintenir, rendu identique partout.
+export const SVG_CROIX = `
+<svg class="r-logo" viewBox="0 0 100 100" role="img" aria-label="Croix médicale">
+  <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="5.5"/>
+  <path d="M23 50 H77 M50 23 V77" fill="none" stroke="currentColor"
+        stroke-width="16" stroke-linecap="round"/>
+</svg>`;
+
+export const SVG_HYGIE = `
+<svg class="r-logo" viewBox="0 0 100 100" role="img" aria-label="Coupe d'Hygie, symbole de la pharmacie">
+  <path d="M46 56 C18 50 22 13 50 13 C74 13 78 33 63 37"
+        fill="none" stroke="currentColor" stroke-width="7.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="61" cy="37.5" r="5.8" fill="currentColor"/>
+  <circle cx="62.5" cy="36.2" r="1.6" fill="#fff"/>
+  <path d="M28 46 H72 C72 70 58 75 54.5 79 V85 L70 87
+           Q73 90 69 93 H31 Q27 90 30 87 L45.5 85 V79
+           C42 75 28 70 28 46 Z" fill="currentColor"/>
+</svg>`;
+
+// ── RASTÉRISATION SVG → BITMAP ESC/POS ───────────
+// Une imprimante thermique ne connaît que des points noirs ou blancs :
+// le vectoriel doit être converti. On dessine le SVG sur un <canvas>
+// à la taille exacte voulue (donc net, sans interpolation d'un PNG),
+// puis on seuille chaque pixel et on empaquette 8 pixels par octet,
+// format attendu par la commande GS v 0.
+const _rasterCache = new Map();
+
+async function rasterizeSVG(svg, targetW) {
+    const key = targetW + '|' + PRINTER_CONFIG.centerLogoByPadding + '|' + svg;
+    if (_rasterCache.has(key)) return _rasterCache.get(key);
+
+    const job = (async () => {
+        if (typeof document === 'undefined') throw new Error('Canvas indisponible.');
+        // `currentColor` n'a aucun sens hors du DOM ; xmlns + dimensions
+        // explicites sont obligatoires pour qu'un <img> accepte le SVG.
+        const src = svg
+            .replace(/currentColor/g, '#000')
+            .replace('<svg', `<svg xmlns="http://www.w3.org/2000/svg" width="${targetW}" height="${targetW}"`);
+
+        const img = new Image();
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(src);
+        await img.decode();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = targetW;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, targetW, targetW);
+        ctx.drawImage(img, 0, 0, targetW, targetW);
+        const px = ctx.getImageData(0, 0, targetW, targetW).data;
+
+        const dots = PRINTER_CONFIG.centerLogoByPadding ? PRINTER_CONFIG.dotsPerLine : targetW;
+        const bytesPerRow = Math.ceil(dots / 8);
+        const offsetX = Math.max(0, (dots - targetW) >> 1);
+        const data = new Uint8Array(bytesPerRow * targetW);
+
+        for (let y = 0; y < targetW; y++) {
+            for (let x = 0; x < targetW; x++) {
+                const i = (y * targetW + x) * 4;
+                // Luminance perçue ; seuil un peu haut pour conserver
+                // les bords antialiasés des traits fins.
+                const lum = px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114;
+                if (lum < 160) {
+                    const X = offsetX + x;
+                    data[y * bytesPerRow + (X >> 3)] |= 0x80 >> (X & 7);
+                }
+            }
+        }
+        return { bytesPerRow, height: targetW, data };
+    })();
+
+    _rasterCache.set(key, job);
+    return job;
+}
+
+// Pré-chauffage : le rendu canvas est ainsi déjà prêt au premier clic,
+// ce qui évite de consommer l'« activation utilisateur » (nécessaire au
+// lancement de l'intent RawBT) pendant la rastérisation.
+if (typeof document !== 'undefined') {
+    Promise.all([
+        rasterizeSVG(SVG_CROIX, PRINTER_CONFIG.logoWidth),
+        rasterizeSVG(SVG_HYGIE, PRINTER_CONFIG.logoWidth),
+    ]).catch(() => {});
+}
+
+// ── DÉCOUPE DE TEXTE ─────────────────────────────
+// Clé de la robustesse : aucune ligne envoyée à l'imprimante ne doit
+// dépasser la largeur utile. Sinon le firmware coupe brutalement au
+// caractère près et le retour à la ligne se superpose à la mise en
+// page (les fameux « chevauchements »). On découpe donc nous-mêmes,
+// aux espaces, en cassant les mots trop longs.
+function wrapText(str, width) {
+    const out = [];
+    for (const para of String(str).split('\n')) {
+        let line = '';
+        for (let word of para.split(/\s+/).filter(Boolean)) {
+            while (word.length > width) {
+                if (line) { out.push(line); line = ''; }
+                out.push(word.slice(0, width));
+                word = word.slice(width);
+            }
+            if (!line) line = word;
+            else if (line.length + 1 + word.length <= width) line += ' ' + word;
+            else { out.push(line); line = word; }
+        }
+        out.push(line);
+    }
+    return out.length ? out : [''];
+}
+
+// « N° 7 », « 007 », 7 → « 007 ». Toujours 3 chiffres, jamais vide.
+export function attenteDigits(v) {
+    const d = String(v ?? '').replace(/\D/g, '');
+    return d ? d.padStart(3, '0') : String(v ?? '---');
 }
 
 // ── CONSTRUCTEUR DE TICKET ESC/POS ───────────────
@@ -212,41 +350,160 @@ class Receipt {
     constructor(width = PRINTER_CONFIG.lineWidth) {
         this.width = width;
         this.bytes = [];
-        this._raw([ESC, 0x40]); // ESC @ : initialise l'imprimante
+        this._scaleW = 1;              // multiplicateur de largeur courant
+        this._raw([ESC, 0x40]);        // ESC @  : réinitialise l'imprimante
+        this._raw([ESC, 0x74, 0x00]);  // ESC t 0: page de code PC437
     }
+
+    // Largeur utile réelle : en double/triple largeur, il tient
+    // proportionnellement moins de caractères sur la ligne.
+    get eff() { return Math.max(1, Math.floor(this.width / this._scaleW)); }
+
     _raw(arr) { this.bytes.push(...arr); return this; }
+    _rawBulk(u8) { for (let i = 0; i < u8.length; i++) this.bytes.push(u8[i]); return this; }
     _textBytes(str) {
         const clean = normalizeText(str);
         for (let i = 0; i < clean.length; i++) this.bytes.push(clean.charCodeAt(i));
         return this;
     }
-    align(a) { // 'left' | 'center' | 'right'
-        const n = a === 'center' ? 1 : a === 'right' ? 2 : 0;
-        return this._raw([ESC, 0x61, n]);
-    }
+
+    // ── styles ──
+    align(a) { return this._raw([ESC, 0x61, a === 'center' ? 1 : a === 'right' ? 2 : 0]); }
     bold(on) { return this._raw([ESC, 0x45, on ? 1 : 0]); }
-    size(w = 1, h = 1) { // 1..8, 1 = normal
-        const n = ((Math.min(w,8)-1) << 4) | (Math.min(h,8)-1);
-        return this._raw([GS, 0x21, n]);
+    invert(on) { return this._raw([GS, 0x42, on ? 1 : 0]); }
+    size(w = 1, h = 1) {
+        w = Math.min(Math.max(w, 1), 8);
+        h = Math.min(Math.max(h, 1), 8);
+        this._scaleW = w;
+        return this._raw([GS, 0x21, ((w - 1) << 4) | (h - 1)]);
     }
-    text(str) { return this._textBytes(str); }
-    line(str = '') { this._textBytes(str); return this._raw([LF]); }
-    blank(n = 1) { for (let i=0;i<n;i++) this._raw([LF]); return this; }
-    hr(ch = '-') { return this.line(ch.repeat(this.width)); }
-    // Deux colonnes : libellé à gauche, valeur alignée à droite
-    row(left, right) {
-        left = normalizeText(left); right = normalizeText(right);
-        const space = this.width - left.length - right.length;
-        const gap = space > 0 ? ' '.repeat(space) : ' ';
-        return this.line(left + gap + right);
+
+    // ── texte ──
+    // line() découpe systématiquement : impossible de déborder.
+    line(str = '') {
+        for (const l of wrapText(normalizeText(str), this.eff)) {
+            this._textBytes(l);
+            this._raw([LF]);
+        }
+        return this;
     }
+    blank(n = 1) { for (let i = 0; i < n; i++) this._raw([LF]); return this; }
+    hr(ch = '-') { return this.line(ch.repeat(this.eff)); }
     center(str) { this.align('center'); this.line(str); this.align('left'); return this; }
+
+    // Titre de rubrique.
+    sect(t) { this.bold(true); this.line(t); this.bold(false); return this; }
+
+    // ── deux colonnes, sans chevauchement possible ──
+    // Si le libellé est trop long, il passe à la ligne et seule sa
+    // dernière portion partage la ligne avec la valeur.
+    _pair(left, right, filler) {
+        const w = this.eff;
+        const L = normalizeText(left);
+        const R = normalizeText(right);
+
+        if (R.length >= w) { this.line(L); this.line(R); return this; }
+
+        const maxL = w - R.length - 2;   // 2 = un espace de chaque côté du remplissage
+        if (maxL <= 0) { this.line(L); this.line(R); return this; }
+
+        if (L.length <= maxL) return this._emit(L, R, filler, w);
+
+        const parts = wrapText(L, maxL);
+        const last = parts.pop();
+        for (const p of parts) { this._textBytes(p); this._raw([LF]); }
+        return this._emit(last, R, filler, w);
+    }
+    _emit(L, R, filler, w) {
+        const n = w - L.length - R.length - 2;
+        const mid = n > 0 ? ' ' + filler.repeat(n) + ' ' : '  ';
+        this._textBytes((L + mid + R).slice(0, w));
+        return this._raw([LF]);
+    }
+    row(left, right)    { return this._pair(left, right, ' '); }
+    dotRow(left, right) { return this._pair(left, right, '.'); }
+
+    // ── bandeau en vidéo inverse ──
+    banner(txt) {
+        const lines = wrapText(normalizeText(txt), this.eff);
+        if (PRINTER_CONFIG.useInvert) {
+            this.align('left').bold(true).invert(true);
+            for (const l of lines) {
+                const pad = this.eff - l.length;
+                const left = pad >> 1;
+                this._textBytes(' '.repeat(left) + l + ' '.repeat(pad - left));
+                this._raw([LF]);
+            }
+            this.invert(false).bold(false);
+        } else {
+            this.align('center').hr('*');
+            this.bold(true);
+            for (const l of lines) this.line(l);
+            this.bold(false).hr('*').align('left');
+        }
+        return this;
+    }
+
+    // ── numéro d'attente, très lisible à distance ──
+    attente(num) {
+        this.align('center');
+        this.hr('=');
+        this.line("NUMERO D'ATTENTE");
+        this.blank(1);
+        this.bold(true).size(3, 3);
+        this.line(num);
+        this.size(1, 1).bold(false);
+        this.blank(1);
+        this.hr('=');
+        this.align('left');
+        return this;
+    }
+
+    // ── total mis en valeur (double hauteur, largeur normale : 32 col.) ──
+    total(montant) {
+        this.bold(true).size(1, 2);
+        this.row('TOTAL', montant + ' FCFA');
+        this.size(1, 1).bold(false);
+        return this;
+    }
+
+    // ── ligne d'article : nom sur sa ligne, calcul en dessous ──
+    item(it) {
+        this.bold(true).line(`${it.qte} x ${it.nom}`).bold(false);
+        this.row('   a ' + (it.pu ?? '-') + ' FCFA/u', it.montant + ' FCFA');
+        return this;
+    }
+
+    // ── image monochrome (GS v 0) ──
+    raster(bmp) {
+        const xL = bmp.bytesPerRow & 0xFF, xH = (bmp.bytesPerRow >> 8) & 0xFF;
+        const yL = bmp.height & 0xFF,      yH = (bmp.height >> 8) & 0xFF;
+        this._raw([GS, 0x76, 0x30, 0x00, xL, xH, yL, yH]);
+        return this._rawBulk(bmp.data);
+    }
+
     cut() {
         this.blank(PRINTER_CONFIG.feedLinesEnd);
         if (PRINTER_CONFIG.hasCutter) this._raw([GS, 0x56, 0x01]); // coupe partielle
         return this;
     }
     toBytes() { return Uint8Array.from(this.bytes); }
+}
+
+// Ajoute le logo en tête. Silencieusement ignoré si la rastérisation
+// échoue : un ticket sans logo vaut mieux qu'un ticket non imprimé.
+async function addLogo(r, svg) {
+    if (!PRINTER_CONFIG.printLogo) return;
+    try {
+        const bmp = await rasterizeSVG(svg, PRINTER_CONFIG.logoWidth);
+        // En mode « padding », l'image occupe toute la largeur : elle doit
+        // partir de la colonne 0, donc alignement à gauche impératif.
+        r.align(PRINTER_CONFIG.centerLogoByPadding ? 'left' : 'center');
+        r.raster(bmp);
+        r.align('left').blank(1);
+    } catch (e) {
+        console.warn('Logo non rastérisé, ticket imprimé sans :', e);
+    }
 }
 
 // ── CONNEXION WEBUSB ──────────────────────────────
@@ -340,74 +597,128 @@ function sendViaRawBT(bytes) {
 }
 
 // ── MISE EN PAGE DES TICKETS ──────────────────────
-function buildConsultationBytes(d) {
-    const r = new Receipt();
-    r.align('center').bold(true).size(1,1).line('POSTE DE SANTE DE DIANDIOLY');
-    r.bold(false).line('TICKET DE CONSULTATION');
-    r.align('left').hr();
-    r.row('Ref :', d.refNum);
-    r.row('Date :', d.dateStr);
-    r.hr('-');
-    r.row('Prenom :', d.prenom);
-    r.row('Nom :', d.nom);
-    r.row('Age :', d.age + ' ans');
-    r.row('Prestation :', d.choix);
-    r.hr('-');
-    r.align('center').line('NUMERO D\'ATTENTE');
-    r.bold(true).size(2,2).line(d.numAttente);
-    r.bold(false).size(1,1);
-    r.hr('-');
-    r.bold(true).align('right').line('TOTAL : ' + d.total + ' FCFA');
-    r.bold(false);
-    if (d.recu > 0) r.row('Remis : ' + d.recuFmt, 'Monnaie : ' + d.monnaieFmt);
-    r.align('left').hr('-');
-    r.row('Valide jusqu\'au :', d.validiteStr);
-    r.align('center').line('Conservez ce ticket pour acceder au medecin.');
-    r.line('Validite : 24 heures.');
-    r.cut();
-    return r.toBytes();
+function entete(r, sousTitre) {
+    r.align('center').bold(true).size(1, 1);
+    r.line('POSTE DE SANTE DE DIANDIOLY');
+    r.bold(false).line(sousTitre);
+    r.align('left');
+    return r;
 }
 
-function buildMedicamentsBytes(d) {
+async function buildConsultationBytes(d) {
     const r = new Receipt();
-    r.align('center').bold(true).line('POSTE DE SANTE DE DIANDIOLY');
-    r.bold(false).line('TICKET MEDICAMENTS');
-    r.line('A AGRAFER SUR L\'ORDONNANCE');
-    r.align('left').hr();
-    r.row('Ref :', d.refNum);
-    r.row('Date :', d.dateStr);
+    await addLogo(r, SVG_CROIX);
+    entete(r, 'Ticket de consultation');
+    r.hr('=');
+
+    r.dotRow('Reference', d.refNum);
+    r.dotRow('Date', d.dateStr);
     r.hr('-');
-    r.row('Patient :', d.patientNom);
-    r.row('N Attente :', d.patientAtt);
+
+    r.sect('PATIENT');
+    r.dotRow('Nom', d.nom);
+    r.dotRow('Prenom', d.prenom);
+    r.dotRow('Age', d.age + ' ans');
     r.hr('-');
-    r.bold(true).line('MEDICAMENTS'); r.bold(false);
-    for (const item of d.lignes) {
-        r.row(`${item.qte}x ${item.nom}`, item.montant + ' FCFA');
+
+    r.sect('PRESTATION');
+    r.line(d.choix);
+
+    r.attente(attenteDigits(d.numAttente));
+
+    r.total(d.total);
+    if (d.recu > 0) {
+        r.hr('-');
+        r.dotRow('Montant remis', d.recuFmt + ' FCFA');
+        r.dotRow('Monnaie rendue', d.monnaieFmt + ' FCFA');
     }
     r.hr('-');
-    r.bold(true).align('right').line('TOTAL : ' + d.total + ' FCFA');
-    r.bold(false).align('left');
-    if (d.recu > 0) r.row('Remis : ' + d.recuFmt, 'Monnaie : ' + d.monnaieFmt);
-    r.hr('-');
-    r.align('center').line('A AGRAFER sur l\'ordonnance.');
-    r.line('A presenter a la pharmacie pour la livraison.');
-    r.cut();
+    r.dotRow('Valide le', d.validiteStr);
+
+    r.blank(1).align('center');
+    r.line('Conservez ce ticket pour acceder au medecin.');
+    r.line('Validite : 24 heures.');
+    r.blank(1);
+    r.line('Merci de votre confiance.');
+    r.align('left').cut();
     return r.toBytes();
 }
 
-function buildTestBytes() {
+async function buildMedicamentsBytes(d) {
+    const lignes = d.lignes || [];
+    const qteTotale = lignes.reduce((n, i) => n + Number(i.qte || 0), 0);
+
     const r = new Receipt();
-    r.align('center').bold(true).line('TEST IMPRESSION');
-    r.bold(false).line(new Date().toLocaleString('fr-FR'));
-    r.hr();
-    r.align('left').line('abcdefghijklmnopqrstuvwxyz');
+    await addLogo(r, SVG_HYGIE);
+    entete(r, 'Ticket medicaments');
+    r.blank(1);
+    r.banner("A AGRAFER SUR L'ORDONNANCE");
+    r.hr('=');
+
+    r.dotRow('Reference', d.refNum);
+    r.dotRow('Date', d.dateStr);
+    r.hr('-');
+
+    r.sect('PATIENT');
+    r.dotRow('Nom', d.patientNom);
+    r.dotRow('No attente', attenteDigits(d.patientAtt));
+    r.hr('-');
+
+    r.sect('MEDICAMENTS DELIVRES');
+    r.hr('-');
+    for (const it of lignes) r.item(it);
+    r.hr('-');
+
+    r.dotRow('Lignes', String(lignes.length));
+    r.dotRow('Quantite totale', String(qteTotale));
+    r.blank(1);
+
+    r.total(d.total);
+    if (d.recu > 0) {
+        r.hr('-');
+        r.dotRow('Montant remis', d.recuFmt + ' FCFA');
+        r.dotRow('Monnaie rendue', d.monnaieFmt + ' FCFA');
+    }
+
+    r.blank(1).align('center');
+    r.line("A AGRAFER sur l'ordonnance.");
+    r.line('A presenter a la pharmacie pour la livraison.');
+    r.blank(1);
+    r.line('Prompt retablissement.');
+    r.align('left').cut();
+    return r.toBytes();
+}
+
+// Ticket de calibration : vérifie logo, largeur réelle, styles et
+// alignement à deux colonnes. La règle graduée doit tenir EXACTEMENT
+// sur une ligne ; sinon, ajustez PRINTER_CONFIG.lineWidth.
+async function buildTestBytes() {
+    const r = new Receipt();
+    await addLogo(r, SVG_HYGIE);
+    entete(r, 'Test d\'impression');
+    r.hr('=');
+    r.dotRow('Date', new Date().toLocaleString('fr-FR'));
+    r.dotRow('Largeur', PRINTER_CONFIG.lineWidth + ' colonnes');
+    r.hr('-');
+    r.sect('REGLE (doit tenir sur 1 ligne)');
+    r.line('....|....1....|....2....|....3..');
+    r.hr('-');
+    r.sect('STYLES');
+    r.line('abcdefghijklmnopqrstuvwxyz');
     r.line('0123456789 FCFA');
-    r.row('Gauche', 'Droite');
+    r.bold(true).line('Gras'); r.bold(false);
+    r.hr('-');
+    r.sect('COLONNES (libelle tres long)');
+    r.dotRow('Reference', 'CONS-A1B2C3');
+    r.dotRow('Designation extremement longue pour tester le retour a la ligne', '1 250 FCFA');
+    r.hr('-');
+    r.attente('007');
+    r.total('1 500');
     r.cut();
     return r.toBytes();
 }
 
-// `method` : 'usb' (WebUSB) ou 'rawbt' (app RawBT sur Android).
+// `method` : 'ble' (Web Bluetooth), 'usb' (WebUSB) ou 'rawbt' (app Android).
 async function dispatch(bytes, method) {
     if (method === 'rawbt') { sendViaRawBT(bytes); return; }
     if (method === 'ble') { await sendBytesBLE(bytes); return; }
@@ -415,11 +726,11 @@ async function dispatch(bytes, method) {
 }
 
 export async function printTicketConsultation(d, method = 'usb') {
-    await dispatch(buildConsultationBytes(d), method);
+    await dispatch(await buildConsultationBytes(d), method);
 }
 export async function printTicketMedicaments(d, method = 'usb') {
-    await dispatch(buildMedicamentsBytes(d), method);
+    await dispatch(await buildMedicamentsBytes(d), method);
 }
 export async function printTestTicket(method = 'usb') {
-    await dispatch(buildTestBytes(), method);
+    await dispatch(await buildTestBytes(), method);
 }
