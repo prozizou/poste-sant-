@@ -31,13 +31,26 @@
 
 // ── CONFIGURATION ────────────────────────────────
 export const PRINTER_CONFIG = {
-    lineWidth: 32,        // caractères par ligne (police A standard sur 58mm)
+    lineWidth: 32,        // colonnes en police A (58mm)
+    lineWidthB: 42,       // colonnes en police B (glyphes plus petits)
     dotsPerLine: 384,     // points par ligne physique (58mm = 384 dots)
     hasCutter: false,     // la plupart des POS58B "desktop" n'ont pas de massicot auto
-    feedLinesEnd: 4,      // lignes de défilement en fin de ticket (place pour déchirer)
+
+    // ── ÉCONOMIE DE PAPIER ──
+    // Hauteur de ligne en points (commande ESC 3 n). L'imprimante démarre
+    // vers 30-34 : la resserrer supprime le blanc inutile entre les lignes.
+    // Les glyphes font 24 points en police A et 17 en police B : descendre
+    // en dessous de glyphe+2 fait se toucher les jambages (p, g, q).
+    lineSpacing: 26,      // police A
+    lineSpacingB: 20,     // police B
+    attenteScaleW: 3,     // largeur du numéro d'attente (1..8)
+    attenteScaleH: 2,     // hauteur du numéro d'attente — c'est elle qui coûte du papier
+    // Défilement final : il faut de quoi amener la dernière ligne au-delà
+    // de la barre de déchirure. 3 lignes suffisent sur un POS58B.
+    feedLinesEnd: 3,
 
     printLogo: true,      // rastérise et imprime le logo vectoriel en tête de ticket
-    logoWidth: 144,       // côté du logo en points (144 = ~21mm). Multiple de 8 conseillé.
+    logoWidth: 96,        // côté du logo en points (96 = ~12mm). Multiple de 8 conseillé.
 
     // true  : le bitmap est complété de blanc jusqu'à 384 points et centré
     //         nous-mêmes. Marche sur TOUS les firmwares, mais ~2,5x plus d'octets.
@@ -351,8 +364,44 @@ class Receipt {
         this.width = width;
         this.bytes = [];
         this._scaleW = 1;              // multiplicateur de largeur courant
+        this._font = 'A';
         this._raw([ESC, 0x40]);        // ESC @  : réinitialise l'imprimante
         this._raw([ESC, 0x74, 0x00]);  // ESC t 0: page de code PC437
+        this._sp = 0;
+        this._setSpacing(PRINTER_CONFIG.lineSpacing);   // ESC 3 n : interligne serré
+    }
+
+    // ESC 3 n fixe l'avance papier par ligne. ATTENTION : sur les firmwares
+    // bon marché, cette avance est appliquée telle quelle, même si les
+    // caractères sont plus hauts — d'où des chevauchements en double/triple
+    // taille. On remonte donc systématiquement l'interligne avant d'écrire
+    // gros, puis on le restaure.
+    _setSpacing(n) {
+        this._sp = Math.min(255, Math.max(1, n | 0));
+        return this._raw([ESC, 0x33, this._sp]);
+    }
+    _glyphH() { return this._font === 'B' ? 17 : 24; }
+
+    // Police A (32 col., glyphes 12x24) ou B (42 col., glyphes 9x17).
+    // La police B est le principal levier d'économie de papier : plus
+    // courte ET plus large, elle évite la plupart des retours à la ligne.
+    font(f) {
+        const next = (f === 'B') ? 'B' : 'A';
+        if (next === this._font && this._sp) return this;
+        this._font = next;
+        this.width = next === 'B' ? PRINTER_CONFIG.lineWidthB : PRINTER_CONFIG.lineWidth;
+        this._raw([ESC, 0x4D, next === 'B' ? 1 : 0]);
+        return this._setSpacing(next === 'B' ? PRINTER_CONFIG.lineSpacingB : PRINTER_CONFIG.lineSpacing);
+    }
+
+    // Écrit en taille agrandie sans risque de chevauchement.
+    big(w, h, fn) {
+        const prev = this._sp;
+        this._setSpacing(this._glyphH() * h + 4);
+        this.size(w, h);
+        fn(this);
+        this.size(1, 1);
+        return this._setSpacing(prev);
     }
 
     // Largeur utile réelle : en double/triple largeur, il tient
@@ -397,16 +446,24 @@ class Receipt {
     // ── deux colonnes, sans chevauchement possible ──
     // Si le libellé est trop long, il passe à la ligne et seule sa
     // dernière portion partage la ligne avec la valeur.
+    // Largeur minimale acceptable pour le libellé : en dessous, mieux vaut
+    // deux lignes propres qu'un libellé haché en morceaux illisibles.
     _pair(left, right, filler) {
         const w = this.eff;
         const L = normalizeText(left);
         const R = normalizeText(right);
+        const MIN_L = 6;
 
-        if (R.length >= w) { this.line(L); this.line(R); return this; }
+        if (R.length + MIN_L + 2 > w) {           // la valeur mange toute la ligne
+            this.line(L);
+            for (const l of wrapText(R, w)) {     // valeur cadrée à droite
+                this._textBytes(' '.repeat(w - l.length) + l);
+                this._raw([LF]);
+            }
+            return this;
+        }
 
         const maxL = w - R.length - 2;   // 2 = un espace de chaque côté du remplissage
-        if (maxL <= 0) { this.line(L); this.line(R); return this; }
-
         if (L.length <= maxL) return this._emit(L, R, filler, w);
 
         const parts = wrapText(L, maxL);
@@ -445,15 +502,15 @@ class Receipt {
     }
 
     // ── numéro d'attente, très lisible à distance ──
+    // Compact : libellé en police B, chiffres en triple taille, encadré
+    // par deux filets. 4 lignes au total.
     attente(num) {
-        this.align('center');
+        this.font('A').align('center');
         this.hr('=');
-        this.line("NUMERO D'ATTENTE");
-        this.blank(1);
-        this.bold(true).size(3, 3);
-        this.line(num);
-        this.size(1, 1).bold(false);
-        this.blank(1);
+        this.font('B').line("NUMERO D'ATTENTE");
+        this.font('A').bold(true);
+        this.big(PRINTER_CONFIG.attenteScaleW, PRINTER_CONFIG.attenteScaleH, r => r.line(num));
+        this.bold(false);
         this.hr('=');
         this.align('left');
         return this;
@@ -461,17 +518,18 @@ class Receipt {
 
     // ── total mis en valeur (double hauteur, largeur normale : 32 col.) ──
     total(montant) {
-        this.bold(true).size(1, 2);
-        this.row('TOTAL', montant + ' FCFA');
-        this.size(1, 1).bold(false);
+        this.font('A').bold(true);
+        this.big(1, 2, r => r.row('TOTAL', montant + ' FCFA'));
+        this.bold(false);
         return this;
     }
 
-    // ── ligne d'article : nom sur sa ligne, calcul en dessous ──
+    // ── ligne d'article : tout sur une ligne en police B (42 col.) ──
+    // « 2x PARACETAMOL 500MG @150      300 FCFA »
     item(it) {
-        this.bold(true).line(`${it.qte} x ${it.nom}`).bold(false);
-        this.row('   a ' + (it.pu ?? '-') + ' FCFA/u', it.montant + ' FCFA');
-        return this;
+        const pu = (it.pu ?? null);
+        const left = `${it.qte}x ${it.nom}` + (pu !== null ? ` @${pu}` : '');
+        return this.row(left, it.montant + ' FCFA');
     }
 
     // ── image monochrome (GS v 0) ──
@@ -597,11 +655,23 @@ function sendViaRawBT(bytes) {
 }
 
 // ── MISE EN PAGE DES TICKETS ──────────────────────
+// Principe : police A (grosse) réservée à ce qui doit se lire d'un
+// coup d'oeil — nom du poste, numéro d'attente, total. Tout le reste
+// en police B, qui tient 42 colonnes et consomme un tiers de hauteur
+// en moins. Objectif : ~6 cm de papier par ticket au lieu de ~13.
 function entete(r, sousTitre) {
-    r.align('center').bold(true).size(1, 1);
+    r.align('center').font('A').bold(true);
     r.line('POSTE DE SANTE DE DIANDIOLY');
-    r.bold(false).line(sousTitre);
-    r.align('left');
+    r.bold(false).font('B').line(sousTitre);
+    r.font('A').align('left');
+    return r;
+}
+
+// Pied de page : lignes centrées en police B.
+function pied(r, lignes) {
+    r.font('B').align('center');
+    for (const l of lignes) r.line(l);
+    r.font('A').align('left');
     return r;
 }
 
@@ -611,36 +681,23 @@ async function buildConsultationBytes(d) {
     entete(r, 'Ticket de consultation');
     r.hr('=');
 
-    r.dotRow('Reference', d.refNum);
-    r.dotRow('Date', d.dateStr);
-    r.hr('-');
-
-    r.sect('PATIENT');
-    r.dotRow('Nom', d.nom);
-    r.dotRow('Prenom', d.prenom);
-    r.dotRow('Age', d.age + ' ans');
-    r.hr('-');
-
-    r.sect('PRESTATION');
-    r.line(d.choix);
+    // Réf + date sur une seule ligne ; identité regroupée.
+    r.font('B');
+    r.row('Ref ' + d.refNum, d.dateStr);
+    r.line(`${d.nom} ${d.prenom} - ${d.age} ans`);
+    r.line('Prestation : ' + d.choix);
+    r.font('A');
 
     r.attente(attenteDigits(d.numAttente));
 
     r.total(d.total);
-    if (d.recu > 0) {
-        r.hr('-');
-        r.dotRow('Montant remis', d.recuFmt + ' FCFA');
-        r.dotRow('Monnaie rendue', d.monnaieFmt + ' FCFA');
-    }
-    r.hr('-');
-    r.dotRow('Valide le', d.validiteStr);
+    r.font('B');
+    if (d.recu > 0) r.row('Remis ' + d.recuFmt + ' FCFA', 'Monnaie ' + d.monnaieFmt + ' FCFA');
+    r.row('Valide le', d.validiteStr);
 
-    r.blank(1).align('center');
-    r.line('Conservez ce ticket pour acceder au medecin.');
-    r.line('Validite : 24 heures.');
-    r.blank(1);
-    r.line('Merci de votre confiance.');
-    r.align('left').cut();
+    pied(r, ['Conservez ce ticket pour voir le medecin.',
+             'Validite 24 h. Merci de votre confiance.']);
+    r.cut();
     return r.toBytes();
 }
 
@@ -651,67 +708,55 @@ async function buildMedicamentsBytes(d) {
     const r = new Receipt();
     await addLogo(r, SVG_HYGIE);
     entete(r, 'Ticket medicaments');
-    r.blank(1);
     r.banner("A AGRAFER SUR L'ORDONNANCE");
-    r.hr('=');
 
-    r.dotRow('Reference', d.refNum);
-    r.dotRow('Date', d.dateStr);
-    r.hr('-');
+    r.font('B');
+    r.row('Ref ' + d.refNum, d.dateStr);
+    r.row(d.patientNom, 'No ' + attenteDigits(d.patientAtt));
+    r.font('A').hr('-');
 
-    r.sect('PATIENT');
-    r.dotRow('Nom', d.patientNom);
-    r.dotRow('No attente', attenteDigits(d.patientAtt));
-    r.hr('-');
-
-    r.sect('MEDICAMENTS DELIVRES');
-    r.hr('-');
+    // Une ligne par médicament (42 colonnes : le nom tient presque toujours).
+    r.font('B');
     for (const it of lignes) r.item(it);
-    r.hr('-');
-
-    r.dotRow('Lignes', String(lignes.length));
-    r.dotRow('Quantite totale', String(qteTotale));
-    r.blank(1);
+    r.dotRow(`${lignes.length} ligne(s)`, `${qteTotale} unite(s)`);
+    r.font('A').hr('-');
 
     r.total(d.total);
-    if (d.recu > 0) {
-        r.hr('-');
-        r.dotRow('Montant remis', d.recuFmt + ' FCFA');
-        r.dotRow('Monnaie rendue', d.monnaieFmt + ' FCFA');
-    }
+    r.font('B');
+    if (d.recu > 0) r.row('Remis ' + d.recuFmt + ' FCFA', 'Monnaie ' + d.monnaieFmt + ' FCFA');
 
-    r.blank(1).align('center');
-    r.line("A AGRAFER sur l'ordonnance.");
-    r.line('A presenter a la pharmacie pour la livraison.');
-    r.blank(1);
-    r.line('Prompt retablissement.');
-    r.align('left').cut();
+    // Une seule chaîne : wrapText coupe aux espaces, jamais en plein mot.
+    pied(r, ["A agrafer sur l'ordonnance, a presenter a la pharmacie. Prompt retablissement."]);
+    r.cut();
     return r.toBytes();
 }
 
-// Ticket de calibration : vérifie logo, largeur réelle, styles et
-// alignement à deux colonnes. La règle graduée doit tenir EXACTEMENT
-// sur une ligne ; sinon, ajustez PRINTER_CONFIG.lineWidth.
+// Ticket de calibration : vérifie logo, largeur réelle des deux polices,
+// interligne et alignement à deux colonnes. Chaque règle graduée doit
+// tenir EXACTEMENT sur une ligne ; sinon ajustez lineWidth / lineWidthB.
 async function buildTestBytes() {
     const r = new Receipt();
     await addLogo(r, SVG_HYGIE);
     entete(r, 'Test d\'impression');
     r.hr('=');
+    r.font('B');
     r.dotRow('Date', new Date().toLocaleString('fr-FR'));
-    r.dotRow('Largeur', PRINTER_CONFIG.lineWidth + ' colonnes');
-    r.hr('-');
-    r.sect('REGLE (doit tenir sur 1 ligne)');
+    r.dotRow('Interligne', PRINTER_CONFIG.lineSpacing + ' points');
+    r.dotRow('Logo', PRINTER_CONFIG.logoWidth + ' points');
+    r.font('A').hr('-');
+
+    r.line('Police A - ' + PRINTER_CONFIG.lineWidth + ' col.');
     r.line('....|....1....|....2....|....3..');
-    r.hr('-');
-    r.sect('STYLES');
-    r.line('abcdefghijklmnopqrstuvwxyz');
-    r.line('0123456789 FCFA');
-    r.bold(true).line('Gras'); r.bold(false);
-    r.hr('-');
-    r.sect('COLONNES (libelle tres long)');
-    r.dotRow('Reference', 'CONS-A1B2C3');
-    r.dotRow('Designation extremement longue pour tester le retour a la ligne', '1 250 FCFA');
-    r.hr('-');
+    r.font('B');
+    r.line('Police B - ' + PRINTER_CONFIG.lineWidthB + ' col.');
+    r.line('....|....1....|....2....|....3....|....4..');
+    r.font('A').hr('-');
+
+    r.font('B');
+    r.item({ qte: 2, nom: 'PARACETAMOL 500MG COMPRIME', pu: '150', montant: '300' });
+    r.dotRow('Libelle volontairement tres long pour tester le retour a la ligne', '1 250 FCFA');
+    r.font('A');
+
     r.attente('007');
     r.total('1 500');
     r.cut();
