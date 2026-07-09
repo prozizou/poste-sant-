@@ -64,6 +64,124 @@ export function isPrinterConnected() {
     return !!(_device && _device.opened);
 }
 
+// ── BLUETOOTH BASSE ÉNERGIE (BLE) ────────────────
+// Web Bluetooth ne parle QUE le BLE (jamais le SPP classique). Mais
+// beaucoup d'imprimantes 58mm chinoises (POS58, Goojprt, XPrinter,
+// Zjiang…) exposent en réalité les DEUX modes. Si c'est le cas du
+// POS58B, ce canal permet d'imprimer directement depuis Chrome, sans
+// RawBT, et — c'est là tout l'intérêt — sans geste utilisateur après
+// le premier appairage : imprimerTicket() devient totalement silencieux.
+//
+// Chaque profil = un couple (service GATT, caractéristique d'écriture)
+// connu pour ces imprimantes. On les essaie dans l'ordre.
+const BLE_PROFILES = [
+    { service: 0x18f0, chars: [0x2af1] },                          // le plus répandu (POS58, Goojprt, XPrinter)
+    { service: 0xff00, chars: [0xff02] },                          // clones Zjiang / MTP-II
+    { service: 0xffe0, chars: [0xffe1] },                          // modules type HM-10
+    { service: 0xfff0, chars: [0xfff2, 0xfff1] },                  // variantes diverses
+    { service: 'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+      chars:   ['bef8d6c9-9c21-4c9e-b632-bd58c1009f9f'] },         // Peripage / Paperang
+];
+
+// Taille de paquet sûre : le MTU BLE négocié est souvent ~185 octets.
+const BLE_CHUNK = 180;
+const BLE_STORAGE_KEY = 'escpos_ble_device_name';
+
+let _bleDevice = null;
+let _bleChar = null;
+
+export function isBLESupported() {
+    return typeof navigator !== 'undefined' && !!navigator.bluetooth;
+}
+
+export function isBLEConnected() {
+    return !!(_bleChar && _bleDevice && _bleDevice.gatt && _bleDevice.gatt.connected);
+}
+
+// Doit être appelée depuis un geste utilisateur (clic sur le badge).
+// Une seule fois : ensuite les impressions partent sans interaction.
+export async function connectBLE() {
+    if (!isBLESupported()) {
+        throw new Error('Web Bluetooth non supporté par ce navigateur.');
+    }
+    const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: BLE_PROFILES.map(p => p.service),
+    });
+    device.addEventListener('gattserverdisconnected', () => { _bleChar = null; });
+
+    const server = await device.gatt.connect();
+    for (const prof of BLE_PROFILES) {
+        let svc;
+        try { svc = await server.getPrimaryService(prof.service); } catch (_) { continue; }
+        for (const uuid of prof.chars) {
+            try {
+                const ch = await svc.getCharacteristic(uuid);
+                if (ch.properties.write || ch.properties.writeWithoutResponse) {
+                    _bleDevice = device;
+                    _bleChar = ch;
+                    try { localStorage.setItem(BLE_STORAGE_KEY, device.name || ''); } catch (_) {}
+                    return true;
+                }
+            } catch (_) { /* caractéristique absente : profil suivant */ }
+        }
+    }
+    try { device.gatt.disconnect(); } catch (_) {}
+    throw new Error(
+        "Aucun service d'impression BLE trouvé sur cet appareil. " +
+        "Le POS58B n'expose probablement que du Bluetooth classique (SPP) : " +
+        "utilisez alors USB/OTG ou RawBT."
+    );
+}
+
+export async function disconnectBLE() {
+    try { if (_bleDevice && _bleDevice.gatt.connected) _bleDevice.gatt.disconnect(); } catch (_) {}
+    _bleDevice = null; _bleChar = null;
+}
+
+// Reconnexion silencieuse au chargement de la page. Nécessite que le
+// navigateur mémorise l'appareil (Chrome Android : dépend du drapeau
+// chrome://flags/#enable-web-bluetooth-new-permissions-backend).
+// Si indisponible, l'utilisateur reclique une fois sur le badge par session.
+export async function tryAutoReconnectBLE() {
+    if (!isBLESupported() || typeof navigator.bluetooth.getDevices !== 'function') return false;
+    try {
+        const known = await navigator.bluetooth.getDevices();
+        if (!known.length) return false;
+        const savedName = localStorage.getItem(BLE_STORAGE_KEY);
+        const device = known.find(d => d.name === savedName) || known[0];
+        const server = await device.gatt.connect();
+        for (const prof of BLE_PROFILES) {
+            let svc;
+            try { svc = await server.getPrimaryService(prof.service); } catch (_) { continue; }
+            for (const uuid of prof.chars) {
+                try {
+                    const ch = await svc.getCharacteristic(uuid);
+                    if (ch.properties.write || ch.properties.writeWithoutResponse) {
+                        _bleDevice = device; _bleChar = ch; return true;
+                    }
+                } catch (_) {}
+            }
+        }
+        return false;
+    } catch (e) {
+        console.warn('Reconnexion BLE impossible :', e);
+        return false;
+    }
+}
+
+async function sendBytesBLE(bytes) {
+    if (!isBLEConnected()) throw new Error('Imprimante Bluetooth non connectée.');
+    const useNoResponse = _bleChar.properties.writeWithoutResponse;
+    for (let i = 0; i < bytes.length; i += BLE_CHUNK) {
+        const chunk = bytes.slice(i, i + BLE_CHUNK);
+        if (useNoResponse) await _bleChar.writeValueWithoutResponse(chunk);
+        else await _bleChar.writeValue(chunk);
+        // Ces imprimantes ont un tampon minuscule : sans pause, on perd des octets.
+        await new Promise(r => setTimeout(r, 20));
+    }
+}
+
 // ── NORMALISATION DU TEXTE ───────────────────────
 // Les imprimantes ESC/POS bon marché utilisent des pages de code
 // mono-octet (CP437/CP850) et gèrent très mal l'UTF-8 brut : les
@@ -292,6 +410,7 @@ function buildTestBytes() {
 // `method` : 'usb' (WebUSB) ou 'rawbt' (app RawBT sur Android).
 async function dispatch(bytes, method) {
     if (method === 'rawbt') { sendViaRawBT(bytes); return; }
+    if (method === 'ble') { await sendBytesBLE(bytes); return; }
     await sendBytesUSB(bytes);
 }
 

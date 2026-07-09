@@ -146,8 +146,11 @@ const PRINT_METHOD_KEY = 'ticket_print_method';
 function getPrintMethod() {
     const saved = localStorage.getItem(PRINT_METHOD_KEY);
     if (saved) return saved;
-    // Par défaut : USB si disponible, sinon RawBT sur Android, sinon navigateur.
-    return printer.isWebUSBSupported() ? 'usb' : (printer.isRawBTAvailable() ? 'rawbt' : 'browser');
+    // Par défaut : BLE si disponible (impression silencieuse), sinon USB,
+    // sinon RawBT sur Android, sinon repli navigateur.
+    if (printer.isBLESupported()) return 'ble';
+    if (printer.isWebUSBSupported()) return 'usb';
+    return printer.isRawBTAvailable() ? 'rawbt' : 'browser';
 }
 
 function updatePrinterBadge() {
@@ -158,6 +161,10 @@ function updatePrinterBadge() {
         b.textContent = '🖨️ USB connectée'; b.className = 'printer-badge ok';
     } else if (method === 'usb') {
         b.textContent = '🖨️ Connecter USB'; b.className = 'printer-badge off';
+    } else if (method === 'ble' && printer.isBLEConnected()) {
+        b.textContent = '🖨️ Bluetooth connectée'; b.className = 'printer-badge ok';
+    } else if (method === 'ble') {
+        b.textContent = '🖨️ Appairer Bluetooth'; b.className = 'printer-badge off';
     } else if (method === 'rawbt') {
         b.textContent = '📲 Impression via RawBT'; b.className = 'printer-badge ok';
     } else {
@@ -167,24 +174,35 @@ function updatePrinterBadge() {
     if (sel) sel.value = method;
 }
 
-printer.tryAutoReconnect().finally(updatePrinterBadge);
+// Reconnexion silencieuse au démarrage, selon la méthode active.
+(async () => {
+    const m = getPrintMethod();
+    if (m === 'ble') await printer.tryAutoReconnectBLE();
+    else if (m === 'usb') await printer.tryAutoReconnect();
+})().finally(updatePrinterBadge);
 
 // Clic sur le badge : comportement dépend de la méthode active.
 window.connectPrinter = async function() {
     const method = getPrintMethod();
-    if (method !== 'usb') { toast('Passez la méthode sur "USB" pour appairer une imprimante.', 'err'); return; }
+    if (method !== 'usb' && method !== 'ble') {
+        toast('Passez la méthode sur "Bluetooth" ou "USB" pour appairer une imprimante.', 'err');
+        return;
+    }
     try {
-        await printer.connectPrinter();
+        if (method === 'ble') await printer.connectBLE();
+        else await printer.connectPrinter();
         updatePrinterBadge();
-        toast('Imprimante USB connectée avec succès.', 'ok');
+        toast('Imprimante connectée avec succès.', 'ok');
     } catch (e) {
         console.error(e);
         toast("Connexion impossible : " + e.message, 'err');
     }
 };
 
-window.setPrintMethod = function(method) {
+window.setPrintMethod = async function(method) {
     localStorage.setItem(PRINT_METHOD_KEY, method);
+    if (method === 'ble') await printer.tryAutoReconnectBLE();
+    else if (method === 'usb') await printer.tryAutoReconnect();
     updatePrinterBadge();
     toast('Méthode d\'impression : ' + method.toUpperCase(), 'ok');
 };
@@ -192,6 +210,7 @@ window.setPrintMethod = function(method) {
 window.printTestTicket = async function() {
     const method = getPrintMethod();
     if (method === 'usb' && !printer.isPrinterConnected()) { toast('Connectez d\'abord l\'imprimante USB.', 'err'); return; }
+    if (method === 'ble' && !printer.isBLEConnected()) { toast('Appairez d\'abord l\'imprimante Bluetooth (clic sur le badge).', 'err'); return; }
     try { await printer.printTestTicket(method); toast('Ticket de test envoyé.', 'ok'); }
     catch (e) { toast('Échec de l\'impression test : ' + e.message, 'err'); }
 };
@@ -200,7 +219,7 @@ window.printTestTicket = async function() {
 // ou repli navigateur via le HTML déjà injecté dans #print-content).
 async function imprimerTicket(kind, data) {
     const method = getPrintMethod();
-    if (method === 'usb' || method === 'rawbt') {
+    if (method === 'usb' || method === 'rawbt' || method === 'ble') {
         try {
             if (kind === 'consultation') await printer.printTicketConsultation(data, method);
             else await printer.printTicketMedicaments(data, method);
