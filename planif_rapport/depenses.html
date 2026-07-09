@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dépenses &amp; Bilan – Poste de Santé de Diandioly</title>
+    <link rel="icon" href="data:,">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="rapport-print.css">
+    <style>
+        :root{
+            --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;--accent-bg:#e6f7f1;
+            --gold:#d68910;--gold-dark:#b87309;--gold-bg:#fef9ec;
+            --danger:#c0392b;--danger-bg:#fdf1f0;
+            --purple:#7b5ea7;--purple-bg:#f0ebf8;--blue-bg:#e8f0f8;
+            --bg:#f0f4f8;--card-bg:#fff;--text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+        .topbar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(26,58,92,.18);position:sticky;top:0;z-index:100;}
+        .topbar-left{display:flex;align-items:center;gap:12px;}
+        .back-btn{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .back-btn:hover{background:rgba(255,255,255,.22);}
+        .topbar h1{font-size:1.05rem;font-weight:700;}
+        .topbar p{font-size:.72rem;opacity:.75;}
+        .conn-badge{background:rgba(14,164,114,.2);border:1px solid rgba(14,164,114,.4);color:#7dffd0;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;}
+
+        .page{padding:24px;max-width:1400px;margin:0 auto;}
+
+        .period-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+        .period-btn{padding:8px 18px;border:1.5px solid var(--border);border-radius:20px;background:var(--card-bg);font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;}
+        .period-btn:hover{border-color:var(--primary);color:var(--primary);}
+        .period-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+        /* ── BILAN ── */
+        .bilan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;}
+        .bilan-card{border-radius:12px;padding:20px 22px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+        .bilan-card .bc-label{font-size:.74rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;}
+        .bilan-card .bc-sub{font-size:.72rem;opacity:.7;margin-top:2px;}
+        .bilan-card .bc-val{font-size:1.55rem;font-weight:800;line-height:1.15;margin-top:6px;}
+        .bilan-card .bc-icon{font-size:1.9rem;opacity:.45;}
+        .bc-recettes{background:linear-gradient(135deg,var(--accent),#0b8a5f);}
+        .bc-depenses{background:linear-gradient(135deg,#c0392b,#96271b);}
+        .bc-solde{background:linear-gradient(135deg,var(--primary),var(--primary-light));}
+        .bc-solde.negatif{background:linear-gradient(135deg,#8e2b20,#5f1a13);}
+
+        .main-grid{display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start;}
+        @media(max-width:1024px){.main-grid{grid-template-columns:1fr;}}
+
+        .panel{background:var(--card-bg);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.03);margin-bottom:24px;overflow:hidden;}
+        .panel-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+        .panel-head h2{font-size:.98rem;font-weight:700;color:var(--primary);}
+        .panel-head p{font-size:.76rem;color:var(--muted);margin-top:2px;}
+        .panel-body{padding:20px;}
+
+        .form-group{margin-bottom:13px;}
+        .form-group label{display:block;font-size:.73rem;font-weight:700;color:var(--primary);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+        .form-control{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;color:var(--text);background:#fafbfc;}
+        .form-control:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,137,16,.12);background:#fff;}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+        .btn-primary{width:100%;padding:12px;border:none;border-radius:8px;font-family:inherit;font-size:.92rem;font-weight:700;background:var(--gold);color:#fff;cursor:pointer;transition:all .2s;margin-top:6px;}
+        .btn-primary:hover{background:var(--gold-dark);}
+        .btn-primary:disabled{opacity:.6;cursor:progress;}
+
+        .btn-export{padding:10px 16px;border:none;border-radius:8px;font-family:inherit;font-size:.84rem;font-weight:700;cursor:pointer;background:var(--primary);color:#fff;display:inline-flex;align-items:center;gap:7px;}
+        .btn-export:hover{background:var(--primary-light);}
+
+        .tbl-wrap{overflow-x:auto;}
+        table.data{width:100%;border-collapse:collapse;font-size:.84rem;}
+        table.data th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:800;padding:10px 12px;border-bottom:2px solid var(--border);white-space:nowrap;}
+        table.data td{padding:11px 12px;border-bottom:1px solid #eef2f6;}
+        table.data tbody tr:hover{background:#fafbfc;}
+        table.data .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;}
+        .cat-tag{display:inline-block;font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:12px;background:var(--blue-bg);color:var(--primary);white-space:nowrap;}
+        .btn-del{background:var(--danger-bg);color:var(--danger);border:1px solid #f5c6c3;border-radius:6px;padding:5px 9px;font-size:.74rem;cursor:pointer;font-family:inherit;font-weight:700;}
+        .btn-del:hover{background:var(--danger);color:#fff;}
+
+        .cat-list{display:flex;flex-direction:column;gap:8px;}
+        .cat-row{display:flex;align-items:center;gap:10px;font-size:.82rem;}
+        .cat-row .cr-nom{flex:0 0 40%;font-weight:600;}
+        .cat-bar{flex:1;height:8px;background:#eef2f6;border-radius:5px;overflow:hidden;}
+        .cat-bar span{display:block;height:100%;background:var(--danger);border-radius:5px;}
+        .cat-row .cr-val{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+        .empty-state{text-align:center;color:var(--muted);font-size:.86rem;padding:30px 20px;}
+        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--primary);color:#fff;padding:12px 22px;border-radius:10px;font-size:.86rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:transform .28s;z-index:500;}
+        .toast.show{transform:translateX(-50%) translateY(0);}
+        .toast.err{background:var(--danger);}
+        ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
+
+        @media(max-width:600px){.page{padding:14px;}.topbar{padding:0 14px;}.form-row{grid-template-columns:1fr;}}
+    </style>
+</head>
+<body>
+
+<nav class="topbar">
+    <div class="topbar-left">
+        <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
+        <div>
+            <h1>Dépenses &amp; Bilan</h1>
+            <p>Charges du poste · Solde net · Export PDF</p>
+        </div>
+    </div>
+    <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+</nav>
+
+<div class="page">
+
+    <div class="period-tabs" id="period-tabs">
+        <button class="period-btn active" data-p="jour">📅 Journalier</button>
+        <button class="period-btn" data-p="semaine">📅 Hebdomadaire</button>
+        <button class="period-btn" data-p="mois">📅 Mensuel</button>
+        <button class="period-btn" data-p="trimestre">📅 Trimestriel</button>
+        <button class="period-btn" data-p="annee">📅 Annuel</button>
+        <button class="period-btn" data-p="tout">📅 Tout</button>
+    </div>
+
+    <!-- BILAN -->
+    <div class="bilan-grid">
+        <div class="bilan-card bc-recettes">
+            <div>
+                <div class="bc-label">Recettes encaissées</div>
+                <div class="bc-sub" id="rec-detail">Tickets + Médicaments</div>
+                <div class="bc-val" id="b-recettes">—</div>
+            </div>
+            <div class="bc-icon">💰</div>
+        </div>
+        <div class="bilan-card bc-depenses">
+            <div>
+                <div class="bc-label">Dépenses effectuées</div>
+                <div class="bc-sub" id="dep-detail">—</div>
+                <div class="bc-val" id="b-depenses">—</div>
+            </div>
+            <div class="bc-icon">📉</div>
+        </div>
+        <div class="bilan-card bc-solde" id="card-solde">
+            <div>
+                <div class="bc-label">Solde net du poste</div>
+                <div class="bc-sub" id="lbl-periode">Aujourd'hui</div>
+                <div class="bc-val" id="b-solde">—</div>
+            </div>
+            <div class="bc-icon">⚖️</div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+
+        <!-- COLONNE GAUCHE : SAISIE + RÉPARTITION -->
+        <div>
+            <div class="panel">
+                <div class="panel-head" style="border-left:4px solid var(--gold);">
+                    <div>
+                        <h2>➕ Nouvelle dépense</h2>
+                        <p>Enregistrer une charge du poste</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <form id="dep-form">
+                        <div class="form-group">
+                            <label for="d-libelle">Libellé</label>
+                            <input type="text" id="d-libelle" class="form-control" placeholder="Ex. Achat de gants d'examen" required maxlength="90">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="d-categorie">Catégorie</label>
+                                <select id="d-categorie" class="form-control" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="d-montant">Montant (FCFA)</label>
+                                <input type="number" id="d-montant" class="form-control" min="1" step="1" placeholder="0" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="d-date">Date de la dépense</label>
+                            <input type="date" id="d-date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="d-note">Note / Bénéficiaire <span style="font-weight:500;text-transform:none;color:var(--muted);">(facultatif)</span></label>
+                            <input type="text" id="d-note" class="form-control" placeholder="Ex. Pharmacie Kaolack — facture n°212" maxlength="120">
+                        </div>
+                        <button type="submit" class="btn-primary" id="submit-btn">Enregistrer la dépense</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head" style="border-left:4px solid var(--danger);">
+                    <div>
+                        <h2>📊 Répartition par catégorie</h2>
+                        <p id="cat-periode">—</p>
+                    </div>
+                </div>
+                <div class="panel-body"><div id="cat-container" class="cat-list"></div></div>
+            </div>
+        </div>
+
+        <!-- COLONNE DROITE : JOURNAL -->
+        <div>
+            <div class="panel">
+                <div class="panel-head" style="border-left:4px solid var(--primary);">
+                    <div>
+                        <h2>🧾 Journal des dépenses</h2>
+                        <p id="jrn-periode">—</p>
+                    </div>
+                    <button class="btn-export" id="btn-pdf">📄 Exporter le bilan en PDF</button>
+                </div>
+                <div class="panel-body">
+                    <div class="tbl-wrap"><div id="dep-container"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { db, auth } from '../firebase-config.js';
+import { ref, push, onValue, off, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {
+    esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
+    totalTickets, totalVentes, totalDepenses, parCategorie, exporterPDF
+} from './rapport-lib.js';
+
+onAuthStateChanged(auth, user => {
+    if (!user) { window.location.href = '../index.html'; return; }
+    if (sessionStorage.getItem('userRole') === 'caissier') {
+        window.location.href = '../accueil/menu_caissier.html';
+    }
+});
+
+const CATEGORIES = [
+    'Achat de médicaments', 'Matériel médical', 'Fournitures de bureau',
+    'Carburant & transport', 'Électricité & eau', 'Entretien & réparations',
+    'Motivation du personnel', 'Frais bancaires', 'Autre',
+];
+
+const selCat = document.getElementById('d-categorie');
+selCat.innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+document.getElementById('d-date').value = new Date().toISOString().slice(0, 10);
+
+function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = (type === 'ok' ? '✓ ' : '✗ ') + msg;
+    el.className = 'toast show ' + type;
+    setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── ÉTAT ────────────────────────────────────────
+const depenseRef = ref(db, 'db_depenses');
+const ticketRef  = ref(db, 'ticket_dbase');
+const medRef     = ref(db, 'vente_medicaments');
+
+let allDepenses = [], allTickets = [], allVentes = [];
+let periode = 'jour';
+let loadedD = false, loadedT = false, loadedM = false;
+
+function checkLoaded() {
+    if (loadedD && loadedT && loadedM) {
+        document.getElementById('conn-badge').innerHTML = '● En direct';
+    }
+}
+
+onValue(depenseRef, snap => {
+    allDepenses = [];
+    snap.forEach(c => allDepenses.push({ _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() }));
+    allDepenses.sort((a, b) => b._ts - a._ts);
+    loadedD = true; render(); checkLoaded();
+});
+onValue(ticketRef, snap => {
+    allTickets = [];
+    snap.forEach(c => allTickets.push({ _ts: getSafeTs(c.val()), ...c.val() }));
+    loadedT = true; render(); checkLoaded();
+});
+onValue(medRef, snap => {
+    allVentes = [];
+    snap.forEach(c => allVentes.push({ _ts: getSafeTs(c.val()), ...c.val() }));
+    loadedM = true; render(); checkLoaded();
+});
+
+// ── SÉLECTEUR DE PÉRIODE ────────────────────────
+document.getElementById('period-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.period-btn');
+    if (!btn) return;
+    periode = btn.dataset.p;
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+});
+
+const filtre = list => list.filter(x => dansPeriode(x._ts, periode));
+
+// ── RENDU ───────────────────────────────────────
+function render() {
+    const dep = filtre(allDepenses);
+    const tk  = filtre(allTickets);
+    const md  = filtre(allVentes);
+
+    const rTk = totalTickets(tk), rMd = totalVentes(md);
+    const recettes = rTk + rMd;
+    const depenses = totalDepenses(dep);
+    const solde = recettes - depenses;
+
+    document.getElementById('b-recettes').textContent = fcfa(recettes);
+    document.getElementById('rec-detail').textContent = `${tk.length} ticket(s) · ${md.length} vente(s)`;
+    document.getElementById('b-depenses').textContent = fcfa(depenses);
+    document.getElementById('dep-detail').textContent = `${dep.length} opération(s)`;
+    document.getElementById('b-solde').textContent = (solde < 0 ? '– ' : '') + fcfa(Math.abs(solde));
+    document.getElementById('card-solde').classList.toggle('negatif', solde < 0);
+
+    const lbl = PERIODES[periode].label;
+    document.getElementById('lbl-periode').textContent = lbl;
+    document.getElementById('cat-periode').textContent = lbl;
+    document.getElementById('jrn-periode').textContent = libellePeriode(periode);
+
+    renderJournal(dep);
+    renderCategories(dep, depenses);
+}
+
+function renderJournal(dep) {
+    const c = document.getElementById('dep-container');
+    if (!dep.length) {
+        c.innerHTML = `<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">🗒️</span>Aucune dépense enregistrée sur cette période.</div>`;
+        return;
+    }
+    const total = totalDepenses(dep);
+    c.innerHTML = `<table class="data">
+        <thead><tr>
+            <th>Date</th><th>Libellé</th><th>Catégorie</th>
+            <th>Note</th><th class="num">Montant</th><th></th>
+        </tr></thead>
+        <tbody>${dep.map(d => `<tr>
+            <td>${esc(dateHeure(d._ts))}</td>
+            <td style="font-weight:600;">${esc(d.libelle)}</td>
+            <td><span class="cat-tag">${esc(d.categorie)}</span></td>
+            <td style="color:var(--muted);">${esc(d.note || '—')}</td>
+            <td class="num">${esc(fcfa(d.montant))}</td>
+            <td><button class="btn-del" data-key="${esc(d._key)}">🗑</button></td>
+        </tr>`).join('')}</tbody>
+        <tfoot><tr>
+            <td colspan="4" style="font-weight:800;padding-top:14px;">TOTAL DES DÉPENSES</td>
+            <td class="num" style="font-size:1rem;padding-top:14px;">${esc(fcfa(total))}</td><td></td>
+        </tr></tfoot>
+    </table>`;
+}
+
+function renderCategories(dep, total) {
+    const c = document.getElementById('cat-container');
+    const cats = parCategorie(dep);
+    if (!cats.length) { c.innerHTML = `<div class="empty-state">Rien à répartir.</div>`; return; }
+    const max = cats[0].montant || 1;
+    c.innerHTML = cats.map(k => `
+        <div class="cat-row">
+            <span class="cr-nom">${esc(k.nom)}</span>
+            <span class="cat-bar"><span style="width:${Math.round(k.montant / max * 100)}%"></span></span>
+            <span class="cr-val">${esc(fmt(k.montant))}
+                <small style="color:var(--muted);font-weight:600;">
+                    (${total ? Math.round(k.montant / total * 100) : 0} %)</small>
+            </span>
+        </div>`).join('');
+}
+
+// ── SAISIE ──────────────────────────────────────
+const form = document.getElementById('dep-form');
+const submitBtn = document.getElementById('submit-btn');
+
+form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const libelle = document.getElementById('d-libelle').value.trim();
+    const categorie = document.getElementById('d-categorie').value;
+    const montant = parseInt(document.getElementById('d-montant').value, 10);
+    const dateStr = document.getElementById('d-date').value;
+    const note = document.getElementById('d-note').value.trim();
+
+    if (!libelle || !categorie || !dateStr) { toast('Tous les champs obligatoires doivent être remplis.', 'err'); return; }
+    if (!Number.isFinite(montant) || montant <= 0) { toast('Le montant doit être un nombre positif.', 'err'); return; }
+    if (dateStr > new Date().toISOString().slice(0, 10)) { toast('La date ne peut pas être dans le futur.', 'err'); return; }
+
+    // On horodate à midi : la dépense reste dans le bon jour quel que
+    // soit le fuseau, sans risque de basculer la veille ou le lendemain.
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const ts = new Date(y, m - 1, d, 12, 0, 0).getTime();
+
+    submitBtn.disabled = true; submitBtn.textContent = 'Enregistrement...';
+    try {
+        await push(depenseRef, {
+            libelle, categorie, montant, note,
+            date_ts: ts,
+            date: new Date(ts).toLocaleDateString('fr-FR'),
+            cree_le: Date.now(),
+            cree_par: auth.currentUser?.email || 'inconnu',
+        });
+        form.reset();
+        document.getElementById('d-date').value = new Date().toISOString().slice(0, 10);
+        toast('Dépense enregistrée.', 'ok');
+    } catch (err) {
+        console.error(err);
+        toast("Échec de l'enregistrement : " + err.message, 'err');
+    } finally {
+        submitBtn.disabled = false; submitBtn.textContent = 'Enregistrer la dépense';
+    }
+});
+
+document.getElementById('dep-container').addEventListener('click', async e => {
+    const btn = e.target.closest('.btn-del');
+    if (!btn) return;
+    if (!confirm('Supprimer cette dépense ? Cette action est irréversible.')) return;
+    try { await remove(ref(db, 'db_depenses/' + btn.dataset.key)); toast('Dépense supprimée.', 'ok'); }
+    catch (err) { toast('Erreur : ' + err.message, 'err'); }
+});
+
+// ── EXPORT PDF ──────────────────────────────────
+document.getElementById('btn-pdf').addEventListener('click', () => {
+    const dep = filtre(allDepenses);
+    const tk = filtre(allTickets), md = filtre(allVentes);
+    const rTk = totalTickets(tk), rMd = totalVentes(md);
+    const recettes = rTk + rMd, depenses = totalDepenses(dep);
+    const solde = recettes - depenses;
+
+    exporterPDF({
+        titre: 'Bilan financier — Dépenses et recettes',
+        periodeLabel: libellePeriode(periode),
+        meta: [
+            { k: 'Période', v: PERIODES[periode].court },
+            { k: 'Consultations', v: `${tk.length} ticket(s)` },
+            { k: 'Ventes pharmacie', v: `${md.length} vente(s)` },
+            { k: 'Dépenses', v: `${dep.length} opération(s)` },
+        ],
+        resume: [
+            { label: 'Recettes consultations', valeur: fcfa(rTk) },
+            { label: 'Recettes pharmacie', valeur: fcfa(rMd) },
+            { label: 'Total des recettes', valeur: fcfa(recettes), type: 'positif' },
+            { label: 'Total des dépenses', valeur: fcfa(depenses), type: 'negatif' },
+            { label: 'Solde net du poste', valeur: (solde < 0 ? '– ' : '') + fcfa(Math.abs(solde)),
+              type: solde < 0 ? 'negatif' : 'positif' },
+        ],
+        sections: [
+            {
+                titre: 'Journal des dépenses',
+                cols: [
+                    { t: 'Date', k: 'date', w: '15%' },
+                    { t: 'Libellé', k: 'libelle', w: '30%' },
+                    { t: 'Catégorie', k: 'cat', w: '20%' },
+                    { t: 'Note', k: 'note', w: '22%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '13%' },
+                ],
+                rows: dep.map(d => ({
+                    date: new Date(d._ts).toLocaleDateString('fr-FR'),
+                    libelle: d.libelle, cat: d.categorie, note: d.note || '—',
+                    montant: fcfa(d.montant),
+                })),
+                totalLabel: 'TOTAL DES DÉPENSES',
+                totalValue: fcfa(depenses),
+                vide: 'Aucune dépense enregistrée sur cette période.',
+            },
+            {
+                titre: 'Répartition par catégorie',
+                cols: [
+                    { t: 'Catégorie', k: 'nom', w: '50%' },
+                    { t: 'Opérations', k: 'nb', num: true, w: '20%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '15%' },
+                    { t: 'Part', k: 'part', num: true, w: '15%' },
+                ],
+                rows: parCategorie(dep).map(k => ({
+                    nom: k.nom, nb: k.nb, montant: fcfa(k.montant),
+                    part: (depenses ? Math.round(k.montant / depenses * 100) : 0) + ' %',
+                })),
+                totalLabel: 'TOTAL',
+                totalValue: fcfa(depenses),
+                vide: 'Aucune catégorie à présenter.',
+            },
+        ],
+        note: solde < 0
+            ? "Attention : les dépenses de la période excèdent les recettes encaissées."
+            : "Le solde net correspond aux recettes encaissées diminuées des dépenses enregistrées sur la période.",
+    });
+});
+
+window.addEventListener('beforeunload', () => { off(depenseRef); off(ticketRef); off(medRef); });
+</script>
+</body>
+</html>

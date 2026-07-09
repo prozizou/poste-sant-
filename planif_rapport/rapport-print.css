@@ -1,0 +1,137 @@
+/* ═══════════════════════════════════════════════════════════════
+   RAPPORT-PRINT.CSS
+   Feuille A4 destinée à l'export PDF (via « Imprimer > Enregistrer
+   au format PDF »). Invisible à l'écran, elle devient la SEULE chose
+   imprimée dès que #report-sheet contient quelque chose.
+
+   Deux détails qui font la différence sur un rapport de plusieurs pages :
+   - thead { display: table-header-group } → les en-têtes de colonnes se
+     répètent en haut de chaque page ;
+   - tr { break-inside: avoid } → une ligne n'est jamais coupée en deux.
+   ═══════════════════════════════════════════════════════════════ */
+
+#report-sheet { display: none; }
+
+@media print {
+    @page { size: A4 portrait; margin: 14mm 12mm; }
+
+    /* Rien d'autre que la feuille. */
+    body > *:not(#report-sheet) { display: none !important; }
+
+    body {
+        background: #fff !important;
+        color: #000 !important;
+        font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+    }
+
+    #report-sheet {
+        display: block !important;
+        font-size: 9.5pt;
+        line-height: 1.35;
+        color: #111;
+    }
+
+    /* ── En-tête institutionnel ── */
+    .rs-head {
+        display: flex; align-items: center; gap: 10mm;
+        padding-bottom: 3mm; border-bottom: 1.4pt solid #1a3a5c;
+    }
+    .rs-logo { width: 16mm; height: 16mm; color: #1a3a5c; flex: 0 0 auto; }
+    .rs-ident h1 { font-size: 15pt; font-weight: 800; color: #1a3a5c; letter-spacing: -0.2pt; }
+    .rs-ident p  { font-size: 8pt; color: #555; margin-top: 0.6mm; }
+
+    /* ── Titre du rapport ── */
+    .rs-titre { margin: 5mm 0 3mm; }
+    .rs-titre h2 {
+        font-size: 12.5pt; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.4pt; color: #111;
+    }
+    .rs-titre p { font-size: 9pt; color: #555; margin-top: 0.8mm; }
+
+    /* ── Bandeau de métadonnées ── */
+    .rs-meta {
+        display: flex; flex-wrap: wrap; gap: 3mm 9mm;
+        padding: 2.5mm 3mm; margin-bottom: 4mm;
+        background: #f4f7fa; border: 0.4pt solid #ccd6e0; border-radius: 1.5mm;
+    }
+    .rs-meta div { font-size: 8.5pt; }
+    .rs-meta span { color: #667; margin-right: 1.5mm; }
+    .rs-meta strong { color: #111; font-weight: 700; }
+
+    /* ── Bloc de synthèse (KPI) ── */
+    .rs-resume {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(38mm, 1fr));
+        gap: 2.5mm; margin-bottom: 5mm;
+    }
+    .rs-kpi {
+        border: 0.5pt solid #ccd6e0; border-left: 2pt solid #1a3a5c;
+        border-radius: 1.5mm; padding: 2.5mm 3mm;
+        break-inside: avoid;
+    }
+    .rs-kpi-lbl { display: block; font-size: 7.5pt; text-transform: uppercase;
+                  letter-spacing: 0.3pt; color: #667; margin-bottom: 1mm; }
+    .rs-kpi-val { display: block; font-size: 12pt; font-weight: 800; color: #111; }
+    .rs-kpi.positif { border-left-color: #0a7a55; }
+    .rs-kpi.positif .rs-kpi-val { color: #0a7a55; }
+    .rs-kpi.negatif { border-left-color: #b02b1e; }
+    .rs-kpi.negatif .rs-kpi-val { color: #b02b1e; }
+    .rs-kpi.neutre  { border-left-color: #b7770d; }
+
+    /* ── Sections & tableaux ── */
+    .rs-sect { margin-bottom: 5mm; break-inside: auto; }
+    .rs-sect h3 {
+        font-size: 9.5pt; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.3pt; color: #1a3a5c;
+        padding-bottom: 1mm; margin-bottom: 2mm;
+        border-bottom: 0.5pt solid #ccd6e0;
+        break-after: avoid;
+    }
+    .rs-count { float: right; font-weight: 600; font-size: 8pt;
+                color: #667; text-transform: none; letter-spacing: 0; }
+
+    .rs-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+    /* En-têtes répétés sur chaque page d'un tableau long. */
+    .rs-table thead { display: table-header-group; }
+    .rs-table tfoot { display: table-footer-group; }
+    .rs-table tr    { break-inside: avoid; }
+
+    .rs-table th {
+        text-align: left; font-weight: 700; font-size: 7.8pt;
+        text-transform: uppercase; letter-spacing: 0.2pt; color: #333;
+        background: #eef2f6; border-bottom: 0.7pt solid #99a8b8;
+        padding: 1.6mm 2mm;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .rs-table td { padding: 1.4mm 2mm; border-bottom: 0.3pt solid #dde4ea; }
+    .rs-table tbody tr:nth-child(even) td {
+        background: #fafbfc;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    /* Chiffres alignés à droite et tabulaires : les ordres de grandeur
+       se comparent alors d'un simple coup d'oeil vertical. */
+    .rs-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .rs-table tfoot td {
+        font-weight: 800; font-size: 9pt; color: #111;
+        border-top: 0.9pt solid #1a3a5c; border-bottom: none;
+        padding-top: 2mm;
+    }
+
+    .rs-empty { font-size: 8.5pt; color: #778; font-style: italic; padding: 2mm 0; }
+    .rs-note  { font-size: 8pt; color: #555; font-style: italic; margin-top: 3mm; }
+
+    /* ── Signatures & pied ── */
+    .rs-foot {
+        display: flex; justify-content: space-between; gap: 20mm;
+        margin-top: 12mm; break-inside: avoid;
+    }
+    .rs-sign { flex: 1; font-size: 8.5pt; color: #333; }
+    .rs-sign-line {
+        display: block; margin-top: 14mm;
+        border-top: 0.5pt solid #667;
+    }
+    .rs-edit {
+        margin-top: 6mm; padding-top: 2mm; border-top: 0.3pt solid #ccd6e0;
+        font-size: 7.5pt; color: #778; text-align: center;
+    }
+}

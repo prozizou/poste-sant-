@@ -4,7 +4,7 @@
 //  Stratégie : Cache-First pour assets statiques, Network-First pour données
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v2';
+const APP_VERSION     = 'v1.1.0';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
@@ -20,7 +20,12 @@ const STATIC_ASSETS = [
   '/facturation/facturation.html',
   '/facturation/style.css',
   '/facturation/script.js',
+  '/facturation/escpos-printer.js',
+  '/facturation/view-mode.js',
   '/planif_rapport/rapports.html',
+  '/planif_rapport/depenses.html',
+  '/planif_rapport/rapport-lib.js',
+  '/planif_rapport/rapport-print.css',
   '/approvisionnement/stock.html',
   '/offline.html',
   '/icons/icon-192x192.png',

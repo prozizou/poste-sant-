@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapports & Agenda – Poste de Santé de Diandioly</title>
+    <title>Rapports &amp; Agenda – Poste de Santé de Diandioly</title>
+    <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="rapport-print.css">
     <style>
-        :root {
+        :root{
             --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
             --gold:#d68910;--gold-dark:#b87309;--gold-bg:#fef9ec;
             --danger:#c0392b;--danger-bg:#fdf1f0;
@@ -18,30 +20,28 @@
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
         body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
-        .topbar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(26,58,92,.18);position:sticky;top:0;z-index:100;}
+        .topbar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 10px rgba(26,58,92,.18);position:sticky;top:0;z-index:100;}
         .topbar-left{display:flex;align-items:center;gap:12px;}
-        .back-btn{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:white;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;transition:background .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;}
+        .topbar-right{display:flex;align-items:center;gap:10px;}
+        .back-btn{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:white;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;transition:background .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
         .back-btn:hover{background:rgba(255,255,255,.22);}
         .topbar h1{font-size:1.05rem;font-weight:700;}
         .topbar p{font-size:.72rem;opacity:.75;}
-        .conn-badge{background:rgba(14,164,114,.2);border:1px solid rgba(14,164,114,.4);color:#7dffd0;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;}
+        .conn-badge{background:rgba(14,164,114,.2);border:1px solid rgba(14,164,114,.4);color:#7dffd0;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;white-space:nowrap;}
 
         .page{padding:24px;max-width:1400px;margin:0 auto;}
 
-        /* ── PÉRIODE SELECTOR ── */
         .period-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
         .period-btn{padding:8px 18px;border:1.5px solid var(--border);border-radius:20px;background:var(--card-bg);font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;}
         .period-btn:hover{border-color:var(--primary);color:var(--primary);}
         .period-btn.active{background:var(--primary);color:white;border-color:var(--primary);}
 
-        /* ── PANELS ── */
         .panel{background:var(--card-bg);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.03);margin-bottom:24px;overflow:hidden;}
-        .panel-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+        .panel-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
         .panel-head h2{font-size:1rem;font-weight:700;color:var(--primary);}
         .panel-head p{font-size:.78rem;color:var(--muted);margin-top:2px;}
         .panel-body{padding:22px;}
 
-        /* ── STAT BOXES ── */
         .stats-bloc-title{font-size:.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;}
         .stats-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
         .stat-box{background:#fafbfc;border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;transition:transform .2s;}
@@ -49,69 +49,86 @@
         .stat-period{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
         .stat-val{font-size:1.5rem;font-weight:800;color:var(--primary);line-height:1.1;margin-bottom:2px;}
         .stat-sub{font-size:.72rem;color:var(--muted);}
-        .stat-box.blue .stat-val{color:var(--primary);}
         .stat-box.green .stat-val{color:var(--accent);}
         .stat-box.purple .stat-val{color:var(--purple);}
         .stat-box.gold .stat-val{color:var(--gold-dark);}
 
-        /* ── TOTAL HIGHLIGHT ── */
-        .total-row{display:flex;gap:16px;margin-bottom:24px;}
-        .total-card{flex:1;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;}
+        .total-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;}
+        .total-card{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
         .total-card.green{background:linear-gradient(135deg,var(--accent),#0b8a5f);}
-        .total-card .tc-label{font-size:.8rem;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-        .total-card .tc-val{font-size:1.8rem;font-weight:800;line-height:1;}
-        .total-card .tc-icon{font-size:2rem;opacity:.5;}
+        .total-card.purple{background:linear-gradient(135deg,var(--purple),#5f4483);}
+        .total-card .tc-label{font-size:.74rem;font-weight:700;opacity:.82;text-transform:uppercase;letter-spacing:.5px;}
+        .total-card .tc-sub{font-size:.72rem;opacity:.7;margin-top:2px;}
+        .total-card .tc-val{font-size:1.6rem;font-weight:800;line-height:1.15;margin-top:6px;}
+        .total-card .tc-icon{font-size:1.9rem;opacity:.45;}
 
-        /* ── MAIN GRID ── */
-        .main-grid{display:grid;grid-template-columns:1fr 420px;gap:24px;}
-        @media(max-width:1024px){.main-grid{grid-template-columns:1fr;}}
+        .main-grid{display:grid;grid-template-columns:1fr 400px;gap:24px;align-items:start;}
+        @media(max-width:1100px){.main-grid{grid-template-columns:1fr;}}
 
-        /* ── EXPORT ── */
-        .export-actions{display:flex;flex-direction:column;gap:10px;background:var(--gold-bg);padding:18px;border-radius:10px;border:1px dashed var(--gold);}
-        .export-title{font-size:.88rem;font-weight:700;color:var(--gold-dark);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
-        .btn-export{width:100%;padding:11px;border:none;border-radius:8px;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s,transform .15s;}
-        .btn-pdf{background:var(--primary);color:white;}
-        .btn-export:hover{opacity:.9;transform:translateY(-1px);}
+        /* ── TABLEAUX DÉTAILLÉS ── */
+        .tbl-wrap{overflow-x:auto;max-height:440px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;}
+        table.data{width:100%;border-collapse:collapse;font-size:.83rem;}
+        table.data thead th{position:sticky;top:0;background:#eef2f6;z-index:1;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#4a5a6b;font-weight:800;padding:10px 12px;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+        table.data td{padding:10px 12px;border-bottom:1px solid #eef2f6;vertical-align:top;}
+        table.data tbody tr:hover{background:#fafbfc;}
+        table.data .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;}
+        table.data tfoot td{font-weight:800;border-top:2px solid var(--primary);border-bottom:none;padding-top:12px;background:#fff;position:sticky;bottom:0;}
+        .ref-tag{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.74rem;color:var(--muted);}
+        .pill{display:inline-block;font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:12px;background:var(--blue-bg);color:var(--primary);white-space:nowrap;}
+        .med-lignes{font-size:.78rem;color:var(--muted);line-height:1.5;}
+
+        /* ── CLASSEMENTS ── */
+        .rank-list{display:flex;flex-direction:column;gap:9px;}
+        .rank-row{display:flex;align-items:center;gap:10px;font-size:.82rem;}
+        .rank-row .rk-nom{flex:0 0 42%;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .rank-bar{flex:1;height:8px;background:#eef2f6;border-radius:5px;overflow:hidden;}
+        .rank-bar span{display:block;height:100%;border-radius:5px;background:var(--accent);}
+        .rank-bar.purple span{background:var(--purple);}
+        .rank-row .rk-val{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+        .rk-sub{color:var(--muted);font-weight:600;font-size:.74rem;}
+
+        .export-actions{display:flex;flex-direction:column;gap:8px;background:var(--gold-bg);padding:18px;border-radius:10px;border:1px dashed var(--gold);}
+        .export-title{font-size:.88rem;font-weight:700;color:var(--gold-dark);display:flex;align-items:center;gap:8px;}
+        .export-hint{font-size:.76rem;color:var(--muted);line-height:1.55;}
+        .btn-export{width:100%;padding:11px;border:none;border-radius:8px;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s,transform .15s;background:var(--primary);color:white;margin-top:4px;}
+        .btn-export:hover{opacity:.92;transform:translateY(-1px);}
 
         /* ── AGENDA ── */
-        .agenda-list{display:flex;flex-direction:column;gap:12px;max-height:55vh;overflow-y:auto;padding-right:4px;}
+        .agenda-list{display:flex;flex-direction:column;gap:12px;max-height:52vh;overflow-y:auto;padding-right:4px;}
         .agenda-card{display:flex;align-items:stretch;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:transform .2s,box-shadow .2s;}
         .agenda-card:hover{transform:translateX(4px);box-shadow:0 4px 12px rgba(0,0,0,.05);}
-        .agenda-date-box{background:var(--gold-bg);padding:12px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--border);min-width:80px;}
-        .agenda-day{font-size:1.5rem;font-weight:800;color:var(--gold-dark);line-height:1;}
-        .agenda-month{font-size:.72rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;margin-top:4px;}
-        .agenda-content{padding:12px 14px;flex:1;}
-        .agenda-patient{font-weight:700;color:var(--primary);font-size:.9rem;margin-bottom:3px;}
-        .agenda-motif{font-size:.82rem;color:var(--text);}
-        .badge-status{font-size:.63rem;font-weight:800;padding:3px 7px;border-radius:12px;text-transform:uppercase;margin-top:7px;display:inline-block;}
+        .agenda-date-box{background:var(--gold-bg);padding:12px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--border);min-width:74px;}
+        .agenda-day{font-size:1.45rem;font-weight:800;color:var(--gold-dark);line-height:1;}
+        .agenda-month{font-size:.7rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;margin-top:4px;}
+        .agenda-content{padding:12px 14px;flex:1;min-width:0;}
+        .agenda-patient{font-weight:700;color:var(--primary);font-size:.88rem;margin-bottom:3px;}
+        .agenda-motif{font-size:.8rem;color:var(--text);}
+        .badge-status{font-size:.62rem;font-weight:800;padding:3px 7px;border-radius:12px;text-transform:uppercase;margin-top:7px;display:inline-block;}
         .status-soon{background:var(--danger-bg);color:var(--danger);}
         .status-later{background:var(--accent-bg);color:#0a7a55;}
         .status-honore{background:#e8f0e8;color:#2d7a2d;}
         .agenda-actions{display:flex;flex-direction:column;gap:4px;justify-content:center;padding:8px 10px;border-left:1px solid var(--border);}
+        .btn-mini{border:none;border-radius:6px;padding:5px 10px;font-size:.73rem;cursor:pointer;font-family:inherit;font-weight:700;white-space:nowrap;}
+        .btn-ok{background:var(--accent);color:#fff;}
+        .btn-rm{background:var(--danger-bg);color:var(--danger);border:1px solid #f5c6c3;}
 
-        /* ── FORMS ── */
         .form-group{margin-bottom:14px;}
         .form-group label{display:block;font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
         .form-control{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;color:var(--text);background:#fafbfc;}
         .form-control:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,137,16,.12);background:#fff;}
         .btn-primary{width:100%;padding:12px;border:none;border-radius:8px;font-family:inherit;font-size:.92rem;font-weight:700;background:var(--gold);color:white;cursor:pointer;transition:all .2s;margin-top:8px;}
-        .btn-primary:hover{background:var(--gold-dark);transform:translateY(-1px);}
+        .btn-primary:hover{background:var(--gold-dark);}
+        .btn-primary:disabled{opacity:.6;cursor:progress;}
 
         .empty-state{text-align:center;color:var(--muted);font-size:.88rem;padding:32px 20px;}
-        .divider{height:1px;background:var(--border);margin:16px 0;}
-        ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
+        .divider{height:1px;background:var(--border);margin:18px 0;}
+        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--primary);color:#fff;padding:12px 22px;border-radius:10px;font-size:.86rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:transform .28s;z-index:500;}
+        .toast.show{transform:translateX(-50%) translateY(0);}
+        .toast.err{background:var(--danger);}
+        ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
 
-        @media(max-width:900px){.stats-grid-5{grid-template-columns:repeat(3,1fr);}.total-row{flex-direction:column;}}
-        @media(max-width:600px){.stats-grid-5{grid-template-columns:repeat(2,1fr);}.page{padding:14px;}.period-tabs{gap:6px;}.period-btn{padding:6px 12px;font-size:.76rem;}}
-
-        @media print {
-            body{background:white;color:black;}
-            .topbar,.back-btn,.btn-export,.panel:nth-child(2),form,.period-tabs,.export-actions{display:none!important;}
-            .page{padding:0;margin:0;}
-            .main-grid{grid-template-columns:1fr;}
-            .panel{border:none;box-shadow:none;margin-bottom:0;}
-            .panel-head{border-bottom:2px solid black;}
-        }
+        @media(max-width:900px){.stats-grid-5{grid-template-columns:repeat(3,1fr);}}
+        @media(max-width:600px){.stats-grid-5{grid-template-columns:repeat(2,1fr);}.page{padding:14px;}.topbar{padding:0 14px;}.period-btn{padding:6px 12px;font-size:.76rem;}}
     </style>
 </head>
 <body>
@@ -120,413 +137,544 @@
     <div class="topbar-left">
         <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
         <div>
-            <h1>Planification & Rapports</h1>
-            <p>Module 5 · Statistiques Facturation · Agenda</p>
+            <h1>Planification &amp; Rapports</h1>
+            <p>Statistiques · Détail des ventes · Agenda</p>
         </div>
     </div>
-    <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+    <div class="topbar-right">
+        <a href="depenses.html" class="back-btn">📉 Dépenses &amp; Bilan</a>
+        <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+    </div>
 </nav>
 
 <div class="page">
 
-    <!-- PÉRIODE SELECTOR -->
-    <div class="period-tabs">
-        <button class="period-btn active" onclick="setPeriode('jour')">📅 Journalier</button>
-        <button class="period-btn" onclick="setPeriode('semaine')">📅 Hebdomadaire</button>
-        <button class="period-btn" onclick="setPeriode('mois')">📅 Mensuel</button>
-        <button class="period-btn" onclick="setPeriode('trimestre')">📅 Trimestriel</button>
-        <button class="period-btn" onclick="setPeriode('annee')">📅 Annuel</button>
+    <div class="period-tabs" id="period-tabs">
+        <button class="period-btn active" data-p="jour">📅 Journalier</button>
+        <button class="period-btn" data-p="semaine">📅 Hebdomadaire</button>
+        <button class="period-btn" data-p="mois">📅 Mensuel</button>
+        <button class="period-btn" data-p="trimestre">📅 Trimestriel</button>
+        <button class="period-btn" data-p="annee">📅 Annuel</button>
+        <button class="period-btn" data-p="tout">📅 Tout</button>
+    </div>
+
+    <!-- SYNTHÈSE DE LA PÉRIODE -->
+    <div class="total-row">
+        <div class="total-card">
+            <div>
+                <div class="tc-label">Consultations</div>
+                <div class="tc-sub" id="lbl-periode">Aujourd'hui</div>
+                <div class="tc-val" id="k-tickets">—</div>
+            </div>
+            <div class="tc-icon">🎟️</div>
+        </div>
+        <div class="total-card purple">
+            <div>
+                <div class="tc-label">Ventes pharmacie</div>
+                <div class="tc-sub" id="k-med-sub">—</div>
+                <div class="tc-val" id="k-med">—</div>
+            </div>
+            <div class="tc-icon">💊</div>
+        </div>
+        <div class="total-card green">
+            <div>
+                <div class="tc-label">Recettes totales</div>
+                <div class="tc-sub" id="k-recettes-sub">Tickets + Médicaments</div>
+                <div class="tc-val" id="k-recettes">—</div>
+            </div>
+            <div class="tc-icon">💰</div>
+        </div>
     </div>
 
     <div class="main-grid">
 
-        <!-- COLONNE GAUCHE -->
+        <!-- ══════════ COLONNE GAUCHE ══════════ -->
         <div>
-            <!-- TOTAL HIGHLIGHT -->
-            <div class="total-row">
-                <div class="total-card">
-                    <div>
-                        <div class="tc-label" id="lbl-periode">Période : Aujourd'hui</div>
-                        <div class="tc-label">Tickets vendus</div>
-                        <div class="tc-val" id="total-tickets-nb">—</div>
-                    </div>
-                    <div class="tc-icon">🎟️</div>
-                </div>
-                <div class="total-card green">
-                    <div>
-                        <div class="tc-label" id="lbl-periode2">Recettes totales</div>
-                        <div class="tc-label">Tickets + Médicaments</div>
-                        <div class="tc-val" id="total-recettes">—</div>
-                    </div>
-                    <div class="tc-icon">💰</div>
-                </div>
-            </div>
 
-            <!-- PANEL TICKETS -->
-            <div class="panel" id="print-zone">
+            <div class="panel">
                 <div class="panel-head" style="border-left:4px solid var(--primary);">
                     <div>
-                        <h2>🎟️ Tickets de Consultation</h2>
-                        <p id="tickets-periode-desc">Statistiques sur toutes les périodes</p>
+                        <h2>🎟️ Détail des ventes de tickets</h2>
+                        <p id="tk-periode">—</p>
                     </div>
                 </div>
                 <div class="panel-body">
-                    <div class="stats-bloc-title">📊 Nombre de tickets vendus</div>
+                    <div class="tbl-wrap"><div id="tk-table"></div></div>
+                    <div class="divider"></div>
+                    <div class="stats-bloc-title">🏷️ Répartition par prestation</div>
+                    <div id="prestation-rank" class="rank-list"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head" style="border-left:4px solid var(--purple);">
+                    <div>
+                        <h2>💊 Détail des ventes de médicaments</h2>
+                        <p id="md-periode">—</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="tbl-wrap"><div id="md-table"></div></div>
+                    <div class="divider"></div>
+                    <div class="stats-bloc-title">🥇 Médicaments les plus vendus</div>
+                    <div id="med-rank" class="rank-list"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head" style="border-left:4px solid var(--accent);">
+                    <div>
+                        <h2>📈 Statistiques comparées</h2>
+                        <p>Toutes périodes, indépendamment du filtre ci-dessus</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="stats-bloc-title">📊 Tickets vendus</div>
                     <div class="stats-grid-5">
-                        <div class="stat-box blue">
-                            <div class="stat-period">Journalier</div>
-                            <div class="stat-val" id="tk-jour">—</div>
-                            <div class="stat-sub">tickets</div>
-                        </div>
-                        <div class="stat-box blue">
-                            <div class="stat-period">Hebdo.</div>
-                            <div class="stat-val" id="tk-semaine">—</div>
-                            <div class="stat-sub">tickets</div>
-                        </div>
-                        <div class="stat-box blue">
-                            <div class="stat-period">Mensuel</div>
-                            <div class="stat-val" id="tk-mois">—</div>
-                            <div class="stat-sub">tickets</div>
-                        </div>
-                        <div class="stat-box blue">
-                            <div class="stat-period">Trimestriel</div>
-                            <div class="stat-val" id="tk-trim">—</div>
-                            <div class="stat-sub">tickets</div>
-                        </div>
-                        <div class="stat-box blue">
-                            <div class="stat-period">Annuel</div>
-                            <div class="stat-val" id="tk-annee">—</div>
-                            <div class="stat-sub">tickets</div>
-                        </div>
+                        <div class="stat-box"><div class="stat-period">Journalier</div><div class="stat-val" id="tk-jour">—</div><div class="stat-sub">tickets</div></div>
+                        <div class="stat-box"><div class="stat-period">Hebdo.</div><div class="stat-val" id="tk-semaine">—</div><div class="stat-sub">tickets</div></div>
+                        <div class="stat-box"><div class="stat-period">Mensuel</div><div class="stat-val" id="tk-mois">—</div><div class="stat-sub">tickets</div></div>
+                        <div class="stat-box"><div class="stat-period">Trimestriel</div><div class="stat-val" id="tk-trim">—</div><div class="stat-sub">tickets</div></div>
+                        <div class="stat-box"><div class="stat-period">Annuel</div><div class="stat-val" id="tk-annee">—</div><div class="stat-sub">tickets</div></div>
                     </div>
 
-                    <div class="stats-bloc-title">💰 Somme encaissée (FCFA)</div>
+                    <div class="stats-bloc-title">💰 Somme encaissée — consultations</div>
                     <div class="stats-grid-5">
-                        <div class="stat-box green">
-                            <div class="stat-period">Journalier</div>
-                            <div class="stat-val" id="ts-jour">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
-                        <div class="stat-box green">
-                            <div class="stat-period">Hebdo.</div>
-                            <div class="stat-val" id="ts-semaine">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
-                        <div class="stat-box green">
-                            <div class="stat-period">Mensuel</div>
-                            <div class="stat-val" id="ts-mois">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
-                        <div class="stat-box green">
-                            <div class="stat-period">Trimestriel</div>
-                            <div class="stat-val" id="ts-trim">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
-                        <div class="stat-box green">
-                            <div class="stat-period">Annuel</div>
-                            <div class="stat-val" id="ts-annee">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
+                        <div class="stat-box green"><div class="stat-period">Journalier</div><div class="stat-val" id="ts-jour">—</div><div class="stat-sub">FCFA</div></div>
+                        <div class="stat-box green"><div class="stat-period">Hebdo.</div><div class="stat-val" id="ts-semaine">—</div><div class="stat-sub">FCFA</div></div>
+                        <div class="stat-box green"><div class="stat-period">Mensuel</div><div class="stat-val" id="ts-mois">—</div><div class="stat-sub">FCFA</div></div>
+                        <div class="stat-box green"><div class="stat-period">Trimestriel</div><div class="stat-val" id="ts-trim">—</div><div class="stat-sub">FCFA</div></div>
+                        <div class="stat-box green"><div class="stat-period">Annuel</div><div class="stat-val" id="ts-annee">—</div><div class="stat-sub">FCFA</div></div>
                     </div>
 
                     <div class="divider"></div>
 
-                    <!-- PANEL MÉDICAMENTS -->
-                    <div class="stats-bloc-title">💊 Ventes de Médicaments – Nombre de ventes</div>
+                    <div class="stats-bloc-title">💊 Ventes de médicaments — nombre</div>
                     <div class="stats-grid-5">
-                        <div class="stat-box purple">
-                            <div class="stat-period">Journalier</div>
-                            <div class="stat-val" id="mn-jour">—</div>
-                            <div class="stat-sub">ventes</div>
-                        </div>
-                        <div class="stat-box purple">
-                            <div class="stat-period">Hebdo.</div>
-                            <div class="stat-val" id="mn-semaine">—</div>
-                            <div class="stat-sub">ventes</div>
-                        </div>
-                        <div class="stat-box purple">
-                            <div class="stat-period">Mensuel</div>
-                            <div class="stat-val" id="mn-mois">—</div>
-                            <div class="stat-sub">ventes</div>
-                        </div>
-                        <div class="stat-box purple">
-                            <div class="stat-period">Trimestriel</div>
-                            <div class="stat-val" id="mn-trim">—</div>
-                            <div class="stat-sub">ventes</div>
-                        </div>
-                        <div class="stat-box purple">
-                            <div class="stat-period">Annuel</div>
-                            <div class="stat-val" id="mn-annee">—</div>
-                            <div class="stat-sub">ventes</div>
-                        </div>
+                        <div class="stat-box purple"><div class="stat-period">Journalier</div><div class="stat-val" id="mn-jour">—</div><div class="stat-sub">ventes</div></div>
+                        <div class="stat-box purple"><div class="stat-period">Hebdo.</div><div class="stat-val" id="mn-semaine">—</div><div class="stat-sub">ventes</div></div>
+                        <div class="stat-box purple"><div class="stat-period">Mensuel</div><div class="stat-val" id="mn-mois">—</div><div class="stat-sub">ventes</div></div>
+                        <div class="stat-box purple"><div class="stat-period">Trimestriel</div><div class="stat-val" id="mn-trim">—</div><div class="stat-sub">ventes</div></div>
+                        <div class="stat-box purple"><div class="stat-period">Annuel</div><div class="stat-val" id="mn-annee">—</div><div class="stat-sub">ventes</div></div>
                     </div>
 
-                    <div class="stats-bloc-title">💰 Ventes de Médicaments – Montants (FCFA)</div>
+                    <div class="stats-bloc-title">💰 Ventes de médicaments — montants</div>
                     <div class="stats-grid-5">
-                        <div class="stat-box gold">
-                            <div class="stat-period">Journalier</div>
-                            <div class="stat-val" id="ms-jour">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
-                        <div class="stat-box gold">
-                            <div class="stat-period">Hebdo.</div>
-                            <div class="stat-val" id="ms-semaine">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
-                        <div class="stat-box gold">
-                            <div class="stat-period">Mensuel</div>
-                            <div class="stat-val" id="ms-mois">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
-                        <div class="stat-box gold">
-                            <div class="stat-period">Trimestriel</div>
-                            <div class="stat-val" id="ms-trim">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
-                        <div class="stat-box gold">
-                            <div class="stat-period">Annuel</div>
-                            <div class="stat-val" id="ms-annee">—</div>
-                            <div class="stat-sub">FCFA</div>
-                        </div>
+                        <div class="stat-box gold"><div class="stat-period">Journalier</div><div class="stat-val" id="ms-jour">—</div><div class="stat-sub">FCFA</div></div>
+                        <div class="stat-box gold"><div class="stat-period">Hebdo.</div><div class="stat-val" id="ms-semaine">—</div><div class="stat-sub">FCFA</div></div>
+                        <div class="stat-box gold"><div class="stat-period">Mensuel</div><div class="stat-val" id="ms-mois">—</div><div class="stat-sub">FCFA</div></div>
+                        <div class="stat-box gold"><div class="stat-period">Trimestriel</div><div class="stat-val" id="ms-trim">—</div><div class="stat-sub">FCFA</div></div>
+                        <div class="stat-box gold"><div class="stat-period">Annuel</div><div class="stat-val" id="ms-annee">—</div><div class="stat-sub">FCFA</div></div>
                     </div>
 
                     <div class="divider"></div>
 
                     <div class="export-actions">
-                        <div class="export-title"><span>📥</span> Exporter les données</div>
-                        <button class="btn-export btn-pdf" onclick="window.print()">📄 Générer le Rapport PDF (Impression)</button>
+                        <div class="export-title"><span>📥</span> Exporter le rapport</div>
+                        <p class="export-hint">
+                            Génère une feuille A4 complète pour la période sélectionnée : synthèse,
+                            détail des consultations, détail des ventes de médicaments et classements.
+                            Dans la boîte d'impression, choisissez <strong>« Enregistrer au format PDF »</strong>.
+                        </p>
+                        <button class="btn-export" id="btn-pdf">📄 Générer le rapport PDF</button>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- ══════════ COLONNE DROITE : AGENDA ══════════ -->
+        <div>
+            <div class="panel">
+                <div class="panel-head" style="border-left:4px solid var(--gold);">
+                    <div>
+                        <h2>🗓️ Nouveau rendez-vous</h2>
+                        <p>Programmer un suivi patient</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <form id="agenda-form">
+                        <div class="form-group">
+                            <label for="a-patient">Patient</label>
+                            <input type="text" id="a-patient" class="form-control" placeholder="Nom et prénom" required maxlength="80">
+                        </div>
+                        <div class="form-group">
+                            <label for="a-date">Date prévue</label>
+                            <input type="date" id="a-date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="a-motif">Motif</label>
+                            <input type="text" id="a-motif" class="form-control" placeholder="Ex. Contrôle post-opératoire" required maxlength="120">
+                        </div>
+                        <button type="submit" class="btn-primary" id="submit-btn">Programmer le rendez-vous</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head" style="border-left:4px solid var(--accent);">
+                    <div>
+                        <h2>📌 Rendez-vous à venir</h2>
+                        <p>Triés par date</p>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div id="agenda-container" class="agenda-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script type="module">
-    import { db, auth } from '../firebase-config.js';
-    import { ref, push, onValue, off, remove, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { db, auth } from '../firebase-config.js';
+import { ref, push, onValue, off, remove, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {
+    esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
+    totalTickets, totalVentes, parPrestation, parMedicament, exporterPDF
+} from './rapport-lib.js';
 
-    // ── SÉCURITÉ XSS : échappement systématique des données dynamiques ──
-    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+onAuthStateChanged(auth, user => {
+    if (!user) { window.location.href = '../index.html'; return; }
+    if (sessionStorage.getItem('userRole') === 'caissier') {
+        window.location.href = '../accueil/menu_caissier.html';
+    }
+});
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user) { window.location.href = '../index.html'; return; }
-        const role = sessionStorage.getItem('userRole');
-        if (role === 'caissier') { window.location.href = '../accueil/menu_caissier.html'; }
+function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = (type === 'ok' ? '✓ ' : '✗ ') + msg;
+    el.className = 'toast show ' + type;
+    setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── FIREBASE ────────────────────────────────────
+const ticketRef = ref(db, 'ticket_dbase');
+const medRef    = ref(db, 'vente_medicaments');
+const agendaRef = ref(db, 'db_agenda');
+
+let allTickets = [], allVentes = [], allRdv = [];
+let periode = 'jour';
+let loadedT = false, loadedM = false;
+
+function checkLoaded() {
+    if (loadedT && loadedM) document.getElementById('conn-badge').innerHTML = '● En direct';
+}
+
+onValue(ticketRef, snap => {
+    allTickets = [];
+    snap.forEach(c => allTickets.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }));
+    allTickets.sort((a, b) => b._ts - a._ts);
+    loadedT = true; render(); checkLoaded();
+});
+onValue(medRef, snap => {
+    allVentes = [];
+    snap.forEach(c => allVentes.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }));
+    allVentes.sort((a, b) => b._ts - a._ts);
+    loadedM = true; render(); checkLoaded();
+});
+
+// ── PÉRIODE ─────────────────────────────────────
+document.getElementById('period-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.period-btn');
+    if (!btn) return;
+    periode = btn.dataset.p;
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+});
+
+const filtre = list => list.filter(x => dansPeriode(x._ts, periode));
+
+// ── RENDU ───────────────────────────────────────
+function render() {
+    const tk = filtre(allTickets);
+    const md = filtre(allVentes);
+    const rTk = totalTickets(tk), rMd = totalVentes(md);
+
+    document.getElementById('lbl-periode').textContent = PERIODES[periode].label;
+    document.getElementById('k-tickets').textContent = `${tk.length} · ${fcfa(rTk)}`;
+    document.getElementById('k-med-sub').textContent = `${md.length} vente(s)`;
+    document.getElementById('k-med').textContent = fcfa(rMd);
+    document.getElementById('k-recettes').textContent = fcfa(rTk + rMd);
+    document.getElementById('k-recettes-sub').textContent = PERIODES[periode].label;
+    document.getElementById('tk-periode').textContent = libellePeriode(periode);
+    document.getElementById('md-periode').textContent = libellePeriode(periode);
+
+    renderTicketsTable(tk, rTk);
+    renderVentesTable(md, rMd);
+    renderRank('prestation-rank', parPrestation(tk).map(p =>
+        ({ nom: p.nom, val: p.montant, sub: `${p.nb} ticket(s)` })), '');
+    renderRank('med-rank', parMedicament(md).slice(0, 10).map(p =>
+        ({ nom: p.nom, val: p.montant, sub: `${p.qte} u.` })), 'purple');
+
+    renderStatsComparees();
+}
+
+function renderTicketsTable(tk, total) {
+    const c = document.getElementById('tk-table');
+    if (!tk.length) { c.innerHTML = `<div class="empty-state">Aucune consultation sur cette période.</div>`; return; }
+    c.innerHTML = `<table class="data">
+      <thead><tr>
+        <th>Réf.</th><th>Date &amp; heure</th><th>Patient</th><th>Âge</th>
+        <th>Prestation</th><th>N° att.</th><th class="num">Montant</th>
+      </tr></thead>
+      <tbody>${tk.map(t => `<tr>
+        <td class="ref-tag">TK-${esc(t._key.substring(0, 6).toUpperCase())}</td>
+        <td>${esc(dateHeure(t._ts))}</td>
+        <td style="font-weight:600;">${esc(t.name || `${t.prenom || ''} ${t.nom || ''}`.trim())}</td>
+        <td>${esc(t.age ?? '—')}</td>
+        <td><span class="pill">${esc(t.choix || 'Non précisé')}</span></td>
+        <td>${esc(t.num_attente ?? '—')}</td>
+        <td class="num">${esc(fcfa(t.prix))}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr>
+        <td colspan="6">TOTAL — ${tk.length} consultation(s)</td>
+        <td class="num">${esc(fcfa(total))}</td>
+      </tr></tfoot></table>`;
+}
+
+function renderVentesTable(md, total) {
+    const c = document.getElementById('md-table');
+    if (!md.length) { c.innerHTML = `<div class="empty-state">Aucune vente de médicament sur cette période.</div>`; return; }
+    c.innerHTML = `<table class="data">
+      <thead><tr>
+        <th>Réf.</th><th>Date &amp; heure</th><th>Patient</th>
+        <th>Médicaments délivrés</th><th class="num">Montant</th>
+      </tr></thead>
+      <tbody>${md.map(v => {
+        const detail = (v.medicaments || []).map(l => `${esc(l.qte)} × ${esc(l.nom)}`).join('<br>') || '—';
+        return `<tr>
+          <td class="ref-tag">MED-${esc(v._key.substring(0, 6).toUpperCase())}</td>
+          <td>${esc(dateHeure(v._ts))}</td>
+          <td style="font-weight:600;">${esc(v.patient_nom || '(non identifié)')}
+              <div class="rk-sub">N° ${esc(v.num_attente ?? '—')}</div></td>
+          <td class="med-lignes">${detail}</td>
+          <td class="num">${esc(fcfa(v.total))}</td>
+        </tr>`;
+      }).join('')}</tbody>
+      <tfoot><tr>
+        <td colspan="4">TOTAL — ${md.length} vente(s)</td>
+        <td class="num">${esc(fcfa(total))}</td>
+      </tr></tfoot></table>`;
+}
+
+function renderRank(id, items, variante) {
+    const c = document.getElementById(id);
+    if (!items.length) { c.innerHTML = `<div class="empty-state">Rien à classer sur cette période.</div>`; return; }
+    const max = items[0].val || 1;
+    c.innerHTML = items.map(i => `
+      <div class="rank-row">
+        <span class="rk-nom" title="${esc(i.nom)}">${esc(i.nom)}</span>
+        <span class="rank-bar ${variante}"><span style="width:${Math.round(i.val / max * 100)}%"></span></span>
+        <span class="rk-val">${esc(fmt(i.val))} <span class="rk-sub">${esc(i.sub)}</span></span>
+      </div>`).join('');
+}
+
+// Blocs « toutes périodes » : volontairement indépendants du filtre courant.
+function renderStatsComparees() {
+    const P = ['jour', 'semaine', 'mois', 'trimestre', 'annee'];
+    const ids = ['jour', 'semaine', 'mois', 'trim', 'annee'];
+    P.forEach((p, i) => {
+        const tk = allTickets.filter(x => dansPeriode(x._ts, p));
+        const md = allVentes.filter(x => dansPeriode(x._ts, p));
+        document.getElementById('tk-' + ids[i]).textContent = tk.length;
+        document.getElementById('ts-' + ids[i]).textContent = fmt(totalTickets(tk));
+        document.getElementById('mn-' + ids[i]).textContent = md.length;
+        document.getElementById('ms-' + ids[i]).textContent = fmt(totalVentes(md));
     });
+}
 
-    let allTickets   = [];
-    let allMedVentes = [];
+// ── EXPORT PDF ──────────────────────────────────
+document.getElementById('btn-pdf').addEventListener('click', () => {
+    const tk = filtre(allTickets), md = filtre(allVentes);
+    const rTk = totalTickets(tk), rMd = totalVentes(md);
+    const unites = md.reduce((s, v) => s + (v.medicaments || []).reduce((n, l) => n + Number(l.qte || 0), 0), 0);
 
-    // ── HELPERS DATE ──
-    function getSafeTs(val) {
-        if (val.date_heure_ts) return val.date_heure_ts;
-        if (val.date) {
-            const p=val.date.split('/');
-            if(p.length===3){
-                const day=parseInt(p[0]),month=parseInt(p[1])-1,year=parseInt(p[2]);
-                let hr=0,min=0;
-                if(val.heure){const hp=val.heure.split(':');if(hp.length>=2){hr=parseInt(hp[0]);min=parseInt(hp[1]);}}
-                return new Date(year,month,day,hr,min).getTime();
-            }
+    exporterPDF({
+        titre: "Rapport d'activité — Consultations et pharmacie",
+        periodeLabel: libellePeriode(periode),
+        meta: [
+            { k: 'Période', v: PERIODES[periode].court },
+            { k: 'Consultations', v: String(tk.length) },
+            { k: 'Ventes pharmacie', v: String(md.length) },
+            { k: 'Unités délivrées', v: String(unites) },
+        ],
+        resume: [
+            { label: 'Recettes consultations', valeur: fcfa(rTk) },
+            { label: 'Recettes pharmacie', valeur: fcfa(rMd) },
+            { label: 'Recettes totales', valeur: fcfa(rTk + rMd), type: 'positif' },
+        ],
+        sections: [
+            {
+                titre: 'Détail des ventes de tickets de consultation',
+                cols: [
+                    { t: 'Réf.', k: 'ref', w: '11%' },
+                    { t: 'Date & heure', k: 'date', w: '15%' },
+                    { t: 'Patient', k: 'patient', w: '24%' },
+                    { t: 'Âge', k: 'age', num: true, w: '7%' },
+                    { t: 'Prestation', k: 'presta', w: '25%' },
+                    { t: 'N°', k: 'att', num: true, w: '6%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '12%' },
+                ],
+                rows: tk.map(t => ({
+                    ref: 'TK-' + t._key.substring(0, 6).toUpperCase(),
+                    date: dateHeure(t._ts),
+                    patient: t.name || `${t.prenom || ''} ${t.nom || ''}`.trim(),
+                    age: t.age ?? '—',
+                    presta: t.choix || 'Non précisé',
+                    att: t.num_attente ?? '—',
+                    montant: fcfa(t.prix),
+                })),
+                totalLabel: `TOTAL — ${tk.length} consultation(s)`,
+                totalValue: fcfa(rTk),
+                vide: 'Aucune consultation sur cette période.',
+            },
+            {
+                titre: 'Répartition par prestation',
+                cols: [
+                    { t: 'Prestation', k: 'nom', w: '55%' },
+                    { t: 'Tickets', k: 'nb', num: true, w: '15%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '18%' },
+                    { t: 'Part', k: 'part', num: true, w: '12%' },
+                ],
+                rows: parPrestation(tk).map(p => ({
+                    nom: p.nom, nb: p.nb, montant: fcfa(p.montant),
+                    part: (rTk ? Math.round(p.montant / rTk * 100) : 0) + ' %',
+                })),
+                totalLabel: 'TOTAL', totalValue: fcfa(rTk),
+                vide: 'Aucune prestation à présenter.',
+            },
+            {
+                titre: 'Détail des ventes de médicaments',
+                cols: [
+                    { t: 'Réf.', k: 'ref', w: '12%' },
+                    { t: 'Date & heure', k: 'date', w: '16%' },
+                    { t: 'Patient', k: 'patient', w: '22%' },
+                    { t: 'Médicaments délivrés', k: 'detail', w: '36%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '14%' },
+                ],
+                rows: md.map(v => ({
+                    ref: 'MED-' + v._key.substring(0, 6).toUpperCase(),
+                    date: dateHeure(v._ts),
+                    patient: v.patient_nom || '(non identifié)',
+                    detail: (v.medicaments || []).map(l => `${l.qte} × ${l.nom}`).join(' ; ') || '—',
+                    montant: fcfa(v.total),
+                })),
+                totalLabel: `TOTAL — ${md.length} vente(s)`,
+                totalValue: fcfa(rMd),
+                vide: 'Aucune vente de médicament sur cette période.',
+            },
+            {
+                titre: 'Médicaments les plus vendus',
+                cols: [
+                    { t: 'Médicament', k: 'nom', w: '52%' },
+                    { t: 'Unités', k: 'qte', num: true, w: '15%' },
+                    { t: "Chiffre d'affaires", k: 'montant', num: true, w: '20%' },
+                    { t: 'Part', k: 'part', num: true, w: '13%' },
+                ],
+                rows: parMedicament(md).map(p => ({
+                    nom: p.nom, qte: p.qte, montant: fcfa(p.montant),
+                    part: (rMd ? Math.round(p.montant / rMd * 100) : 0) + ' %',
+                })),
+                totalLabel: 'TOTAL', totalValue: fcfa(rMd),
+                vide: 'Aucun médicament vendu sur cette période.',
+            },
+        ],
+        note: "Les montants correspondent aux sommes effectivement encaissées, avant déduction des dépenses du poste (voir le bilan financier).",
+    });
+});
+
+// ── AGENDA ──────────────────────────────────────
+onValue(agendaRef, snap => {
+    allRdv = [];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    snap.forEach(c => {
+        const d = c.val();
+        if (!d.date_prevue) return;
+        const rdv = new Date(d.date_prevue);
+        if (rdv >= today || d.statut === 'honore') allRdv.push({ _key: c.key, ...d, rdvObj: rdv });
+    });
+    allRdv.sort((a, b) => a.rdvObj - b.rdvObj);
+    renderAgenda();
+});
+
+function renderAgenda() {
+    const c = document.getElementById('agenda-container');
+    if (!allRdv.length) {
+        c.innerHTML = `<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">☕</span>Aucun rendez-vous à venir.</div>`;
+        return;
+    }
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const demain = new Date(today); demain.setDate(demain.getDate() + 1);
+
+    c.innerHTML = allRdv.map(rdv => {
+        const [y, m, j] = rdv.date_prevue.split('-').map(Number);
+        const d = new Date(y, m - 1, j);
+        const jour = d.toLocaleDateString('fr-FR', { day: '2-digit' });
+        const mois = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
+        let cls = 'status-later', txt = 'À VENIR';
+        if (d.getTime() === today.getTime()) { cls = 'status-soon'; txt = "AUJOURD'HUI"; }
+        else if (d.getTime() === demain.getTime()) { cls = 'status-soon'; txt = 'DEMAIN'; }
+        const honore = rdv.statut === 'honore';
+        return `<div class="agenda-card">
+            <div class="agenda-date-box">
+                <div class="agenda-day">${esc(jour)}</div>
+                <div class="agenda-month">${esc(mois)}</div>
+            </div>
+            <div class="agenda-content">
+                <div class="agenda-patient">👤 ${esc(rdv.patient)}</div>
+                <div class="agenda-motif">${esc(rdv.motif)}</div>
+                <span class="badge-status ${honore ? 'status-honore' : cls}">${honore ? '✓ HONORÉ' : txt}</span>
+            </div>
+            <div class="agenda-actions">
+                ${!honore ? `<button class="btn-mini btn-ok" data-honore="${esc(rdv._key)}">✓ Honoré</button>` : ''}
+                <button class="btn-mini btn-rm" data-suppr="${esc(rdv._key)}">🗑 Suppr.</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Délégation d'événements : les boutons sont recréés à chaque rendu,
+// un seul écouteur sur le conteneur suffit et survit aux redessins.
+document.getElementById('agenda-container').addEventListener('click', async e => {
+    const ok = e.target.closest('[data-honore]');
+    const rm = e.target.closest('[data-suppr]');
+    try {
+        if (ok) {
+            if (!confirm('Marquer ce rendez-vous comme honoré ?')) return;
+            await update(ref(db, 'db_agenda/' + ok.dataset.honore), { statut: 'honore' });
+            toast('Rendez-vous marqué comme honoré.', 'ok');
+        } else if (rm) {
+            if (!confirm('Supprimer ce rendez-vous ? Cette action est irréversible.')) return;
+            await remove(ref(db, 'db_agenda/' + rm.dataset.suppr));
+            toast('Rendez-vous supprimé.', 'ok');
         }
-        return Date.now();
+    } catch (err) { toast('Erreur : ' + err.message, 'err'); }
+});
+
+const form = document.getElementById('agenda-form');
+const submitBtn = document.getElementById('submit-btn');
+form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const patient = document.getElementById('a-patient').value.trim();
+    const dateStr = document.getElementById('a-date').value;
+    const motif = document.getElementById('a-motif').value.trim();
+    if (!patient || !dateStr || !motif) { toast('Tous les champs sont obligatoires.', 'err'); return; }
+    if (dateStr < new Date().toISOString().slice(0, 10)) {
+        toast("La date doit être aujourd'hui ou dans le futur.", 'err'); return;
     }
-    function isToday(ts) { const d=new Date(ts),n=new Date(); return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
-    function isThisWeek(ts) {
-        const d=new Date(ts),now=new Date(),dow=now.getDay(),numDay=dow===0?6:dow-1;
-        const sow=new Date(now);sow.setDate(now.getDate()-numDay);sow.setHours(0,0,0,0);
-        return d>=sow;
-    }
-    function isMonth(ts) { const d=new Date(ts),n=new Date(); return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
-    function isThisYear(ts) { return new Date(ts).getFullYear()===new Date().getFullYear(); }
-    function isThisQuarter(ts) {
-        const d=new Date(ts),n=new Date();
-        const q=Math.floor(n.getMonth()/3);
-        const qStart=new Date(n.getFullYear(),q*3,1);
-        return d>=qStart && d.getFullYear()===n.getFullYear();
-    }
-    function fmt(n) { return Number(n).toLocaleString('fr-FR'); }
+    submitBtn.disabled = true; submitBtn.textContent = 'Enregistrement...';
+    try {
+        await push(agendaRef, { patient, date_prevue: dateStr, motif, cree_le: Date.now() });
+        form.reset();
+        toast('Rendez-vous programmé.', 'ok');
+    } catch (err) { console.error(err); toast("Échec de l'enregistrement.", 'err'); }
+    finally { submitBtn.disabled = false; submitBtn.textContent = 'Programmer le rendez-vous'; }
+});
 
-    // ── LISTENERS ──
-    const ticketRef  = ref(db,'ticket_dbase');
-    const medRef     = ref(db,'vente_medicaments');
-    const agendaRef  = ref(db,'db_agenda');
-
-    let loadedT=false, loadedM=false;
-    function checkLoaded() {
-        if(loadedT&&loadedM){
-            document.getElementById('conn-badge').innerHTML='● En direct';
-        }
-    }
-
-    onValue(ticketRef, snap => {
-        allTickets=[];
-        snap.forEach(c=>allTickets.push({_key:c.key,_ts:getSafeTs(c.val()),...c.val()}));
-        updateAllStats(); loadedT=true; checkLoaded();
-    });
-
-    onValue(medRef, snap => {
-        allMedVentes=[];
-        snap.forEach(c=>allMedVentes.push({_key:c.key,_ts:getSafeTs(c.val()),...c.val()}));
-        updateAllStats(); loadedM=true; checkLoaded();
-    });
-
-    function updateAllStats() {
-        // Tickets — Nombre
-        document.getElementById('tk-jour').textContent    = allTickets.filter(x=>isToday(x._ts)).length;
-        document.getElementById('tk-semaine').textContent = allTickets.filter(x=>isThisWeek(x._ts)).length;
-        document.getElementById('tk-mois').textContent    = allTickets.filter(x=>isMonth(x._ts)).length;
-        document.getElementById('tk-trim').textContent    = allTickets.filter(x=>isThisQuarter(x._ts)).length;
-        document.getElementById('tk-annee').textContent   = allTickets.filter(x=>isThisYear(x._ts)).length;
-
-        // Tickets — Somme
-        const sum = (arr,fn) => arr.filter(fn).reduce((s,x)=>s+(x.prix||0),0);
-        document.getElementById('ts-jour').textContent    = fmt(sum(allTickets,x=>isToday(x._ts)));
-        document.getElementById('ts-semaine').textContent = fmt(sum(allTickets,x=>isThisWeek(x._ts)));
-        document.getElementById('ts-mois').textContent    = fmt(sum(allTickets,x=>isMonth(x._ts)));
-        document.getElementById('ts-trim').textContent    = fmt(sum(allTickets,x=>isThisQuarter(x._ts)));
-        document.getElementById('ts-annee').textContent   = fmt(sum(allTickets,x=>isThisYear(x._ts)));
-
-        // Médicaments — Nombre ventes
-        document.getElementById('mn-jour').textContent    = allMedVentes.filter(x=>isToday(x._ts)).length;
-        document.getElementById('mn-semaine').textContent = allMedVentes.filter(x=>isThisWeek(x._ts)).length;
-        document.getElementById('mn-mois').textContent    = allMedVentes.filter(x=>isMonth(x._ts)).length;
-        document.getElementById('mn-trim').textContent    = allMedVentes.filter(x=>isThisQuarter(x._ts)).length;
-        document.getElementById('mn-annee').textContent   = allMedVentes.filter(x=>isThisYear(x._ts)).length;
-
-        // Médicaments — Montants
-        const sumM = (arr,fn) => arr.filter(fn).reduce((s,x)=>s+(x.total||0),0);
-        document.getElementById('ms-jour').textContent    = fmt(sumM(allMedVentes,x=>isToday(x._ts)));
-        document.getElementById('ms-semaine').textContent = fmt(sumM(allMedVentes,x=>isThisWeek(x._ts)));
-        document.getElementById('ms-mois').textContent    = fmt(sumM(allMedVentes,x=>isMonth(x._ts)));
-        document.getElementById('ms-trim').textContent    = fmt(sumM(allMedVentes,x=>isThisQuarter(x._ts)));
-        document.getElementById('ms-annee').textContent   = fmt(sumM(allMedVentes,x=>isThisYear(x._ts)));
-
-        // Update highlight (based on current period selection)
-        updateHighlight();
-    }
-
-    let currentPeriode = 'jour';
-    window.setPeriode = function(p) {
-        currentPeriode=p;
-        document.querySelectorAll('.period-btn').forEach((b,i)=>{
-            const periods=['jour','semaine','mois','trimestre','annee'];
-            b.classList.toggle('active', periods[i]===p);
-        });
-        updateHighlight();
-    };
-
-    function updateHighlight() {
-        const labels = {jour:"Aujourd'hui",semaine:"Cette semaine",mois:"Ce mois",trimestre:"Ce trimestre",annee:"Cette année"};
-        const label  = labels[currentPeriode]||'';
-        document.getElementById('lbl-periode').textContent  = 'Période : '+label;
-        document.getElementById('lbl-periode2').textContent = label;
-
-        const fnMap = {
-            jour: isToday, semaine: isThisWeek, mois: isMonth,
-            trimestre: isThisQuarter, annee: isThisYear
-        };
-        const fn=fnMap[currentPeriode]||isToday;
-        const nbTk  = allTickets.filter(x=>fn(x._ts)).length;
-        const sumTk = allTickets.filter(x=>fn(x._ts)).reduce((s,x)=>s+(x.prix||0),0);
-        const sumMd = allMedVentes.filter(x=>fn(x._ts)).reduce((s,x)=>s+(x.total||0),0);
-        document.getElementById('total-tickets-nb').textContent = nbTk+' ticket'+(nbTk>1?'s':'');
-        document.getElementById('total-recettes').textContent   = fmt(sumTk+sumMd)+' FCFA';
-    }
-
-    // ── AGENDA ──
-    let allAppointments=[];
-    onValue(agendaRef, (snapshot)=>{
-        allAppointments=[];
-        const today=new Date(); today.setHours(0,0,0,0);
-        snapshot.forEach(child=>{
-            const data=child.val();
-            if(data.date_prevue){
-                const rdvDate=new Date(data.date_prevue);
-                // Afficher RDV à venir + ceux honorés du jour (pas les passés non honorés)
-                if(rdvDate>=today || data.statut==='honore')
-                    allAppointments.push({_key:child.key,...data,rdvObj:rdvDate});
-            }
-        });
-        allAppointments.sort((a,b)=>a.rdvObj-b.rdvObj);
-        renderAgenda();
-    });
-
-    // Marquer un RDV comme honoré
-    window.marquerHonore = async function(key) {
-        if(!confirm('Marquer ce rendez-vous comme honoré ?')) return;
-        try { await update(ref(db,'db_agenda/'+key),{statut:'honore'}); }
-        catch(e){ alert('Erreur : '+e.message); }
-    };
-
-    // Supprimer un RDV
-    window.supprimerRdv = async function(key) {
-        if(!confirm('Supprimer ce rendez-vous ? Cette action est irréversible.')) return;
-        try { await remove(ref(db,'db_agenda/'+key)); }
-        catch(e){ alert('Erreur : '+e.message); }
-    };
-
-    function renderAgenda(){
-        const container=document.getElementById('agenda-container');
-        container.innerHTML='';
-        if(!allAppointments.length){
-            container.innerHTML=`<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">☕</span>Aucun rendez-vous à venir.</div>`;
-            return;
-        }
-        const today=new Date();today.setHours(0,0,0,0);
-        const tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
-        allAppointments.forEach(rdv=>{
-            const dp=rdv.date_prevue.split('-');
-            const d=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));
-            const dayStr=d.toLocaleDateString('fr-FR',{day:'2-digit'});
-            const monthStr=d.toLocaleDateString('fr-FR',{month:'short'}).replace('.','');
-            let badgeClass='status-later',badgeText='À VENIR';
-            if(d.getTime()===today.getTime()){badgeClass='status-soon';badgeText="AUJOURD'HUI";}
-            else if(d.getTime()===tomorrow.getTime()){badgeClass='status-soon';badgeText='DEMAIN';}
-            const card=document.createElement('div');
-            card.className='agenda-card';
-            const isHonore = rdv.statut === 'honore';
-            card.innerHTML=`
-                <div class="agenda-date-box">
-                    <div class="agenda-day">${dayStr}</div>
-                    <div class="agenda-month">${monthStr}</div>
-                </div>
-                <div class="agenda-content">
-                    <div class="agenda-patient">👤 ${esc(rdv.patient)}</div>
-                    <div class="agenda-motif">${esc(rdv.motif)}</div>
-                    <span class="badge-status ${isHonore ? 'status-honore' : badgeClass}">${isHonore ? '✓ HONORÉ' : badgeText}</span>
-                </div>
-                <div class="agenda-actions">
-                    ${!isHonore ? `<button onclick="marquerHonore('${rdv._key}')" title="Marquer comme honoré" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:.75rem;cursor:pointer;font-family:inherit;font-weight:700;">✓ Honoré</button>` : ''}
-                    <button onclick="supprimerRdv('${rdv._key}')" title="Supprimer" style="background:var(--danger-bg);color:var(--danger);border:1px solid #f5c6c3;border-radius:6px;padding:5px 10px;font-size:.75rem;cursor:pointer;font-family:inherit;font-weight:700;">🗑 Suppr.</button>
-                </div>`;
-            container.appendChild(card);
-        });
-    }
-
-    // ── NOUVEAU RDV ──
-    const form=document.getElementById('agenda-form');
-    const submitBtn=document.getElementById('submit-btn');
-    form.addEventListener('submit', async(e)=>{
-        e.preventDefault();
-        const patient=document.getElementById('a-patient').value.trim();
-        const dateStr=document.getElementById('a-date').value;
-        const motif  =document.getElementById('a-motif').value.trim();
-        if(!patient||!dateStr||!motif){alert('Tous les champs sont obligatoires.');return;}
-        // Validation : la date doit être aujourd'hui ou dans le futur
-        const todayStr = new Date().toISOString().split('T')[0];
-        if(dateStr < todayStr){alert('La date du rendez-vous doit être aujourd\'hui ou dans le futur.');return;}
-        submitBtn.disabled=true;submitBtn.textContent='Enregistrement...';
-        try {
-            await push(agendaRef,{patient,date_prevue:dateStr,motif,cree_le:Date.now()});
-            form.reset();
-            submitBtn.style.background='var(--accent)';submitBtn.textContent='✓ Programmé';
-            setTimeout(()=>{submitBtn.style.background='var(--gold)';submitBtn.textContent='Programmer le rendez-vous';},2000);
-        } catch(err){console.error(err);alert('Erreur lors de l\'enregistrement.');}
-        finally{submitBtn.disabled=false;}
-    });
-
-    window.addEventListener('beforeunload',()=>{off(ticketRef);off(medRef);off(agendaRef);});
+window.addEventListener('beforeunload', () => { off(ticketRef); off(medRef); off(agendaRef); });
 </script>
 </body>
 </html>
