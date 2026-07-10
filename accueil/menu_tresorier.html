@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#b87309">
+    <title>Tableau de Bord Trésorerie – Poste de Santé de Diandioly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
+            --gold:#d68910;--gold-dark:#b87309;--danger:#c0392b;
+            --purple:#7b5ea7;--purple-light:#9b7ec8;
+            --bg:#f0f4f8;--card-bg:#ffffff;
+            --text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+        .topbar{background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:white;padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(184,115,9,.22);position:sticky;top:0;z-index:100;}
+        .topbar-left{display:flex;align-items:center;gap:12px;}
+        .topbar-logo{width:38px;height:38px;background:rgba(255,255,255,.18);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;}
+        .topbar-left h1{font-size:1.05rem;font-weight:700;line-height:1.2;}
+        .topbar-left p{font-size:.72rem;opacity:.8;}
+        .topbar-right{display:flex;align-items:center;gap:16px;}
+        .role-badge{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);color:white;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;}
+        .user-badge{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border-radius:24px;padding:6px 14px 6px 8px;font-size:.83rem;}
+        .user-avatar{width:28px;height:28px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;}
+        .btn-logout{background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.34);color:white;padding:7px 16px;border-radius:8px;font-size:.82rem;font-family:inherit;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:6px;}
+        .btn-logout:hover{background:rgba(255,255,255,.26);}
+        .main{padding:32px;max-width:1000px;margin:0 auto;}
+        .welcome-bar{margin-bottom:28px;}
+        .welcome-bar h2{font-size:1.55rem;font-weight:800;color:var(--primary);}
+        .welcome-bar p{font-size:.9rem;color:var(--muted);margin-top:4px;}
+        .access-notice{background:var(--gold-dark);background:linear-gradient(135deg,#fff9ec,#fef3d6);border:1.5px solid #f5d78a;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px;font-size:.85rem;color:#7a5200;font-weight:500;}
+        .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px;}
+        .stat-card{border-radius:14px;padding:20px 22px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,.06);}
+        .sc-recettes{background:linear-gradient(135deg,var(--accent),#0b8a5f);}
+        .sc-depenses{background:linear-gradient(135deg,#c0392b,#96271b);}
+        .sc-solde{background:linear-gradient(135deg,var(--primary),var(--primary-light));}
+        .sc-solde.negatif{background:linear-gradient(135deg,#8e2b20,#5f1a13);}
+        .stat-label{font-size:.74rem;font-weight:700;opacity:.85;text-transform:uppercase;letter-spacing:.5px;}
+        .stat-sub{font-size:.72rem;opacity:.75;margin-top:2px;}
+        .stat-value{font-size:1.5rem;font-weight:800;line-height:1.15;margin-top:6px;}
+        .stat-icon{font-size:1.9rem;opacity:.45;}
+        .section-title{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
+        .modules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;}
+        .module-card{background:var(--card-bg);border-radius:14px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.04);border:1px solid var(--border);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
+        .module-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--gold);}
+        .module-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.08);}
+        .module-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
+        .module-emoji{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;background:#fef9ec;}
+        .module-title-group h3{font-size:1rem;font-weight:700;color:var(--primary);}
+        .module-sub{font-size:.78rem;color:var(--muted);margin-top:2px;}
+        .module-desc{font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:18px;}
+        .module-features{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;}
+        .feature-tag{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+        .module-action{display:block;width:100%;padding:11px 16px;border-radius:8px;border:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;text-align:center;transition:opacity .2s,transform .15s;text-decoration:none;background:var(--gold);color:white;}
+        .module-action:hover{opacity:.9;transform:translateY(-1px);}
+        @media(max-width:600px){.main{padding:16px;}.topbar{padding:0 16px;}.user-badge .user-email{display:none;}}
+    </style>
+</head>
+<body>
+<nav class="topbar">
+    <div class="topbar-left">
+        <div class="topbar-logo">💰</div>
+        <div>
+            <h1>Poste de Santé de Diandioly</h1>
+            <p>Tableau de bord – Trésorerie</p>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <div class="role-badge">💰 Trésorier</div>
+        <div class="user-badge">
+            <div class="user-avatar" id="user-initials">?</div>
+            <span class="user-email" id="user-email-display">Chargement…</span>
+        </div>
+        <button class="btn-logout" onclick="deconnexion()"><span>⎋</span> Déconnexion</button>
+    </div>
+</nav>
+<main class="main">
+    <div class="welcome-bar">
+        <h2>Bienvenue, <span id="greeting-name">—</span> 👋</h2>
+        <p id="current-datetime">Chargement…</p>
+    </div>
+
+    <div class="access-notice">
+        💰 Connecté(e) en tant que <strong>Trésorier(ère)</strong> — vous gérez les dépenses et le bilan financier du poste.
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card sc-recettes">
+            <div>
+                <div class="stat-label">Recettes du jour</div>
+                <div class="stat-sub">Tickets + médicaments</div>
+                <div class="stat-value" id="stat-recettes">—</div>
+            </div>
+            <div class="stat-icon">💰</div>
+        </div>
+        <div class="stat-card sc-depenses">
+            <div>
+                <div class="stat-label">Dépenses du jour</div>
+                <div class="stat-sub">Charges enregistrées</div>
+                <div class="stat-value" id="stat-depenses">—</div>
+            </div>
+            <div class="stat-icon">📉</div>
+        </div>
+        <div class="stat-card sc-solde" id="card-solde">
+            <div>
+                <div class="stat-label">Solde net du jour</div>
+                <div class="stat-sub">Recettes − dépenses</div>
+                <div class="stat-value" id="stat-solde">—</div>
+            </div>
+            <div class="stat-icon">⚖️</div>
+        </div>
+    </div>
+
+    <div class="section-title">Module disponible</div>
+    <div class="modules-grid">
+        <div class="module-card">
+            <div class="module-header">
+                <div class="module-emoji">📉</div>
+                <div class="module-title-group">
+                    <h3>Dépenses &amp; Bilan</h3>
+                    <div class="module-sub">Comptabilité du poste</div>
+                </div>
+            </div>
+            <p class="module-desc">Enregistrement des dépenses effectuées par le poste, répartition par catégorie, et calcul automatique du solde net (recettes encaissées moins charges). Export du bilan en PDF.</p>
+            <div class="module-features">
+                <span class="feature-tag">Journal des dépenses</span>
+                <span class="feature-tag">Solde net</span>
+                <span class="feature-tag">Par catégorie</span>
+                <span class="feature-tag">Export PDF</span>
+            </div>
+            <a class="module-action" href="../planif_rapport/depenses.html">Ouvrir le Bilan →</a>
+        </div>
+    </div>
+</main>
+<script type="module">
+    import { auth, db } from '../firebase-config.js';
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = '../index.html'; return; }
+        const role = sessionStorage.getItem('userRole');
+        // Réservé au trésorier (l'admin garde son propre tableau de bord)
+        if (role !== 'tresorier') {
+            window.location.href = role === 'admin' ? 'menu_admin.html' : 'menu_caissier.html';
+            return;
+        }
+        const email = user.email || '';
+        document.getElementById('user-email-display').textContent = email;
+        document.getElementById('user-initials').textContent = email.slice(0, 2).toUpperCase();
+        const name = email.split('@')[0];
+        document.getElementById('greeting-name').textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    });
+
+    function updateClock() {
+        const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' };
+        document.getElementById('current-datetime').textContent = new Date().toLocaleDateString('fr-FR', opts);
+    }
+    updateClock(); setInterval(updateClock, 60000);
+
+    function isToday(ts) {
+        if (!ts) return false;
+        const d = new Date(ts), n = new Date();
+        return d.getDate()===n.getDate() && d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear();
+    }
+    function fmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
+
+    let _ticket = 0, _med = 0, _dep = 0;
+    function refresh() {
+        const recettes = _ticket + _med;
+        const solde = recettes - _dep;
+        document.getElementById('stat-recettes').textContent = fmt(recettes) + ' F';
+        document.getElementById('stat-depenses').textContent = fmt(_dep) + ' F';
+        document.getElementById('stat-solde').textContent    = fmt(solde) + ' F';
+        document.getElementById('card-solde').classList.toggle('negatif', solde < 0);
+    }
+
+    const ticketRef  = ref(db, 'ticket_dbase');
+    const medRef     = ref(db, 'vente_medicaments');
+    const depenseRef = ref(db, 'db_depenses');
+
+    onValue(ticketRef, (snap) => {
+        let total = 0;
+        snap.forEach(c => { const d = c.val(), ts = d.date_heure_ts || Date.now(); if (isToday(ts)) total += (d.prix || 0); });
+        _ticket = total; refresh();
+    });
+    onValue(medRef, (snap) => {
+        let total = 0;
+        snap.forEach(c => { const d = c.val(), ts = d.date_heure_ts || Date.now(); if (isToday(ts)) total += (d.total || 0); });
+        _med = total; refresh();
+    });
+    onValue(depenseRef, (snap) => {
+        let total = 0;
+        snap.forEach(c => { const d = c.val(), ts = d.date_ts || d.timestamp || Date.now(); if (isToday(ts)) total += (d.montant || 0); });
+        _dep = total; refresh();
+    });
+
+    window.deconnexion = () => {
+        if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
+            off(ticketRef); off(medRef); off(depenseRef);
+            sessionStorage.clear();
+            signOut(auth).then(() => { window.location.href = '../index.html'; });
+        }
+    };
+</script>
+</body>
+</html>

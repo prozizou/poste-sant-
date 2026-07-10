@@ -4,7 +4,7 @@
 //  Stratégie : Cache-First pour assets statiques, Network-First pour données
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v1.1.0';
+const APP_VERSION     = 'v1.2.0';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
@@ -17,6 +17,7 @@ const STATIC_ASSETS = [
   '/firebase-config.js',
   '/accueil/menu_admin.html',
   '/accueil/menu_caissier.html',
+  '/accueil/menu_tresorier.html',
   '/facturation/facturation.html',
   '/facturation/style.css',
   '/facturation/script.js',

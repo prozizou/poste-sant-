@@ -68,8 +68,8 @@
         }
         .role-selector {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
             margin-bottom: 30px;
             background: #f4f7fa;
             padding: 6px;
@@ -300,7 +300,10 @@
                 🛡️ Admin
             </button>
             <button type="button" class="role-btn" id="btn-caissier" onclick="selectRole('caissier')">
-                🧾 Caisse / Facturation
+                🧾 Caisse
+            </button>
+            <button type="button" class="role-btn" id="btn-tresorier" onclick="selectRole('tresorier')">
+                💰 Trésorier
             </button>
         </div>
 
@@ -362,21 +365,31 @@
         // 2. GESTION DES RÔLES
         let currentRole = 'admin';
 
+        // Cible de redirection selon le rôle
+        const ROLE_HOME = {
+            admin:     'accueil/menu_admin.html',
+            caissier:  'accueil/menu_caissier.html',
+            tresorier: 'accueil/menu_tresorier.html',
+        };
+
         window.selectRole = function(role) {
             currentRole = role;
-            const btnAdmin = document.getElementById('btn-admin');
-            const btnCaissier = document.getElementById('btn-caissier');
-            
-            [btnAdmin, btnCaissier].forEach(btn => {
+            const buttons = {
+                admin:     document.getElementById('btn-admin'),
+                caissier:  document.getElementById('btn-caissier'),
+                tresorier: document.getElementById('btn-tresorier'),
+            };
+
+            Object.values(buttons).forEach(btn => {
+                if (!btn) return;
                 btn.classList.remove('active');
                 btn.style.borderColor = 'var(--border)';
                 btn.style.background = '#fafbfc';
                 btn.style.color = 'var(--muted)';
             });
 
-            const activeBtn = role === 'admin' ? btnAdmin : btnCaissier;
-            activeBtn.classList.add('active');
-            activeBtn.style.cssText = ''; 
+            const activeBtn = buttons[role];
+            if (activeBtn) { activeBtn.classList.add('active'); activeBtn.style.cssText = ''; }
         };
 
         // 3. GESTION DU CODE SECRET (Saisie & Copier-Coller)
@@ -436,8 +449,7 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 const savedRole = sessionStorage.getItem('userRole');
-                if (savedRole === 'admin') window.location.href = 'accueil/menu_admin.html';
-                else if (savedRole === 'caissier') window.location.href = 'accueil/menu_caissier.html';
+                if (ROLE_HOME[savedRole]) window.location.href = ROLE_HOME[savedRole];
             }
         });
 
@@ -506,9 +518,7 @@
                 btn.textContent = '✓ Connexion réussie';
                 
                 setTimeout(() => {
-                    window.location.href = currentRole === 'admin' 
-                        ? 'accueil/menu_admin.html' 
-                        : 'accueil/menu_caissier.html';
+                    window.location.href = ROLE_HOME[currentRole] || 'accueil/menu_caissier.html';
                 }, 900);
 
             } catch (error) {

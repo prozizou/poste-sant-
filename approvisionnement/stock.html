@@ -315,6 +315,7 @@
         <button class="tab-btn active" onclick="switchTab('inventaire', this)">📋 Inventaire</button>
         <button class="tab-btn"        onclick="switchTab('entree',     this)">➕ Nouvelle Entrée</button>
         <button class="tab-btn"        onclick="switchTab('reappro',    this)">🔄 Réapprovisionnement</button>
+        <button class="tab-btn"        onclick="switchTab('import',     this)">📥 Importer Excel</button>
     </div>
 
     <!-- ══════════════════════════════════════════
@@ -774,6 +775,118 @@
         </div><!-- /panel -->
     </div><!-- /pane-reappro -->
 
+    <!-- ══════════════════════════════════════════
+         TAB 4 : IMPORTER EXCEL
+    ══════════════════════════════════════════ -->
+    <style>
+        .imp-drop{display:flex;align-items:center;gap:16px;padding:22px;border:2px dashed var(--purple-light);border-radius:14px;background:var(--purple-bg);cursor:pointer;transition:background .2s,border-color .2s;}
+        .imp-drop:hover,.imp-drop.drag{background:#e3d7f2;border-color:var(--purple);}
+        .imp-drop-icon{font-size:2rem;}
+        .imp-drop-txt{display:flex;flex-direction:column;gap:3px;}
+        .imp-drop-txt strong{color:var(--primary);font-size:.95rem;}
+        .imp-drop-txt span{color:var(--muted);font-size:.8rem;}
+        .imp-filename{margin-top:12px;padding:10px 14px;background:var(--green-bg);border:1px solid var(--green);border-radius:8px;font-size:.85rem;color:var(--primary);}
+        .imp-mapping{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;}
+        .imp-map-item{display:flex;align-items:center;gap:8px;background:#fafbfc;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.8rem;}
+        .imp-map-field{font-weight:700;color:var(--primary);}
+        .imp-map-arrow{color:var(--muted);}
+        .imp-map-col{color:var(--accent);font-weight:600;margin-left:auto;text-align:right;}
+        .imp-map-col.imp-map-missing{color:var(--danger);font-weight:500;}
+        .imp-row-off{opacity:.42;}
+        .imp-progress{margin-top:18px;}
+        .imp-bar{height:10px;background:var(--border);border-radius:6px;overflow:hidden;}
+        .imp-bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--purple),var(--accent));transition:width .25s;}
+        .imp-progress-txt{font-size:.8rem;color:var(--muted);margin-top:6px;text-align:center;font-weight:700;}
+        #imp-table th:first-child,#imp-table td:first-child{width:38px;text-align:center;}
+    </style>
+    <div class="tab-pane" id="pane-import">
+        <div class="panel">
+            <div class="panel-head">
+                <div class="panel-head-left">
+                    <div class="panel-icon">📥</div>
+                    <div>
+                        <h2>Importer depuis un fichier Excel</h2>
+                        <p>Approvisionner ou réapprovisionner la pharmacie en masse — chaque ligne devient une entrée Firebase (une clé par ligne)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+
+                <div id="alert-import" class="alert"></div>
+
+                <!-- Zone de dépôt -->
+                <label id="imp-drop" for="imp-file" class="imp-drop">
+                    <div class="imp-drop-icon">📄</div>
+                    <div class="imp-drop-txt">
+                        <strong>Choisir un fichier Excel</strong>
+                        <span>Formats acceptés : .xlsx, .xls, .csv — cliquez ou glissez le fichier ici</span>
+                    </div>
+                    <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" hidden>
+                </label>
+                <div id="imp-filename" class="imp-filename" style="display:none;"></div>
+
+                <!-- Options (visibles après lecture) -->
+                <div id="imp-options" style="display:none;">
+
+                    <div class="sect-divider"><span>⚙️ Options d'import</span></div>
+                    <div class="form-grid three">
+                        <div class="fg">
+                            <label>Feuille Excel</label>
+                            <select class="fc" id="imp-sheet"></select>
+                        </div>
+                        <div class="fg">
+                            <label>Colonne « quantité »</label>
+                            <select class="fc" id="imp-qtecol"></select>
+                        </div>
+                        <div class="fg">
+                            <label>Type d'import</label>
+                            <select class="fc" id="imp-mode">
+                                <option value="appro">➕ Approvisionnement (nouvelles entrées)</option>
+                                <option value="reappro">🔄 Réapprovisionnement (stock existant)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="sect-divider"><span>🔗 Correspondance des colonnes détectée</span></div>
+                    <div id="imp-mapping" class="imp-mapping"></div>
+
+                    <div class="sect-divider"><span>👁️ Aperçu (<span id="imp-count">0</span> ligne(s))</span></div>
+                    <div class="table-wrap" style="max-height:380px;overflow:auto;">
+                        <table id="imp-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="imp-checkall" checked></th>
+                                    <th>Médicament</th>
+                                    <th>Forme</th>
+                                    <th>Dosage</th>
+                                    <th>Qté</th>
+                                    <th>Péremption</th>
+                                    <th>P. Unitaire</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody id="imp-tbody"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="imp-progress" class="imp-progress" style="display:none;">
+                        <div class="imp-bar"><div class="imp-bar-fill" id="imp-bar-fill"></div></div>
+                        <div id="imp-progress-txt" class="imp-progress-txt">0 / 0</div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+                        <button class="btn-submit" id="btn-import" onclick="runImport()">
+                            <span>📥</span> Importer <span id="imp-btn-count"></span>
+                        </button>
+                        <button class="btn-secondary" onclick="resetImport()">🗑️ Annuler</button>
+                    </div>
+
+                </div><!-- /imp-options -->
+
+            </div><!-- /panel-body -->
+        </div><!-- /panel -->
+    </div><!-- /pane-import -->
+
 </div><!-- /page -->
 
 <!-- ══════════════════════════════════════════
@@ -1149,6 +1262,356 @@ window.clearFormEntree = function () {
     document.getElementById('e-date-entree').value = new Date().toISOString().split('T')[0];
     document.getElementById('e-obs').value = '';
     updateHeure();
+};
+
+// ══════════════════════════════════════════════════════════════
+// IMPORT EXCEL — approvisionnement / réapprovisionnement en masse
+//   Chaque ligne du fichier crée sa propre clé Firebase (push()).
+// ══════════════════════════════════════════════════════════════
+let impWorkbook = null;   // classeur SheetJS
+let impHeaders  = [];     // en-têtes de la feuille sélectionnée
+let impDataRows = [];     // lignes de données (tableaux alignés sur impHeaders)
+let impRows     = [];     // lignes mappées + statut (pour l'aperçu / import)
+let impFileName = '';
+let impMapping  = {};
+
+// — Normalisation d'en-tête (minuscules, sans accents) —
+function normHdr(s){
+    return String(s ?? '').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ').trim();
+}
+// — Conversion robuste en nombre (gère « 1 234,50 », « 1,234.50 », etc.) —
+function toNumber(v){
+    if (typeof v === 'number') return isFinite(v) ? v : 0;
+    let s = String(v ?? '').replace(/[^\d.,-]/g, '').trim();
+    if (!s) return 0;
+    if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else if (s.includes(','))               s = s.replace(',', '.');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+}
+// — Formatage d'une cellule date en AAAA-MM-JJ (sinon on garde le texte brut) —
+function fmtDateCell(v){
+    if (v instanceof Date && !isNaN(v)) {
+        const y = v.getFullYear(),
+              m = String(v.getMonth() + 1).padStart(2, '0'),
+              d = String(v.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+    return String(v ?? '').trim();
+}
+
+// — Chargement paresseux de la bibliothèque SheetJS (XLSX) —
+function loadXLSX(){
+    return new Promise((resolve, reject) => {
+        if (window.XLSX) return resolve(window.XLSX);
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.onload  = () => resolve(window.XLSX);
+        s.onerror = () => reject(new Error('Impossible de charger la bibliothèque Excel. Vérifiez votre connexion internet puis réessayez.'));
+        document.head.appendChild(s);
+    });
+}
+
+// — Détection de la correspondance des colonnes (par priorité) —
+function detectMapping(headers){
+    const pick = groups => {
+        for (const g of groups) {
+            const h = headers.find(hd => normHdr(hd).includes(g));
+            if (h) return h;
+        }
+        return '';
+    };
+    return {
+        nom:             pick(['nom du medicament','medicament','designation','produit','libelle','nom']),
+        forme:           pick(['nature','forme','type']),
+        dosage:          pick(['dosage','concentration']),
+        date_peremption: pick(['date de peremption','peremption','expiration','perime']),
+        prix_unitaire:   pick(['prix unitaire','prix unit','p. unitaire','prix de vente','prix']),
+    };
+}
+// — Colonne « quantité » par défaut selon le mode —
+function defaultQtyHeader(headers, mode){
+    const groups = (mode === 'reappro')
+        ? ['entree','quantite a ajouter','quantite','qte','stock disponible','disponible','stock']
+        : ['stock disponible','disponible','quantite','qte','stock initial','stock','entree'];
+    for (const g of groups) {
+        const h = headers.find(hd => normHdr(hd).includes(g));
+        if (h) return h;
+    }
+    return headers[0] || '';
+}
+
+// — Gestion du fichier sélectionné —
+const impFileInput = document.getElementById('imp-file');
+impFileInput.addEventListener('change', (e) => handleImportFile(e.target.files[0]));
+
+// Glisser-déposer
+const impDrop = document.getElementById('imp-drop');
+['dragenter','dragover'].forEach(ev => impDrop.addEventListener(ev, e => { e.preventDefault(); impDrop.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => impDrop.addEventListener(ev, e => { e.preventDefault(); impDrop.classList.remove('drag'); }));
+impDrop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleImportFile(f); });
+
+async function handleImportFile(file){
+    if (!file) return;
+    impFileName = file.name;
+    try {
+        await loadXLSX();
+        const buf = await file.arrayBuffer();
+        impWorkbook = window.XLSX.read(buf, { type: 'array', cellDates: true });
+
+        const selSheet = document.getElementById('imp-sheet');
+        selSheet.innerHTML = impWorkbook.SheetNames
+            .map(n => `<option>${esc(n)}</option>`).join('');
+
+        const fn = document.getElementById('imp-filename');
+        fn.style.display = 'block';
+        fn.innerHTML = `📄 <strong>${esc(file.name)}</strong>`;
+        document.getElementById('imp-options').style.display = 'block';
+        loadImportSheet();
+    } catch (err) {
+        showAlert('alert-import', 'error', err.message || 'Erreur de lecture du fichier.');
+    }
+}
+
+// — Lecture de la feuille sélectionnée → en-têtes + lignes —
+function loadImportSheet(){
+    const ws  = impWorkbook.Sheets[document.getElementById('imp-sheet').value];
+    const aoa = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true, blankrows: false });
+    impHeaders  = (aoa[0] || []).map(h => String(h).trim());
+    impDataRows = aoa.slice(1).filter(r => r.some(c => String(c).trim() !== ''));
+
+    impMapping = detectMapping(impHeaders);
+
+    const selQ = document.getElementById('imp-qtecol');
+    selQ.innerHTML = impHeaders.map(h => `<option>${esc(h)}</option>`).join('');
+    selQ.value = defaultQtyHeader(impHeaders, document.getElementById('imp-mode').value);
+
+    renderImportMapping();
+    renderImportPreview();
+}
+
+// — Affichage de la correspondance des colonnes —
+function renderImportMapping(){
+    const m = impMapping;
+    const items = [
+        ['Nom du médicament', m.nom],
+        ['Forme (Nature)',     m.forme],
+        ['Dosage',             m.dosage],
+        ['Date de péremption', m.date_peremption],
+        ['Prix unitaire',      m.prix_unitaire],
+        ['Quantité',           document.getElementById('imp-qtecol').value],
+    ].map(([f, h]) => `<div class="imp-map-item">
+        <span class="imp-map-field">${f}</span>
+        <span class="imp-map-arrow">←</span>
+        <span class="imp-map-col ${h ? '' : 'imp-map-missing'}">${h ? esc(h) : '(non détecté)'}</span>
+    </div>`).join('');
+    document.getElementById('imp-mapping').innerHTML = items;
+}
+
+// — Construction des lignes mappées + statut —
+function computeImportRows(){
+    const idx  = h => impHeaders.indexOf(h);
+    const mode = document.getElementById('imp-mode').value;
+    const iNom = idx(impMapping.nom),   iForme = idx(impMapping.forme),
+          iDos = idx(impMapping.dosage), iPer  = idx(impMapping.date_peremption),
+          iPrix= idx(impMapping.prix_unitaire),
+          iQty = idx(document.getElementById('imp-qtecol').value);
+
+    // Index des médicaments existants par nom normalisé
+    const byName = {};
+    Object.values(allStock).forEach(m => { if (m.nom) byName[normHdr(m.nom)] = m; });
+
+    return impDataRows.map(r => {
+        const nom    = iNom  >= 0 ? String(r[iNom]  ?? '').trim() : '';
+        const forme  = iForme>= 0 ? String(r[iForme]?? '').trim() : '';
+        const dosage = iDos  >= 0 ? String(r[iDos]  ?? '').trim() : '';
+        const per    = iPer  >= 0 ? fmtDateCell(r[iPer]) : '';
+        const prix   = iPrix >= 0 ? toNumber(r[iPrix]) : 0;
+        const qte    = iQty  >= 0 ? toNumber(r[iQty]) : 0;
+        const existing = byName[normHdr(nom)] || null;
+
+        let status, include;
+        if (!nom) {
+            status = { cls: 'expired', txt: '❌ Sans nom' }; include = false;
+        } else if (mode === 'reappro') {
+            if (qte <= 0)        { status = { cls: 'warn',    txt: '⚠️ Qté = 0' };            include = false; }
+            else if (existing)   { status = { cls: 'ok',      txt: `🔄 MAJ +${fmt(qte)}` };  include = true;  }
+            else                 { status = { cls: 'expired', txt: '❌ Introuvable' };        include = false; }
+        } else { // approvisionnement
+            if (existing)        { status = { cls: 'warn',    txt: '⚠️ Déjà en stock' };     include = true;  }
+            else                 { status = { cls: 'ok',      txt: '✅ Nouveau' };            include = true;  }
+        }
+        return { nom, forme, dosage, per, prix, qte, existingId: existing ? existing.id : null, status, include };
+    });
+}
+
+// — Rendu de l'aperçu —
+function renderImportPreview(){
+    impRows = computeImportRows();
+    const tb = document.getElementById('imp-tbody');
+    if (!impRows.length) {
+        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📄</div><p>Aucune ligne détectée dans cette feuille.</p></div></td></tr>`;
+    } else {
+        tb.innerHTML = impRows.map((r, i) => `<tr class="${r.include ? '' : 'imp-row-off'}">
+            <td><input type="checkbox" class="imp-cb" data-i="${i}" ${r.include ? 'checked' : ''} ${r.nom ? '' : 'disabled'}></td>
+            <td><strong>${esc(r.nom || '—')}</strong></td>
+            <td>${esc(r.forme || '—')}</td>
+            <td>${esc(r.dosage || '—')}</td>
+            <td><strong>${fmt(r.qte)}</strong></td>
+            <td style="font-size:.78rem">${esc(r.per || '—')}</td>
+            <td>${fmt(r.prix)} F</td>
+            <td><span class="badge ${r.status.cls}">${esc(r.status.txt)}</span></td>
+        </tr>`).join('');
+    }
+    document.getElementById('imp-count').textContent = impRows.length;
+    document.getElementById('imp-checkall').checked = impRows.some(r => r.include);
+    updateImportBtn();
+}
+
+function updateImportBtn(){
+    const n = impRows.filter(r => r.include).length;
+    document.getElementById('imp-btn-count').textContent = n ? `(${n})` : '';
+    document.getElementById('btn-import').disabled = (n === 0);
+}
+
+// — Écouteurs d'options —
+document.getElementById('imp-sheet').addEventListener('change', loadImportSheet);
+document.getElementById('imp-mode').addEventListener('change', () => {
+    document.getElementById('imp-qtecol').value =
+        defaultQtyHeader(impHeaders, document.getElementById('imp-mode').value);
+    renderImportMapping();
+    renderImportPreview();
+});
+document.getElementById('imp-qtecol').addEventListener('change', () => {
+    renderImportMapping();
+    renderImportPreview();
+});
+document.getElementById('imp-tbody').addEventListener('change', (e) => {
+    if (!e.target.classList.contains('imp-cb')) return;
+    const i = +e.target.dataset.i;
+    impRows[i].include = e.target.checked;
+    e.target.closest('tr').classList.toggle('imp-row-off', !e.target.checked);
+    updateImportBtn();
+});
+document.getElementById('imp-checkall').addEventListener('change', (e) => {
+    const on = e.target.checked;
+    document.querySelectorAll('#imp-tbody .imp-cb:not([disabled])').forEach(cb => {
+        cb.checked = on;
+        const i = +cb.dataset.i;
+        impRows[i].include = on;
+        cb.closest('tr').classList.toggle('imp-row-off', !on);
+    });
+    updateImportBtn();
+});
+
+// — Exécution de l'import (une clé Firebase par ligne) —
+window.runImport = async function (){
+    const mode = document.getElementById('imp-mode').value;
+    const rows = impRows.filter(r => r.include);
+    if (!rows.length) { showAlert('alert-import', 'error', 'Aucune ligne sélectionnée à importer.'); return; }
+
+    if (!confirm(`Confirmer l'import de ${rows.length} ligne(s) en mode « ${mode === 'reappro' ? 'Réapprovisionnement' : 'Approvisionnement'} » ?`)) return;
+
+    const btn  = document.getElementById('btn-import');
+    const prog = document.getElementById('imp-progress');
+    const fill = document.getElementById('imp-bar-fill');
+    const ptxt = document.getElementById('imp-progress-txt');
+    btn.disabled = true;
+    prog.style.display = 'block';
+    fill.style.width = '0%';
+
+    const agent = (sessionStorage.getItem('userEmail') || '').split('@')[0] || '';
+    const today = new Date().toISOString().split('T')[0];
+
+    // Suivi local des quantités (gère les doublons du fichier en réappro)
+    const liveQty = {};
+    Object.values(allStock).forEach(m => { liveQty[m.id] = m.quantite || 0; });
+
+    let ok = 0, fail = 0;
+    for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        try {
+            if (mode === 'appro') {
+                await push(stockRef, {
+                    nom:              r.nom,
+                    forme:            r.forme || 'Autre',
+                    date_peremption:  r.per || '',
+                    quantite:         r.qte,
+                    prix_unitaire:    r.prix,
+                    categorie:          '',
+                    dosage:             r.dosage || '',
+                    fabricant:          '',
+                    pays_origine:       '',
+                    lot:                '',
+                    amm:                '',
+                    ordonnance:         'non',
+                    date_fabrication:   '',
+                    date_entree:        today,
+                    heure_entree:       '',
+                    agent,
+                    source:             'Import Excel',
+                    unite:              'unité(s)',
+                    conditionnement:    '',
+                    seuil_alerte:       10,
+                    prix_boite:         0,
+                    prix_bouteille:     0,
+                    prix_achat:         0,
+                    prix_demi_gros:     0,
+                    prix_gros:          0,
+                    conditions_stockage:'',
+                    observations:       `Importé depuis « ${impFileName} »`,
+                    timestamp:          Date.now()
+                });
+            } else {
+                const med = allStock[r.existingId];
+                const anc = (liveQty[r.existingId] != null) ? liveQty[r.existingId] : (med?.quantite || 0);
+                const nouv = anc + r.qte;
+                liveQty[r.existingId] = nouv;
+
+                const updates = { quantite: nouv };
+                if (r.per) updates.date_peremption = r.per;
+                await update(ref(db, `db_pharmacie_stock/${r.existingId}`), updates);
+
+                await push(reapproRef, {
+                    med_id:              r.existingId,
+                    nom_medicament:      med?.nom || r.nom,
+                    quantite_ajoutee:    r.qte,
+                    ancienne_quantite:   anc,
+                    nouvelle_quantite:   nouv,
+                    lot:                 med?.lot || '—',
+                    nouvelle_peremption: r.per || med?.date_peremption || '—',
+                    source:              'Import Excel',
+                    observations:        `Importé depuis « ${impFileName} »`,
+                    date:                today,
+                    timestamp:           Date.now()
+                });
+            }
+            ok++;
+        } catch (e) {
+            fail++;
+        }
+        const pct = Math.round(((i + 1) / rows.length) * 100);
+        fill.style.width = pct + '%';
+        ptxt.textContent = `${i + 1} / ${rows.length}`;
+    }
+
+    showAlert('alert-import', fail ? 'error' : 'success',
+        `Import terminé : ${ok} enregistrement(s) réussi(s)${fail ? `, ${fail} échec(s)` : ''}.`);
+    btn.disabled = false;
+    setTimeout(resetImport, 1800);
+};
+
+// — Réinitialisation du module d'import —
+window.resetImport = function (){
+    impWorkbook = null; impHeaders = []; impDataRows = []; impRows = []; impMapping = {}; impFileName = '';
+    impFileInput.value = '';
+    document.getElementById('imp-options').style.display = 'none';
+    document.getElementById('imp-filename').style.display = 'none';
+    document.getElementById('imp-progress').style.display = 'none';
+    document.getElementById('imp-bar-fill').style.width = '0%';
+    document.getElementById('imp-tbody').innerHTML = '';
 };
 </script>
 
