@@ -33,7 +33,7 @@
         .welcome-bar{margin-bottom:28px;}
         .welcome-bar h2{font-size:1.55rem;font-weight:800;color:var(--primary);}
         .welcome-bar p{font-size:.9rem;color:var(--muted);margin-top:4px;}
-        .access-notice{background:var(--gold-dark);background:linear-gradient(135deg,#fff9ec,#fef3d6);border:1.5px solid #f5d78a;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px;font-size:.85rem;color:#7a5200;font-weight:500;}
+        .access-notice{background:var(--gold-dark);background:linear-gradient(135deg,#fff9ec,#fef3d6);border:1.5px solid #f5d78a;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:block;line-height:1.5;font-size:.85rem;color:#7a5200;font-weight:500;}
         .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px;}
         .stat-card{border-radius:14px;padding:20px 22px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,.06);}
         .sc-recettes{background:linear-gradient(135deg,var(--accent),#0b8a5f);}
@@ -58,7 +58,16 @@
         .feature-tag{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg);color:var(--muted);border:1px solid var(--border);}
         .module-action{display:block;width:100%;padding:11px 16px;border-radius:8px;border:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;text-align:center;transition:opacity .2s,transform .15s;text-decoration:none;background:var(--gold);color:white;}
         .module-action:hover{opacity:.9;transform:translateY(-1px);}
-        @media(max-width:600px){.main{padding:16px;}.topbar{padding:0 16px;}.user-badge .user-email{display:none;}}
+        @media(max-width:600px){
+            .main{padding:16px;}
+            .topbar{height:auto;min-height:60px;padding:10px 14px;flex-wrap:wrap;gap:8px 10px;}
+            .topbar-left h1{font-size:.98rem;line-height:1.15;}
+            .topbar-left p{font-size:.68rem;}
+            .topbar-right{width:100%;justify-content:space-between;gap:8px;}
+            .user-badge .user-email{display:none;}
+            .role-badge{font-size:.7rem;padding:4px 10px;}
+            .btn-logout{padding:6px 12px;font-size:.76rem;}
+        }
     </style>
 </head>
 <body>

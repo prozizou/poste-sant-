@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapports &amp; Agenda – Poste de Santé de Diandioly</title>
+    <title>Rapports d'activité – Poste de Santé de Diandioly</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -62,8 +62,7 @@
         .total-card .tc-val{font-size:1.6rem;font-weight:800;line-height:1.15;margin-top:6px;}
         .total-card .tc-icon{font-size:1.9rem;opacity:.45;}
 
-        .main-grid{display:grid;grid-template-columns:1fr 400px;gap:24px;align-items:start;}
-        @media(max-width:1100px){.main-grid{grid-template-columns:1fr;}}
+        .main-grid{display:block;}
 
         /* ── TABLEAUX DÉTAILLÉS ── */
         .tbl-wrap{overflow-x:auto;max-height:440px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;}
@@ -127,8 +126,27 @@
         .toast.err{background:var(--danger);}
         ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
 
+        /* ── KPI SECONDAIRES & PLAGE DE DATES ── */
+        .periode-range{font-size:.82rem;color:var(--muted);font-weight:600;margin:-6px 0 18px;padding-left:2px;}
+        .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
+        .kpi-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.03);}
+        .kpi-label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+        .kpi-val{font-size:1.18rem;font-weight:800;color:var(--primary);margin-top:5px;line-height:1.1;}
+        .kpi-sub{font-size:.68rem;color:var(--muted);margin-top:2px;}
+
         @media(max-width:900px){.stats-grid-5{grid-template-columns:repeat(3,1fr);}}
-        @media(max-width:600px){.stats-grid-5{grid-template-columns:repeat(2,1fr);}.page{padding:14px;}.topbar{padding:0 14px;}.period-btn{padding:6px 12px;font-size:.76rem;}}
+        @media(max-width:600px){
+            .stats-grid-5{grid-template-columns:repeat(2,1fr);}
+            .page{padding:14px;}
+            .period-btn{padding:6px 12px;font-size:.76rem;}
+            .topbar{height:auto;min-height:56px;padding:10px 14px;flex-wrap:wrap;gap:8px;}
+            .topbar-left{min-width:0;flex:1 1 auto;}
+            .topbar-left>div{min-width:0;}
+            .topbar h1{font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+            .topbar p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+            .topbar-right{width:100%;justify-content:space-between;gap:8px;}
+            .tbl-wrap table.data{min-width:600px;}
+        }
     </style>
 </head>
 <body>
@@ -137,8 +155,8 @@
     <div class="topbar-left">
         <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
         <div>
-            <h1>Planification &amp; Rapports</h1>
-            <p>Statistiques · Détail des ventes · Agenda</p>
+            <h1>Rapports d'activité</h1>
+            <p>Consultations · Pharmacie · Analyse des recettes</p>
         </div>
     </div>
     <div class="topbar-right">
@@ -183,6 +201,31 @@
                 <div class="tc-val" id="k-recettes">—</div>
             </div>
             <div class="tc-icon">💰</div>
+        </div>
+    </div>
+
+    <div class="periode-range" id="periode-range">—</div>
+
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-label">Unités délivrées</div>
+            <div class="kpi-val" id="kpi-unites">—</div>
+            <div class="kpi-sub">Médicaments (pharmacie)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Ticket moyen</div>
+            <div class="kpi-val" id="kpi-ticket-moyen">—</div>
+            <div class="kpi-sub">Par consultation</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Panier moyen</div>
+            <div class="kpi-val" id="kpi-panier-moyen">—</div>
+            <div class="kpi-sub">Par vente pharmacie</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Part pharmacie</div>
+            <div class="kpi-val" id="kpi-part-pharma">—</div>
+            <div class="kpi-sub">Des recettes totales</div>
         </div>
     </div>
 
@@ -282,46 +325,6 @@
             </div>
         </div>
 
-        <!-- ══════════ COLONNE DROITE : AGENDA ══════════ -->
-        <div>
-            <div class="panel">
-                <div class="panel-head" style="border-left:4px solid var(--gold);">
-                    <div>
-                        <h2>🗓️ Nouveau rendez-vous</h2>
-                        <p>Programmer un suivi patient</p>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <form id="agenda-form">
-                        <div class="form-group">
-                            <label for="a-patient">Patient</label>
-                            <input type="text" id="a-patient" class="form-control" placeholder="Nom et prénom" required maxlength="80">
-                        </div>
-                        <div class="form-group">
-                            <label for="a-date">Date prévue</label>
-                            <input type="date" id="a-date" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="a-motif">Motif</label>
-                            <input type="text" id="a-motif" class="form-control" placeholder="Ex. Contrôle post-opératoire" required maxlength="120">
-                        </div>
-                        <button type="submit" class="btn-primary" id="submit-btn">Programmer le rendez-vous</button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-head" style="border-left:4px solid var(--accent);">
-                    <div>
-                        <h2>📌 Rendez-vous à venir</h2>
-                        <p>Triés par date</p>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <div id="agenda-container" class="agenda-list"></div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -329,7 +332,7 @@
 
 <script type="module">
 import { db, auth } from '../firebase-config.js';
-import { ref, push, onValue, off, remove, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
     esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
@@ -353,9 +356,8 @@ function toast(msg, type = 'ok') {
 // ── FIREBASE ────────────────────────────────────
 const ticketRef = ref(db, 'ticket_dbase');
 const medRef    = ref(db, 'vente_medicaments');
-const agendaRef = ref(db, 'db_agenda');
 
-let allTickets = [], allVentes = [], allRdv = [];
+let allTickets = [], allVentes = [];
 let periode = 'jour';
 let loadedT = false, loadedM = false;
 
@@ -401,6 +403,18 @@ function render() {
     document.getElementById('k-recettes-sub').textContent = PERIODES[periode].label;
     document.getElementById('tk-periode').textContent = libellePeriode(periode);
     document.getElementById('md-periode').textContent = libellePeriode(periode);
+    document.getElementById('periode-range').textContent = '📅 ' + libellePeriode(periode);
+
+    // ── KPI secondaires (exacts, arrondis à l'entier) ──
+    const rTot   = rTk + rMd;
+    const unites = md.reduce((s, v) => s + (v.medicaments || []).reduce((n, l) => n + Number(l.qte || 0), 0), 0);
+    const ticketMoyen = tk.length ? Math.round(rTk / tk.length) : 0;
+    const panierMoyen = md.length ? Math.round(rMd / md.length) : 0;
+    const partPharma  = rTot ? Math.round(rMd / rTot * 100) : 0;
+    document.getElementById('kpi-unites').textContent       = fmt(unites);
+    document.getElementById('kpi-ticket-moyen').textContent = fcfa(ticketMoyen);
+    document.getElementById('kpi-panier-moyen').textContent = fcfa(panierMoyen);
+    document.getElementById('kpi-part-pharma').textContent  = partPharma + ' %';
 
     renderTicketsTable(tk, rTk);
     renderVentesTable(md, rMd);
@@ -586,95 +600,8 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
     });
 });
 
-// ── AGENDA ──────────────────────────────────────
-onValue(agendaRef, snap => {
-    allRdv = [];
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    snap.forEach(c => {
-        const d = c.val();
-        if (!d.date_prevue) return;
-        const rdv = new Date(d.date_prevue);
-        if (rdv >= today || d.statut === 'honore') allRdv.push({ _key: c.key, ...d, rdvObj: rdv });
-    });
-    allRdv.sort((a, b) => a.rdvObj - b.rdvObj);
-    renderAgenda();
-});
-
-function renderAgenda() {
-    const c = document.getElementById('agenda-container');
-    if (!allRdv.length) {
-        c.innerHTML = `<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">☕</span>Aucun rendez-vous à venir.</div>`;
-        return;
-    }
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const demain = new Date(today); demain.setDate(demain.getDate() + 1);
-
-    c.innerHTML = allRdv.map(rdv => {
-        const [y, m, j] = rdv.date_prevue.split('-').map(Number);
-        const d = new Date(y, m - 1, j);
-        const jour = d.toLocaleDateString('fr-FR', { day: '2-digit' });
-        const mois = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
-        let cls = 'status-later', txt = 'À VENIR';
-        if (d.getTime() === today.getTime()) { cls = 'status-soon'; txt = "AUJOURD'HUI"; }
-        else if (d.getTime() === demain.getTime()) { cls = 'status-soon'; txt = 'DEMAIN'; }
-        const honore = rdv.statut === 'honore';
-        return `<div class="agenda-card">
-            <div class="agenda-date-box">
-                <div class="agenda-day">${esc(jour)}</div>
-                <div class="agenda-month">${esc(mois)}</div>
-            </div>
-            <div class="agenda-content">
-                <div class="agenda-patient">👤 ${esc(rdv.patient)}</div>
-                <div class="agenda-motif">${esc(rdv.motif)}</div>
-                <span class="badge-status ${honore ? 'status-honore' : cls}">${honore ? '✓ HONORÉ' : txt}</span>
-            </div>
-            <div class="agenda-actions">
-                ${!honore ? `<button class="btn-mini btn-ok" data-honore="${esc(rdv._key)}">✓ Honoré</button>` : ''}
-                <button class="btn-mini btn-rm" data-suppr="${esc(rdv._key)}">🗑 Suppr.</button>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-// Délégation d'événements : les boutons sont recréés à chaque rendu,
-// un seul écouteur sur le conteneur suffit et survit aux redessins.
-document.getElementById('agenda-container').addEventListener('click', async e => {
-    const ok = e.target.closest('[data-honore]');
-    const rm = e.target.closest('[data-suppr]');
-    try {
-        if (ok) {
-            if (!confirm('Marquer ce rendez-vous comme honoré ?')) return;
-            await update(ref(db, 'db_agenda/' + ok.dataset.honore), { statut: 'honore' });
-            toast('Rendez-vous marqué comme honoré.', 'ok');
-        } else if (rm) {
-            if (!confirm('Supprimer ce rendez-vous ? Cette action est irréversible.')) return;
-            await remove(ref(db, 'db_agenda/' + rm.dataset.suppr));
-            toast('Rendez-vous supprimé.', 'ok');
-        }
-    } catch (err) { toast('Erreur : ' + err.message, 'err'); }
-});
-
-const form = document.getElementById('agenda-form');
-const submitBtn = document.getElementById('submit-btn');
-form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const patient = document.getElementById('a-patient').value.trim();
-    const dateStr = document.getElementById('a-date').value;
-    const motif = document.getElementById('a-motif').value.trim();
-    if (!patient || !dateStr || !motif) { toast('Tous les champs sont obligatoires.', 'err'); return; }
-    if (dateStr < new Date().toISOString().slice(0, 10)) {
-        toast("La date doit être aujourd'hui ou dans le futur.", 'err'); return;
-    }
-    submitBtn.disabled = true; submitBtn.textContent = 'Enregistrement...';
-    try {
-        await push(agendaRef, { patient, date_prevue: dateStr, motif, cree_le: Date.now() });
-        form.reset();
-        toast('Rendez-vous programmé.', 'ok');
-    } catch (err) { console.error(err); toast("Échec de l'enregistrement.", 'err'); }
-    finally { submitBtn.disabled = false; submitBtn.textContent = 'Programmer le rendez-vous'; }
-});
-
-window.addEventListener('beforeunload', () => { off(ticketRef); off(medRef); off(agendaRef); });
+// ── NETTOYAGE ───────────────────────────────────
+window.addEventListener('beforeunload', () => { off(ticketRef); off(medRef); });
 </script>
 </body>
 </html>

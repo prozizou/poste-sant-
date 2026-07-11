@@ -39,7 +39,7 @@
             --border:        #d8e0e8;
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
         /* ── TOPBAR ── */
         .topbar {
@@ -261,6 +261,24 @@
             .fg.span2, .fg.span3 { grid-column: span 1; }
             .page { padding: 14px; }
             .panel-body { padding: 14px; }
+
+            /* Barre supérieure : hauteur auto + retour à la ligne */
+            .topbar { height: auto; min-height: 58px; padding: 10px 14px; flex-wrap: wrap; gap: 8px 10px; }
+            .topbar-left { min-width: 0; flex: 1 1 auto; }
+            .topbar-left > div { min-width: 0; }
+            .topbar h1 { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .topbar p  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .back-btn { flex-shrink: 0; }
+            .conn-badge { order: 3; }
+
+            /* Onglets : défilement horizontal propre au lieu de déborder */
+            .tabs-wrap { width: 100%; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+            .tab-btn { flex: 0 0 auto; white-space: nowrap; padding: 9px 14px; font-size: .8rem; }
+
+            /* Tableaux : garder les colonnes lisibles et défiler */
+            .table-wrap table { min-width: 620px; }
+            .imp-mapping { grid-template-columns: 1fr; }
+            .stats-row { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>

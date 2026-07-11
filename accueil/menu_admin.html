@@ -30,7 +30,7 @@
         .welcome-bar{margin-bottom:28px;}
         .welcome-bar h2{font-size:1.55rem;font-weight:800;color:var(--primary);}
         .welcome-bar p{font-size:.9rem;color:var(--muted);margin-top:4px;}
-        .access-notice{background:#fef9ec;border:1.5px solid #f5d78a;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px;font-size:.85rem;color:#7a5200;font-weight:500;}
+        .access-notice{background:#fef9ec;border:1.5px solid #f5d78a;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:block;line-height:1.5;font-size:.85rem;color:#7a5200;font-weight:500;}
         .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px;}
         .stat-card{background:var(--card-bg);border-radius:12px;padding:18px 20px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.03);display:flex;align-items:center;gap:14px;}
         .stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
@@ -61,7 +61,16 @@
         .gold-btn{background:var(--warning);color:white;}
         .purple-btn{background:linear-gradient(135deg,var(--purple),var(--purple-light));color:white;}
         .new-badge{position:absolute;top:16px;right:16px;background:var(--purple);color:white;font-size:.65rem;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.5px;}
-        @media(max-width:600px){.main{padding:16px;}.topbar{padding:0 16px;}.user-badge .user-email{display:none;}}
+        @media(max-width:600px){
+            .main{padding:16px;}
+            .topbar{height:auto;min-height:60px;padding:10px 14px;flex-wrap:wrap;gap:8px 10px;}
+            .topbar-left h1{font-size:.98rem;line-height:1.15;}
+            .topbar-left p{font-size:.68rem;}
+            .topbar-right{width:100%;justify-content:space-between;gap:8px;}
+            .user-badge .user-email{display:none;}
+            .role-badge{font-size:.7rem;padding:4px 10px;}
+            .btn-logout{padding:6px 12px;font-size:.76rem;}
+        }
     </style>
 </head>
 <body>
