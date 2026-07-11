@@ -20,13 +20,14 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 /* ════════════════════════════════
