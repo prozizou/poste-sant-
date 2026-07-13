@@ -49,6 +49,11 @@
 
         .main-grid{display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start;}
         @media(max-width:1024px){.main-grid{grid-template-columns:1fr;}}
+        /* Empêche un enfant de grille (ex. tableau min-width:520px) de forcer
+           la colonne au-delà de la largeur de l'écran → plus de débordement. */
+        .main-grid>*{min-width:0;}
+        .tbl-wrap{min-width:0;max-width:100%;}
+        .bilan-grid,.form-row{min-width:0;}
 
         .panel{background:var(--card-bg);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.03);margin-bottom:24px;overflow:hidden;}
         .panel-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
@@ -193,10 +198,6 @@
                         <div class="form-group">
                             <label for="d-date">Date de la dépense</label>
                             <input type="date" id="d-date" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="d-note">Note / Bénéficiaire <span style="font-weight:500;text-transform:none;color:var(--muted);">(facultatif)</span></label>
-                            <input type="text" id="d-note" class="form-control" placeholder="Ex. Pharmacie Kaolack — facture n°212" maxlength="120">
                         </div>
                         <button type="submit" class="btn-primary" id="submit-btn">Enregistrer la dépense</button>
                     </form>
@@ -355,13 +356,12 @@ function renderJournal(dep) {
     c.innerHTML = `<table class="data">
         <thead><tr>
             <th>Date</th><th>Libellé</th><th>Catégorie</th>
-            <th>Note</th><th class="num">Montant</th><th></th>
+            <th class="num">Montant</th><th></th>
         </tr></thead>
         <tbody>${dep.map(d => `<tr>
             <td>${esc(dateHeure(d._ts))}</td>
             <td style="font-weight:600;">${esc(d.libelle)}</td>
             <td><span class="cat-tag">${esc(d.categorie)}</span></td>
-            <td style="color:var(--muted);">${esc(d.note || '—')}</td>
             <td class="num">${esc(fcfa(d.montant))}</td>
             <td><button class="btn-del" data-key="${esc(d._key)}">🗑</button></td>
         </tr>`).join('')}</tbody>
@@ -398,7 +398,6 @@ form.addEventListener('submit', async e => {
     const categorie = document.getElementById('d-categorie').value;
     const montant = parseInt(document.getElementById('d-montant').value, 10);
     const dateStr = document.getElementById('d-date').value;
-    const note = document.getElementById('d-note').value.trim();
 
     if (!libelle || !categorie || !dateStr) { toast('Tous les champs obligatoires doivent être remplis.', 'err'); return; }
     if (!Number.isFinite(montant) || montant <= 0) { toast('Le montant doit être un nombre positif.', 'err'); return; }
@@ -412,7 +411,7 @@ form.addEventListener('submit', async e => {
     submitBtn.disabled = true; submitBtn.textContent = 'Enregistrement...';
     try {
         await push(depenseRef, {
-            libelle, categorie, montant, note,
+            libelle, categorie, montant,
             date_ts: ts,
             date: new Date(ts).toLocaleDateString('fr-FR'),
             cree_le: Date.now(),
@@ -466,15 +465,14 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
             {
                 titre: 'Journal des dépenses',
                 cols: [
-                    { t: 'Date', k: 'date', w: '15%' },
-                    { t: 'Libellé', k: 'libelle', w: '30%' },
-                    { t: 'Catégorie', k: 'cat', w: '20%' },
-                    { t: 'Note', k: 'note', w: '22%' },
-                    { t: 'Montant', k: 'montant', num: true, w: '13%' },
+                    { t: 'Date', k: 'date', w: '18%' },
+                    { t: 'Libellé', k: 'libelle', w: '40%' },
+                    { t: 'Catégorie', k: 'cat', w: '27%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '15%' },
                 ],
                 rows: dep.map(d => ({
                     date: new Date(d._ts).toLocaleDateString('fr-FR'),
-                    libelle: d.libelle, cat: d.categorie, note: d.note || '—',
+                    libelle: d.libelle, cat: d.categorie,
                     montant: fcfa(d.montant),
                 })),
                 totalLabel: 'TOTAL DES DÉPENSES',
