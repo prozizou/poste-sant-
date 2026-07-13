@@ -419,6 +419,46 @@ html[data-view="mobile"] .monnaie-result { width: 100%; }
     html[data-view="mobile"] .consult-choices { flex-direction: column; }
 }
 
+/* ════════════════════════════════════════════════════════════════
+   REPLI RESPONSIVE — indépendant de view-mode.js.
+   Filet de sécurité : dès que l'ÉCRAN RÉEL est étroit, tout se
+   replie, même si data-view n'a pas été posé sur « mobile » (JS non
+   chargé, mode « auto » résolu en PC, service worker qui sert un
+   ancien fichier, etc.). Empêche le débordement horizontal.
+════════════════════════════════════════════════════════════════ */
+
+/* Autorise les colonnes/cartes à rétrécir sous la largeur de leur
+   contenu (sinon min-width:auto d'une grille/flex fait déborder). */
+.two-col, .form-row-2, .tarif-grid, .stats-grid { min-width: 0; }
+.two-col > *, .tab-body > *, .card, .card-body { min-width: 0; }
+.hist-wrap { max-width: 100%; }
+
+/* En dessous de 900px (tous les téléphones, même en paysage) :
+   une seule colonne. C'est la correction principale du débordement. */
+@media (max-width: 900px) {
+    .two-col   { grid-template-columns: 1fr; gap: 16px; }
+    .page      { max-width: 100%; }
+}
+
+@media (max-width: 640px) {
+    .page        { padding: 12px; }
+    .form-row-2  { grid-template-columns: 1fr; }
+    .stats-grid  { grid-template-columns: 1fr 1fr; }
+    .tarif-grid  { grid-template-columns: 1fr; gap: 8px; }
+    .tarif-card.full { grid-column: 1; }
+    .consult-choices { flex-direction: column; }
+    .monnaie-row     { flex-direction: column; align-items: stretch; }
+    .monnaie-result  { width: 100%; }
+    .topbar          { min-height: 56px; padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+    .topbar-title p  { display: none; }
+    .topbar-right    { width: 100%; justify-content: flex-start; gap: 6px; }
+    .tab-btn         { padding: 12px 8px; font-size: 0.8rem; gap: 4px; }
+}
+
+@media (max-width: 400px) {
+    .stats-grid { grid-template-columns: 1fr; }
+}
+
 /* Bouton de bascule d'affichage (Auto / Mobile / PC). */
 .view-switch {
     display: inline-flex; align-items: center; gap: 6px;
