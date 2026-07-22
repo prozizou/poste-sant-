@@ -30,11 +30,6 @@
 
         .page{padding:24px;max-width:1400px;margin:0 auto;}
 
-        .period-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
-        .period-btn{padding:8px 18px;border:1.5px solid var(--border);border-radius:20px;background:var(--card-bg);font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;}
-        .period-btn:hover{border-color:var(--primary);color:var(--primary);}
-        .period-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
-
         /* ── BILAN ── */
         .bilan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;}
         .bilan-card{border-radius:12px;padding:20px 22px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;}
@@ -46,6 +41,27 @@
         .bc-depenses{background:linear-gradient(135deg,#c0392b,#96271b);}
         .bc-solde{background:linear-gradient(135deg,var(--primary),var(--primary-light));}
         .bc-solde.negatif{background:linear-gradient(135deg,#8e2b20,#5f1a13);}
+
+        /* ── BILAN MULTI-PÉRIODES ── */
+        .periods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-bottom:24px;}
+        .period-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.03);padding:16px 18px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--primary);}
+        .pc-head{display:flex;flex-direction:column;gap:2px;}
+        .pc-title{font-size:.95rem;font-weight:800;color:var(--primary);}
+        .pc-range{font-size:.7rem;color:var(--muted);font-weight:600;}
+        .pc-lines{display:flex;flex-direction:column;gap:7px;}
+        .pc-line{display:flex;align-items:center;gap:8px;font-size:.86rem;}
+        .pc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+        .pc-dot.rec{background:var(--accent);}
+        .pc-dot.dep{background:var(--danger);}
+        .pc-dot.sol{background:var(--primary);}
+        .pc-lbl{flex:1;color:var(--muted);font-weight:600;}
+        .pc-val{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+        .pc-line.solde{border-top:1px dashed var(--border);padding-top:8px;margin-top:1px;}
+        .pc-line.solde .pc-lbl{color:var(--text);font-weight:700;}
+        .pc-line.solde .pc-val{color:var(--accent);}
+        .pc-line.solde.neg .pc-dot.sol{background:var(--danger);}
+        .pc-line.solde.neg .pc-val{color:var(--danger);}
+        .pc-foot{font-size:.7rem;color:var(--muted);border-top:1px solid #eef2f6;padding-top:8px;}
 
         .main-grid{display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start;}
         @media(max-width:1024px){.main-grid{grid-template-columns:1fr;}}
@@ -131,42 +147,8 @@
 
 <div class="page">
 
-    <div class="period-tabs" id="period-tabs">
-        <button class="period-btn active" data-p="jour">📅 Journalier</button>
-        <button class="period-btn" data-p="semaine">📅 Hebdomadaire</button>
-        <button class="period-btn" data-p="mois">📅 Mensuel</button>
-        <button class="period-btn" data-p="trimestre">📅 Trimestriel</button>
-        <button class="period-btn" data-p="annee">📅 Annuel</button>
-        <button class="period-btn" data-p="tout">📅 Tout</button>
-    </div>
-
-    <!-- BILAN -->
-    <div class="bilan-grid">
-        <div class="bilan-card bc-recettes">
-            <div>
-                <div class="bc-label">Recettes encaissées</div>
-                <div class="bc-sub" id="rec-detail">Tickets + Médicaments</div>
-                <div class="bc-val" id="b-recettes">—</div>
-            </div>
-            <div class="bc-icon">💰</div>
-        </div>
-        <div class="bilan-card bc-depenses">
-            <div>
-                <div class="bc-label">Dépenses effectuées</div>
-                <div class="bc-sub" id="dep-detail">—</div>
-                <div class="bc-val" id="b-depenses">—</div>
-            </div>
-            <div class="bc-icon">📉</div>
-        </div>
-        <div class="bilan-card bc-solde" id="card-solde">
-            <div>
-                <div class="bc-label">Solde net du poste</div>
-                <div class="bc-sub" id="lbl-periode">Aujourd'hui</div>
-                <div class="bc-val" id="b-solde">—</div>
-            </div>
-            <div class="bc-icon">⚖️</div>
-        </div>
-    </div>
+    <!-- BILAN MULTI-PÉRIODES : une carte par période, toutes affichées ensemble -->
+    <div class="periods-grid" id="periods-grid"></div>
 
     <div class="main-grid">
 
@@ -282,8 +264,23 @@ const ticketRef  = ref(db, 'ticket_dbase');
 const medRef     = ref(db, 'vente_medicaments');
 
 let allDepenses = [], allTickets = [], allVentes = [];
-let periode = 'jour';
 let loadedD = false, loadedT = false, loadedM = false;
+
+// Toutes les périodes sont affichées ensemble (une carte chacune) :
+// plus besoin de sélecteur. Le journal et la répartition portent, eux,
+// sur l'ensemble des dépenses enregistrées.
+const PERIOD_ORDER = ['jour', 'semaine', 'mois', 'trimestre', 'annee', 'tout'];
+
+// Agrège recettes / dépenses / solde pour une période donnée.
+function statsFor(p) {
+    const dep = allDepenses.filter(x => dansPeriode(x._ts, p));
+    const tk  = allTickets.filter(x => dansPeriode(x._ts, p));
+    const md  = allVentes.filter(x => dansPeriode(x._ts, p));
+    const recettes = totalTickets(tk) + totalVentes(md);
+    const depenses = totalDepenses(dep);
+    return { recettes, depenses, solde: recettes - depenses,
+             nbDep: dep.length, nbTk: tk.length, nbMd: md.length };
+}
 
 function checkLoaded() {
     if (loadedD && loadedT && loadedM) {
@@ -308,48 +305,52 @@ onValue(medRef, snap => {
     loadedM = true; render(); checkLoaded();
 });
 
-// ── SÉLECTEUR DE PÉRIODE ────────────────────────
-document.getElementById('period-tabs').addEventListener('click', e => {
-    const btn = e.target.closest('.period-btn');
-    if (!btn) return;
-    periode = btn.dataset.p;
-    document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b === btn));
-    render();
-});
-
-const filtre = list => list.filter(x => dansPeriode(x._ts, periode));
-
 // ── RENDU ───────────────────────────────────────
 function render() {
-    const dep = filtre(allDepenses);
-    const tk  = filtre(allTickets);
-    const md  = filtre(allVentes);
+    // Une carte de bilan par période, toutes affichées ensemble.
+    document.getElementById('periods-grid').innerHTML = PERIOD_ORDER.map(p => {
+        const s = statsFor(p);
+        const neg = s.solde < 0;
+        return `<div class="period-card">
+            <div class="pc-head">
+                <span class="pc-title">${esc(PERIODES[p].court)}</span>
+                <span class="pc-range">${esc(libellePeriode(p))}</span>
+            </div>
+            <div class="pc-lines">
+                <div class="pc-line">
+                    <span class="pc-dot rec"></span>
+                    <span class="pc-lbl">Recettes</span>
+                    <span class="pc-val">${esc(fcfa(s.recettes))}</span>
+                </div>
+                <div class="pc-line">
+                    <span class="pc-dot dep"></span>
+                    <span class="pc-lbl">Dépenses</span>
+                    <span class="pc-val">${esc(fcfa(s.depenses))}</span>
+                </div>
+                <div class="pc-line solde${neg ? ' neg' : ''}">
+                    <span class="pc-dot sol"></span>
+                    <span class="pc-lbl">Solde net</span>
+                    <span class="pc-val">${(neg ? '– ' : '') + esc(fcfa(Math.abs(s.solde)))}</span>
+                </div>
+            </div>
+            <div class="pc-foot">${s.nbDep} dépense(s) · ${s.nbTk} ticket(s) · ${s.nbMd} vente(s)</div>
+        </div>`;
+    }).join('');
 
-    const rTk = totalTickets(tk), rMd = totalVentes(md);
-    const recettes = rTk + rMd;
-    const depenses = totalDepenses(dep);
-    const solde = recettes - depenses;
+    // Journal et répartition : sur l'ensemble des dépenses enregistrées.
+    const total = totalDepenses(allDepenses);
+    document.getElementById('cat-periode').textContent = 'Toutes les dépenses';
+    document.getElementById('jrn-periode').textContent =
+        `${allDepenses.length} dépense(s) enregistrée(s) · toutes périodes`;
 
-    document.getElementById('b-recettes').textContent = fcfa(recettes);
-    document.getElementById('rec-detail').textContent = `${tk.length} ticket(s) · ${md.length} vente(s)`;
-    document.getElementById('b-depenses').textContent = fcfa(depenses);
-    document.getElementById('dep-detail').textContent = `${dep.length} opération(s)`;
-    document.getElementById('b-solde').textContent = (solde < 0 ? '– ' : '') + fcfa(Math.abs(solde));
-    document.getElementById('card-solde').classList.toggle('negatif', solde < 0);
-
-    const lbl = PERIODES[periode].label;
-    document.getElementById('lbl-periode').textContent = lbl;
-    document.getElementById('cat-periode').textContent = lbl;
-    document.getElementById('jrn-periode').textContent = libellePeriode(periode);
-
-    renderJournal(dep);
-    renderCategories(dep, depenses);
+    renderJournal(allDepenses);
+    renderCategories(allDepenses, total);
 }
 
 function renderJournal(dep) {
     const c = document.getElementById('dep-container');
     if (!dep.length) {
-        c.innerHTML = `<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">🗒️</span>Aucune dépense enregistrée sur cette période.</div>`;
+        c.innerHTML = `<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">🗒️</span>Aucune dépense enregistrée pour le moment.</div>`;
         return;
     }
     const total = totalDepenses(dep);
@@ -438,17 +439,17 @@ document.getElementById('dep-container').addEventListener('click', async e => {
 
 // ── EXPORT PDF ──────────────────────────────────
 document.getElementById('btn-pdf').addEventListener('click', () => {
-    const dep = filtre(allDepenses);
-    const tk = filtre(allTickets), md = filtre(allVentes);
+    // Le bilan porte sur l'ensemble des dépenses (aucune période sélectionnée).
+    const dep = allDepenses, tk = allTickets, md = allVentes;
     const rTk = totalTickets(tk), rMd = totalVentes(md);
     const recettes = rTk + rMd, depenses = totalDepenses(dep);
     const solde = recettes - depenses;
 
     exporterPDF({
         titre: 'Bilan financier — Dépenses et recettes',
-        periodeLabel: libellePeriode(periode),
+        periodeLabel: 'Synthèse toutes périodes',
         meta: [
-            { k: 'Période', v: PERIODES[periode].court },
+            { k: 'Édité le', v: new Date().toLocaleDateString('fr-FR') },
             { k: 'Consultations', v: `${tk.length} ticket(s)` },
             { k: 'Ventes pharmacie', v: `${md.length} vente(s)` },
             { k: 'Dépenses', v: `${dep.length} opération(s)` },
@@ -462,6 +463,25 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
               type: solde < 0 ? 'negatif' : 'positif' },
         ],
         sections: [
+            {
+                titre: 'Synthèse par période',
+                cols: [
+                    { t: 'Période', k: 'periode', w: '28%' },
+                    { t: 'Recettes', k: 'recettes', num: true, w: '24%' },
+                    { t: 'Dépenses', k: 'depenses', num: true, w: '24%' },
+                    { t: 'Solde net', k: 'solde', num: true, w: '24%' },
+                ],
+                rows: PERIOD_ORDER.map(p => {
+                    const s = statsFor(p);
+                    return {
+                        periode: PERIODES[p].court,
+                        recettes: fcfa(s.recettes),
+                        depenses: fcfa(s.depenses),
+                        solde: (s.solde < 0 ? '– ' : '') + fcfa(Math.abs(s.solde)),
+                    };
+                }),
+                vide: 'Aucune donnée à présenter.',
+            },
             {
                 titre: 'Journal des dépenses',
                 cols: [
@@ -477,7 +497,7 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
                 })),
                 totalLabel: 'TOTAL DES DÉPENSES',
                 totalValue: fcfa(depenses),
-                vide: 'Aucune dépense enregistrée sur cette période.',
+                vide: 'Aucune dépense enregistrée.',
             },
             {
                 titre: 'Répartition par catégorie',
@@ -497,8 +517,8 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
             },
         ],
         note: solde < 0
-            ? "Attention : les dépenses de la période excèdent les recettes encaissées."
-            : "Le solde net correspond aux recettes encaissées diminuées des dépenses enregistrées sur la période.",
+            ? "Attention : le total des dépenses excède les recettes encaissées."
+            : "Le solde net correspond à l'ensemble des recettes encaissées diminué de toutes les dépenses enregistrées.",
     });
 });
 
