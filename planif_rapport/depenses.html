@@ -209,9 +209,10 @@
                                 <input type="text" id="d-montant" class="form-control" inputmode="numeric" autocomplete="off" placeholder="0" required>
                             </div>
                         </div>
-                        <!-- Justificatif : affiché uniquement quand la catégorie « Autre » est choisie -->
-                        <div class="form-group hidden" id="grp-justificatif">
-                            <label for="d-justificatif">Justificatif (préciser la dépense)</label>
+                        <!-- Justificatif : visible pour toutes les catégories (facultatif),
+                             obligatoire uniquement pour la catégorie « Autre ». -->
+                        <div class="form-group" id="grp-justificatif">
+                            <label for="d-justificatif">Justificatif <span id="justif-hint" style="text-transform:none;font-weight:600;color:var(--muted);">(facultatif)</span></label>
                             <input type="text" id="d-justificatif" class="form-control" placeholder="Ex. Réparation de la porte du bureau" maxlength="90">
                         </div>
                         <div class="form-group">
@@ -301,13 +302,15 @@ montantInput.addEventListener('input', () => {
     montantInput.setSelectionRange(pos, pos);
 });
 
-// ── Justificatif : visible seulement pour la catégorie « Autre » ─────
-const grpJustif = document.getElementById('grp-justificatif');
-const inpJustif = document.getElementById('d-justificatif');
+// ── Justificatif : visible pour toutes les catégories (facultatif),
+//    obligatoire uniquement pour « Autre ». On ne vide pas le champ au
+//    changement de catégorie (le texte déjà saisi est conservé).
+const inpJustif  = document.getElementById('d-justificatif');
+const justifHint = document.getElementById('justif-hint');
 function majJustificatif() {
     const autre = selCat.value === 'Autre';
-    grpJustif.classList.toggle('hidden', !autre);
-    if (!autre) inpJustif.value = '';
+    justifHint.textContent = autre ? '(obligatoire)' : '(facultatif)';
+    justifHint.style.color = autre ? 'var(--danger)' : 'var(--muted)';
 }
 selCat.addEventListener('change', majJustificatif);
 majJustificatif();
@@ -504,9 +507,9 @@ form.addEventListener('submit', async e => {
         }
     }
 
-    // Le libellé n'est plus saisi : c'est le justificatif pour « Autre »,
-    // sinon simplement le nom de la catégorie.
-    const libelle = categorie === 'Autre' ? justificatif : categorie;
+    // Le justificatif, s'il est renseigné (facultatif hors « Autre »), sert de
+    // libellé détaillé ; sinon on retombe sur le nom de la catégorie.
+    const libelle = justificatif || categorie;
 
     // On horodate à midi : la dépense reste dans le bon jour quel que
     // soit le fuseau, sans risque de basculer la veille ou le lendemain.
