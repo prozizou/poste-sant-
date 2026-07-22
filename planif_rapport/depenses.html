@@ -132,9 +132,9 @@
 <div class="page">
 
     <div class="period-tabs" id="period-tabs">
-        <button class="period-btn active" data-p="jour">📅 Journalier</button>
+        <button class="period-btn" data-p="jour">📅 Journalier</button>
         <button class="period-btn" data-p="semaine">📅 Hebdomadaire</button>
-        <button class="period-btn" data-p="mois">📅 Mensuel</button>
+        <button class="period-btn active" data-p="mois">📅 Mensuel</button>
         <button class="period-btn" data-p="trimestre">📅 Trimestriel</button>
         <button class="period-btn" data-p="annee">📅 Annuel</button>
         <button class="period-btn" data-p="tout">📅 Tout</button>
@@ -161,7 +161,7 @@
         <div class="bilan-card bc-solde" id="card-solde">
             <div>
                 <div class="bc-label">Solde net du poste</div>
-                <div class="bc-sub" id="lbl-periode">Aujourd'hui</div>
+                <div class="bc-sub" id="lbl-periode">Ce mois</div>
                 <div class="bc-val" id="b-solde">—</div>
             </div>
             <div class="bc-icon">⚖️</div>
@@ -282,7 +282,10 @@ const ticketRef  = ref(db, 'ticket_dbase');
 const medRef     = ref(db, 'vente_medicaments');
 
 let allDepenses = [], allTickets = [], allVentes = [];
-let periode = 'jour';
+// Ouvre sur « Ce mois » : un bilan mensuel affiche d'emblée les dépenses
+// récentes. Ouvrir sur « Journalier » montrait 0 FCFA dès qu'aucune dépense
+// n'était saisie le jour même, alors que db_depenses en contenait bien.
+let periode = 'mois';
 let loadedD = false, loadedT = false, loadedM = false;
 
 function checkLoaded() {
