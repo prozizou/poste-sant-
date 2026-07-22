@@ -17,6 +17,18 @@
             --blue-bg:#e8f0f8;--accent-bg:#e6f7f1;
             --bg:#f0f4f8;--card-bg:#ffffff;--text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
         }
+        /* ── MODE SOMBRE (suit le thème de l'appareil) ── */
+        @media (prefers-color-scheme: dark){
+            :root{
+                --primary:#5a90cf;--primary-light:#4678b0;
+                --gold-bg:#2a2412;--danger-bg:#2c1614;--purple-bg:#201a2c;
+                --blue-bg:#16273a;--accent-bg:#10241d;
+                --bg:#0e1621;--card-bg:#172231;--text:#e6edf3;--muted:#9fb0c0;--border:#2b3a4d;
+            }
+            input,select,textarea{background:#0e1621 !important;color:var(--text) !important;}
+            table.data td{border-bottom-color:#22303f;}
+            table.data tbody tr:hover{background:#1b2735;}
+        }
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
         html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
         body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}

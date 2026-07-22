@@ -31,6 +31,23 @@
             --border:    #d8e0e8;
             --shadow:    0 12px 40px rgba(26,58,92,0.10);
         }
+        /* ── MODE SOMBRE (suit le thème de l'appareil) ── */
+        @media (prefers-color-scheme: dark){
+            :root{
+                --primary:#5a90cf;--primary-light:#4678b0;
+                --bg:#0e1621;--card-bg:#172231;--text:#e6edf3;--muted:#9fb0c0;--border:#2b3a4d;
+                --shadow:0 12px 40px rgba(0,0,0,0.45);
+            }
+            .login-container{border-color:#2b3a4d;}
+            .role-selector{background:#0e1621 !important;}
+            .role-btn.active{background:#172231 !important;}
+            .input-wrapper input[type="email"]{background:#0e1621 !important;color:var(--text);}
+            .input-wrapper input[type="email"]:focus{background:#101b28 !important;}
+            .passcode-container input{background:#0e1621 !important;color:#e6edf3;}
+            .passcode-container input.filled{background:#101b28 !important;}
+            .message-box.error{background:#2c1614 !important;border-color:#5b2b26 !important;}
+            .footer-note{border-top-color:#2b3a4d;}
+        }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
         body {
@@ -351,7 +368,9 @@
         import {
             signInWithEmailAndPassword,
             onAuthStateChanged,
-            sendPasswordResetEmail
+            sendPasswordResetEmail,
+            setPersistence,
+            browserLocalPersistence
         } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         
         // Imports spécifiques pour Realtime Database
@@ -446,12 +465,22 @@
             msgBox.className = 'message-box';
         }
 
-        // 5. VÉRIFICATION DE SESSION ACTIVE
+        // 5. AUTO-CONNEXION : on garde la session ouverte entre deux visites.
+        // browserLocalPersistence conserve l'authentification Firebase même
+        // après fermeture de l'app ; le rôle est mémorisé dans localStorage.
+        // Résultat : après une première connexion réussie, l'utilisateur est
+        // redirigé automatiquement vers son menu au prochain lancement, sans
+        // ressaisir email + code (jusqu'à ce qu'il se déconnecte).
+        setPersistence(auth, browserLocalPersistence).catch(() => {});
+
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const savedRole = sessionStorage.getItem('userRole');
-                if (ROLE_HOME[savedRole]) window.location.href = ROLE_HOME[savedRole];
-            }
+            if (!user) return;
+            const savedRole = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole');
+            if (!ROLE_HOME[savedRole]) return;
+            // On réalimente sessionStorage pour les pages de menu qui le lisent.
+            sessionStorage.setItem('userRole', savedRole);
+            sessionStorage.setItem('userEmail', user.email || localStorage.getItem('savedEmail') || '');
+            window.location.href = ROLE_HOME[savedRole];
         });
 
         // 6. MOT DE PASSE OUBLIÉ
@@ -515,6 +544,9 @@
                 // ÉTAPE 4 : Succès et Redirection
                 sessionStorage.setItem('userRole', currentRole);
                 sessionStorage.setItem('userEmail', email);
+                // Mémorisation persistante pour l'auto-connexion des prochaines visites.
+                localStorage.setItem('savedRole', currentRole);
+                localStorage.setItem('savedEmail', email);
                 btn.classList.add('success-state');
                 btn.textContent = '✓ Connexion réussie';
                 
