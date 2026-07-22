@@ -192,7 +192,7 @@
 
     const ticketRef  = ref(db, 'ticket_dbase');
     const medRef     = ref(db, 'vente_medicaments');
-    const depenseRef = ref(db, 'db_depenses');
+    const depenseRef = ref(db, 'db_depenses_v2');   // nouveau nœud (voir depenses.html)
 
     onValue(ticketRef, (snap) => {
         let total = 0;

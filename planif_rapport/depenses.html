@@ -259,7 +259,11 @@ function toast(msg, type = 'ok') {
 }
 
 // ── ÉTAT ────────────────────────────────────────
-const depenseRef = ref(db, 'db_depenses');
+// Nouveau nœud vierge : on repart sur « db_depenses_v2 » pour écarter tout
+// blocage propre à l'ancien nœud « db_depenses ». Doit rester identique dans
+// accueil/menu_tresorier.html (statistiques du jour).
+const DEPENSES_NODE = 'db_depenses_v2';
+const depenseRef = ref(db, DEPENSES_NODE);
 const ticketRef  = ref(db, 'ticket_dbase');
 const medRef     = ref(db, 'vente_medicaments');
 
@@ -459,7 +463,7 @@ document.getElementById('dep-container').addEventListener('click', async e => {
     const btn = e.target.closest('.btn-del');
     if (!btn) return;
     if (!confirm('Supprimer cette dépense ? Cette action est irréversible.')) return;
-    try { await remove(ref(db, 'db_depenses/' + btn.dataset.key)); toast('Dépense supprimée.', 'ok'); }
+    try { await remove(ref(db, DEPENSES_NODE + '/' + btn.dataset.key)); toast('Dépense supprimée.', 'ok'); }
     catch (err) { toast('Erreur : ' + err.message, 'err'); }
 });
 
