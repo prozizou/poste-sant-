@@ -492,6 +492,18 @@ form.addEventListener('submit', async e => {
     if (categorie === 'Autre' && !justificatif) { toast('Précisez le justificatif pour la catégorie « Autre ».', 'err'); return; }
     if (dateStr > new Date().toISOString().slice(0, 10)) { toast('La date ne peut pas être dans le futur.', 'err'); return; }
 
+    // Interdit un solde négatif : la dépense ne peut pas dépasser le solde
+    // disponible = total des recettes encaissées − total des dépenses déjà
+    // enregistrées. (On ne vérifie qu'une fois toutes les données chargées,
+    // pour ne pas bloquer à tort avant la synchro.)
+    if (allLoaded()) {
+        const soldeDispo = totalTickets(allTickets) + totalVentes(allVentes) - totalDepenses(allDepenses);
+        if (montant > soldeDispo) {
+            toast(`Solde insuffisant : cette dépense (${fcfa(montant)}) dépasse le solde disponible (${fcfa(Math.max(0, soldeDispo))}).`, 'err');
+            return;
+        }
+    }
+
     // Le libellé n'est plus saisi : c'est le justificatif pour « Autre »,
     // sinon simplement le nom de la catégorie.
     const libelle = categorie === 'Autre' ? justificatif : categorie;
