@@ -985,7 +985,9 @@ onValue(stockRef, (snap) => {
 // ── Écoute temps réel — réappro ────────────────────────────────
 onValue(reapproRef, (snap) => {
     allReappro = [];
-    snap.forEach(c => allReappro.push({ id: c.key, ...c.val() }));
+    // Accolades obligatoires : sinon push() renvoie une valeur truthy qui
+    // interrompt snap.forEach() après le 1er élément (bug Firebase).
+    snap.forEach(c => { allReappro.push({ id: c.key, ...c.val() }); });
     allReappro.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
     renderReapproHistorique();
 });

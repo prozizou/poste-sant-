@@ -306,20 +306,25 @@ function onReadError(label) {
 
 // Lecture DIRECTE de RTDB : la liste reflète exactement le contenu du serveur
 // (db_depenses), sans cache local. Ce que vous voyez = ce qui est dans la base.
+// ⚠️ Les accolades { } dans le callback sont ESSENTIELLES : snap.forEach()
+// interrompt l'énumération si le callback renvoie une valeur truthy, et
+// Array.push() renvoie la nouvelle longueur (≥1, truthy). Sans accolades,
+// seule la 1re entrée était lue. Avec accolades, le callback renvoie
+// undefined et TOUTES les entrées sont parcourues.
 onValue(depenseRef, snap => {
     allDepenses = [];
-    snap.forEach(c => allDepenses.push({ _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() }));
+    snap.forEach(c => { allDepenses.push({ _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() }); });
     allDepenses.sort((a, b) => b._ts - a._ts);
     loadedD = true; render(); checkLoaded();
 }, onReadError('depenses'));
 onValue(ticketRef, snap => {
     allTickets = [];
-    snap.forEach(c => allTickets.push({ _ts: getSafeTs(c.val()), ...c.val() }));
+    snap.forEach(c => { allTickets.push({ _ts: getSafeTs(c.val()), ...c.val() }); });
     loadedT = true; render(); checkLoaded();
 }, onReadError('tickets'));
 onValue(medRef, snap => {
     allVentes = [];
-    snap.forEach(c => allVentes.push({ _ts: getSafeTs(c.val()), ...c.val() }));
+    snap.forEach(c => { allVentes.push({ _ts: getSafeTs(c.val()), ...c.val() }); });
     loadedM = true; render(); checkLoaded();
 }, onReadError('ventes'));
 
