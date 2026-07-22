@@ -259,10 +259,9 @@ function toast(msg, type = 'ok') {
 }
 
 // ── ÉTAT ────────────────────────────────────────
-// Nouveau nœud vierge : on repart sur « db_depenses_v2 » pour écarter tout
-// blocage propre à l'ancien nœud « db_depenses ». Doit rester identique dans
-// accueil/menu_tresorier.html (statistiques du jour).
-const DEPENSES_NODE = 'db_depenses_v2';
+// Nœud des dépenses. On lit « db_depenses » (là où sont réellement les
+// dépenses). Doit rester identique dans accueil/menu_tresorier.html.
+const DEPENSES_NODE = 'db_depenses';
 const depenseRef = ref(db, DEPENSES_NODE);
 const ticketRef  = ref(db, 'ticket_dbase');
 const medRef     = ref(db, 'vente_medicaments');
@@ -306,7 +305,7 @@ function onReadError(label) {
 }
 
 // Lecture DIRECTE de RTDB : la liste reflète exactement le contenu du serveur
-// (db_depenses_v2), sans cache local. Ce que vous voyez = ce qui est dans la base.
+// (db_depenses), sans cache local. Ce que vous voyez = ce qui est dans la base.
 onValue(depenseRef, snap => {
     allDepenses = [];
     snap.forEach(c => allDepenses.push({ _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() }));
