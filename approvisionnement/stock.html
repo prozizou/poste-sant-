@@ -1053,7 +1053,10 @@ function renderInventaire() {
             <td>${fmt(m.prix_unitaire)} F</td>
             <td style="font-size:.78rem">${esc(m.lot||'—')}</td>
             <td><span class="badge ${s.cls}">${esc(s.txt)}</span></td>
-            <td><button class="btn-icon" title="Supprimer" onclick="deleteStock('${esc(m.id)}')">🗑️</button></td>
+            <td style="white-space:nowrap">
+                <button class="btn-icon" title="Modifier" onclick="editStock('${esc(m.id)}')">✏️</button>
+                <button class="btn-icon" title="Supprimer" onclick="deleteStock('${esc(m.id)}')">🗑️</button>
+            </td>
         </tr>`;
     }).join('');
 }
@@ -1272,6 +1275,77 @@ window.deleteStock = async function (id) {
     if (!confirm(`Supprimer "${m?.nom||id}" du stock ? Cette action est irréversible.`)) return;
     const { remove } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js");
     await remove(ref(db, `db_pharmacie_stock/${id}`));
+};
+
+// ── MODIFIER UN MÉDICAMENT (administration) ─────────────────────
+let editId = null;
+window.editStock = function (id) {
+    const m = allStock[id];
+    if (!m) return;
+    editId = id;
+    const set = (f, v) => { const el = document.getElementById(f); if (el) el.value = (v ?? ''); };
+    set('ed-nom', m.nom);              set('ed-forme', m.forme);
+    set('ed-dosage', m.dosage);        set('ed-categorie', m.categorie);
+    set('ed-cond', m.conditionnement); set('ed-quantite', m.quantite);
+    set('ed-unite', m.unite);          set('ed-prix-unitaire', m.prix_unitaire);
+    set('ed-prix-achat', m.prix_achat);set('ed-prix-boite', m.prix_boite);
+    set('ed-prix-bouteille', m.prix_bouteille);
+    set('ed-date-peremption', m.date_peremption);
+    set('ed-seuil', m.seuil_alerte);   set('ed-lot', m.lot);
+    set('ed-obs', m.observations);
+    document.getElementById('ed-title').textContent = 'Modifier : ' + (m.nom || '');
+    document.getElementById('alert-edit').className = 'alert';
+    document.getElementById('edit-modal').classList.add('visible');
+};
+
+window.closeEditModal = function () {
+    document.getElementById('edit-modal').classList.remove('visible');
+    editId = null;
+};
+
+window.saveEditStock = async function () {
+    if (!editId) return;
+    const txt = f => document.getElementById(f).value.trim();
+    const num = f => { const v = parseFloat(document.getElementById(f).value); return isNaN(v) ? 0 : v; };
+
+    const nom = txt('ed-nom');
+    if (!nom)              { showAlert('alert-edit', 'error', 'Le nom du médicament est obligatoire.'); return; }
+    if (num('ed-quantite') < 0)       { showAlert('alert-edit', 'error', 'La quantité ne peut pas être négative.'); return; }
+    if (num('ed-prix-unitaire') < 0)  { showAlert('alert-edit', 'error', 'Le prix unitaire ne peut pas être négatif.'); return; }
+
+    const updates = {
+        nom,
+        forme:            txt('ed-forme'),
+        dosage:           txt('ed-dosage'),
+        categorie:        txt('ed-categorie'),
+        conditionnement:  txt('ed-cond'),
+        quantite:         num('ed-quantite'),
+        unite:            txt('ed-unite') || 'unité(s)',
+        prix_unitaire:    num('ed-prix-unitaire'),
+        prix_achat:       num('ed-prix-achat'),
+        prix_boite:       num('ed-prix-boite'),
+        prix_bouteille:   num('ed-prix-bouteille'),
+        date_peremption:  txt('ed-date-peremption'),
+        seuil_alerte:     num('ed-seuil') || 10,
+        lot:              txt('ed-lot'),
+        observations:     txt('ed-obs'),
+        modifie_le:       Date.now(),
+        modifie_par:      (sessionStorage.getItem('userEmail') || '').split('@')[0] || '',
+    };
+
+    const btn = document.getElementById('ed-save-btn');
+    btn.disabled = true; btn.textContent = 'Enregistrement…';
+    try {
+        // update() ne touche QUE les champs fournis : les autres (agent, source,
+        // date_entree, timestamp…) sont préservés.
+        await update(ref(db, `db_pharmacie_stock/${editId}`), updates);
+        showAlert('alert-edit', 'success', 'Modifications enregistrées.');
+        setTimeout(closeEditModal, 700);
+    } catch (err) {
+        showAlert('alert-edit', 'error', 'Erreur : ' + err.message);
+    } finally {
+        btn.disabled = false; btn.textContent = '💾 Enregistrer';
+    }
 };
 
 // ── EFFACER FORMULAIRE ──────────────────────────────────────────
@@ -1667,6 +1741,72 @@ window.toggleOptional = function () {
              : 'Afficher les informations complémentaires';
 };
 </script>
+
+<!-- ══ MODALE : MODIFIER UN MÉDICAMENT (administration) ══ -->
+<style>
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px;}
+    .modal-overlay.visible{display:flex;}
+    .modal-box{background:var(--card-bg);color:var(--text);border-radius:14px;width:100%;max-width:600px;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border);}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card-bg);z-index:1;}
+    .modal-head h3{font-size:1rem;color:var(--primary);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .modal-close{background:none;border:none;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--muted);flex-shrink:0;}
+    .modal-body{padding:18px 20px;}
+    .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .modal-grid .fg.full{grid-column:1/-1;}
+    @media(max-width:520px){.modal-grid{grid-template-columns:1fr;}}
+    .modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--card-bg);}
+    .btn-save{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-weight:700;cursor:pointer;font-family:inherit;}
+    .btn-save:disabled{opacity:.6;cursor:progress;}
+    .btn-cancel{background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;font-family:inherit;}
+</style>
+
+<div class="modal-overlay" id="edit-modal" role="dialog" aria-modal="true">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3 id="ed-title">Modifier le médicament</h3>
+            <button class="modal-close" onclick="closeEditModal()" aria-label="Fermer">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert" id="alert-edit"></div>
+            <div class="modal-grid">
+                <div class="fg full"><label>Nom du médicament <span class="req">*</span></label>
+                    <input type="text" class="fc" id="ed-nom" autocomplete="off"></div>
+                <div class="fg"><label>Forme</label>
+                    <input type="text" class="fc" id="ed-forme"></div>
+                <div class="fg"><label>Dosage</label>
+                    <input type="text" class="fc" id="ed-dosage"></div>
+                <div class="fg"><label>Catégorie</label>
+                    <input type="text" class="fc" id="ed-categorie"></div>
+                <div class="fg"><label>Conditionnement</label>
+                    <input type="text" class="fc" id="ed-cond"></div>
+                <div class="fg"><label>Quantité en stock</label>
+                    <input type="number" class="fc" id="ed-quantite" min="0" step="1"></div>
+                <div class="fg"><label>Unité</label>
+                    <input type="text" class="fc" id="ed-unite" placeholder="Ex : unité(s), flacon(s)"></div>
+                <div class="fg"><label>Prix unitaire — vente (FCFA)</label>
+                    <input type="number" class="fc" id="ed-prix-unitaire" min="0" step="1"></div>
+                <div class="fg"><label>Prix d'achat (FCFA)</label>
+                    <input type="number" class="fc" id="ed-prix-achat" min="0" step="1"></div>
+                <div class="fg"><label>Prix par boîte (FCFA)</label>
+                    <input type="number" class="fc" id="ed-prix-boite" min="0" step="1"></div>
+                <div class="fg"><label>Prix par bouteille (FCFA)</label>
+                    <input type="number" class="fc" id="ed-prix-bouteille" min="0" step="1"></div>
+                <div class="fg"><label>Date de péremption</label>
+                    <input type="date" class="fc" id="ed-date-peremption"></div>
+                <div class="fg"><label>Seuil d'alerte</label>
+                    <input type="number" class="fc" id="ed-seuil" min="0" step="1"></div>
+                <div class="fg"><label>Numéro de lot</label>
+                    <input type="text" class="fc" id="ed-lot"></div>
+                <div class="fg full"><label>Observations</label>
+                    <input type="text" class="fc" id="ed-obs"></div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-cancel" onclick="closeEditModal()">Annuler</button>
+            <button class="btn-save" id="ed-save-btn" onclick="saveEditStock()">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
