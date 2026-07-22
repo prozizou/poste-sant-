@@ -42,26 +42,12 @@
         .bc-solde{background:linear-gradient(135deg,var(--primary),var(--primary-light));}
         .bc-solde.negatif{background:linear-gradient(135deg,#8e2b20,#5f1a13);}
 
-        /* ── BILAN MULTI-PÉRIODES ── */
-        .periods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-bottom:24px;}
-        .period-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.03);padding:16px 18px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--primary);}
-        .pc-head{display:flex;flex-direction:column;gap:2px;}
-        .pc-title{font-size:.95rem;font-weight:800;color:var(--primary);}
-        .pc-range{font-size:.7rem;color:var(--muted);font-weight:600;}
-        .pc-lines{display:flex;flex-direction:column;gap:7px;}
-        .pc-line{display:flex;align-items:center;gap:8px;font-size:.86rem;}
-        .pc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-        .pc-dot.rec{background:var(--accent);}
-        .pc-dot.dep{background:var(--danger);}
-        .pc-dot.sol{background:var(--primary);}
-        .pc-lbl{flex:1;color:var(--muted);font-weight:600;}
-        .pc-val{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
-        .pc-line.solde{border-top:1px dashed var(--border);padding-top:8px;margin-top:1px;}
-        .pc-line.solde .pc-lbl{color:var(--text);font-weight:700;}
-        .pc-line.solde .pc-val{color:var(--accent);}
-        .pc-line.solde.neg .pc-dot.sol{background:var(--danger);}
-        .pc-line.solde.neg .pc-val{color:var(--danger);}
-        .pc-foot{font-size:.7rem;color:var(--muted);border-top:1px solid #eef2f6;padding-top:8px;}
+        /* ── SÉLECTEUR DE PÉRIODE ── */
+        .period-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+        .period-btn{padding:8px 18px;border:1.5px solid var(--border);border-radius:20px;background:var(--card-bg);font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;}
+        .period-btn:hover{border-color:var(--primary);color:var(--primary);}
+        .period-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+        .hidden{display:none !important;}
 
         .main-grid{display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start;}
         @media(max-width:1024px){.main-grid{grid-template-columns:1fr;}}
@@ -147,8 +133,43 @@
 
 <div class="page">
 
-    <!-- BILAN MULTI-PÉRIODES : une carte par période, toutes affichées ensemble -->
-    <div class="periods-grid" id="periods-grid"></div>
+    <!-- SÉLECTEUR DE PÉRIODE -->
+    <div class="period-tabs" id="period-tabs">
+        <button class="period-btn" data-p="jour">📅 Journalier</button>
+        <button class="period-btn" data-p="semaine">📅 Hebdomadaire</button>
+        <button class="period-btn active" data-p="mois">📅 Mensuel</button>
+        <button class="period-btn" data-p="trimestre">📅 Trimestriel</button>
+        <button class="period-btn" data-p="annee">📅 Annuel</button>
+        <button class="period-btn" data-p="tout">📅 Tout</button>
+    </div>
+
+    <!-- BILAN DE LA PÉRIODE SÉLECTIONNÉE -->
+    <div class="bilan-grid">
+        <div class="bilan-card bc-recettes">
+            <div>
+                <div class="bc-label">Recettes encaissées</div>
+                <div class="bc-sub" id="rec-detail">Tickets + Médicaments</div>
+                <div class="bc-val" id="b-recettes">—</div>
+            </div>
+            <div class="bc-icon">💰</div>
+        </div>
+        <div class="bilan-card bc-depenses">
+            <div>
+                <div class="bc-label">Dépenses effectuées</div>
+                <div class="bc-sub" id="dep-detail">—</div>
+                <div class="bc-val" id="b-depenses">—</div>
+            </div>
+            <div class="bc-icon">📉</div>
+        </div>
+        <div class="bilan-card bc-solde" id="card-solde">
+            <div>
+                <div class="bc-label">Solde net du poste</div>
+                <div class="bc-sub" id="lbl-periode">Ce mois</div>
+                <div class="bc-val" id="b-solde">—</div>
+            </div>
+            <div class="bc-icon">⚖️</div>
+        </div>
+    </div>
 
     <div class="main-grid">
 
@@ -163,10 +184,6 @@
                 </div>
                 <div class="panel-body">
                     <form id="dep-form">
-                        <div class="form-group">
-                            <label for="d-libelle">Libellé</label>
-                            <input type="text" id="d-libelle" class="form-control" placeholder="Ex. Achat de gants d'examen" required maxlength="90">
-                        </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="d-categorie">Catégorie</label>
@@ -174,8 +191,13 @@
                             </div>
                             <div class="form-group">
                                 <label for="d-montant">Montant (FCFA)</label>
-                                <input type="number" id="d-montant" class="form-control" min="1" step="1" placeholder="0" required>
+                                <input type="text" id="d-montant" class="form-control" inputmode="numeric" autocomplete="off" placeholder="0" required>
                             </div>
+                        </div>
+                        <!-- Justificatif : affiché uniquement quand la catégorie « Autre » est choisie -->
+                        <div class="form-group hidden" id="grp-justificatif">
+                            <label for="d-justificatif">Justificatif (préciser la dépense)</label>
+                            <input type="text" id="d-justificatif" class="form-control" placeholder="Ex. Réparation de la porte du bureau" maxlength="90">
                         </div>
                         <div class="form-group">
                             <label for="d-date">Date de la dépense</label>
@@ -251,6 +273,30 @@ const selCat = document.getElementById('d-categorie');
 selCat.innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
 document.getElementById('d-date').value = new Date().toISOString().slice(0, 10);
 
+// ── Champ MONTANT : espace tous les 3 chiffres pendant la saisie ─────
+// (ex. « 10 000 000 » au lieu de « 10000000 ») pour éviter les erreurs
+// sur les grands nombres. On ne stocke que les chiffres à l'enregistrement.
+const montantInput = document.getElementById('d-montant');
+const groupeChiffres = s => String(s).replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const montantValeur = () => parseInt(montantInput.value.replace(/\s/g, ''), 10);
+montantInput.addEventListener('input', () => {
+    const depuisFin = montantInput.value.length - montantInput.selectionStart;
+    montantInput.value = groupeChiffres(montantInput.value);
+    const pos = Math.max(0, montantInput.value.length - depuisFin);
+    montantInput.setSelectionRange(pos, pos);
+});
+
+// ── Justificatif : visible seulement pour la catégorie « Autre » ─────
+const grpJustif = document.getElementById('grp-justificatif');
+const inpJustif = document.getElementById('d-justificatif');
+function majJustificatif() {
+    const autre = selCat.value === 'Autre';
+    grpJustif.classList.toggle('hidden', !autre);
+    if (!autre) inpJustif.value = '';
+}
+selCat.addEventListener('change', majJustificatif);
+majJustificatif();
+
 function toast(msg, type = 'ok') {
     const el = document.getElementById('toast');
     el.textContent = (type === 'ok' ? '✓ ' : '✗ ') + msg;
@@ -268,10 +314,9 @@ const medRef     = ref(db, 'vente_medicaments');
 
 let allDepenses = [], allTickets = [], allVentes = [];
 let loadedD = false, loadedT = false, loadedM = false;
+let periode = 'mois';   // période sélectionnée par le sélecteur d'onglets
 
-// Toutes les périodes sont affichées ensemble (une carte chacune) :
-// plus besoin de sélecteur. Le journal et la répartition portent, eux,
-// sur l'ensemble des dépenses enregistrées.
+// Ordre des périodes (aussi utilisé pour la synthèse de l'export PDF).
 const PERIOD_ORDER = ['jour', 'semaine', 'mois', 'trimestre', 'annee', 'tout'];
 
 // Agrège recettes / dépenses / solde pour une période donnée.
@@ -328,14 +373,23 @@ onValue(medRef, snap => {
     loadedM = true; render(); checkLoaded();
 }, onReadError('ventes'));
 
+// ── SÉLECTEUR DE PÉRIODE ────────────────────────
+document.getElementById('period-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('.period-btn');
+    if (!btn) return;
+    periode = btn.dataset.p;
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+});
+
+const filtre = list => list.filter(x => dansPeriode(x._ts, periode));
+
 // ── RENDU ───────────────────────────────────────
 function render() {
     // Tant que Firebase n'a pas répondu, on n'affiche PAS de « 0 FCFA »
     // trompeur : un état de chargement explicite évite de croire, sur une
     // connexion lente, que les dépenses ont disparu.
     if (!loadedD) {
-        document.getElementById('periods-grid').innerHTML =
-            `<div class="period-card" style="grid-column:1/-1;align-items:center;text-align:center;color:var(--muted);font-weight:700;">⏳ Chargement des données…</div>`;
         document.getElementById('dep-container').innerHTML =
             `<div class="empty-state">⏳ Chargement des dépenses…</div>`;
         document.getElementById('cat-container').innerHTML =
@@ -343,44 +397,26 @@ function render() {
         return;
     }
 
-    // Une carte de bilan par période, toutes affichées ensemble.
-    document.getElementById('periods-grid').innerHTML = PERIOD_ORDER.map(p => {
-        const s = statsFor(p);
-        const neg = s.solde < 0;
-        return `<div class="period-card">
-            <div class="pc-head">
-                <span class="pc-title">${esc(PERIODES[p].court)}</span>
-                <span class="pc-range">${esc(libellePeriode(p))}</span>
-            </div>
-            <div class="pc-lines">
-                <div class="pc-line">
-                    <span class="pc-dot rec"></span>
-                    <span class="pc-lbl">Recettes</span>
-                    <span class="pc-val">${esc(fcfa(s.recettes))}</span>
-                </div>
-                <div class="pc-line">
-                    <span class="pc-dot dep"></span>
-                    <span class="pc-lbl">Dépenses</span>
-                    <span class="pc-val">${esc(fcfa(s.depenses))}</span>
-                </div>
-                <div class="pc-line solde${neg ? ' neg' : ''}">
-                    <span class="pc-dot sol"></span>
-                    <span class="pc-lbl">Solde net</span>
-                    <span class="pc-val">${(neg ? '– ' : '') + esc(fcfa(Math.abs(s.solde)))}</span>
-                </div>
-            </div>
-            <div class="pc-foot">${s.nbDep} dépense(s) · ${s.nbTk} ticket(s) · ${s.nbMd} vente(s)</div>
-        </div>`;
-    }).join('');
+    // Bilan de la période sélectionnée.
+    const dep = filtre(allDepenses), tk = filtre(allTickets), md = filtre(allVentes);
+    const recettes = totalTickets(tk) + totalVentes(md);
+    const depenses = totalDepenses(dep);
+    const solde = recettes - depenses;
 
-    // Journal et répartition : sur l'ensemble des dépenses enregistrées.
-    const total = totalDepenses(allDepenses);
-    document.getElementById('cat-periode').textContent = 'Toutes les dépenses';
-    document.getElementById('jrn-periode').textContent =
-        `${allDepenses.length} dépense(s) enregistrée(s) · toutes périodes`;
+    document.getElementById('b-recettes').textContent = fcfa(recettes);
+    document.getElementById('rec-detail').textContent = `${tk.length} ticket(s) · ${md.length} vente(s)`;
+    document.getElementById('b-depenses').textContent = fcfa(depenses);
+    document.getElementById('dep-detail').textContent = `${dep.length} opération(s)`;
+    document.getElementById('b-solde').textContent = (solde < 0 ? '– ' : '') + fcfa(Math.abs(solde));
+    document.getElementById('card-solde').classList.toggle('negatif', solde < 0);
 
-    renderJournal(allDepenses);
-    renderCategories(allDepenses, total);
+    const lbl = PERIODES[periode].label;
+    document.getElementById('lbl-periode').textContent = lbl;
+    document.getElementById('cat-periode').textContent = lbl;
+    document.getElementById('jrn-periode').textContent = libellePeriode(periode);
+
+    renderJournal(dep);
+    renderCategories(dep, depenses);
 }
 
 function renderJournal(dep) {
@@ -431,14 +467,19 @@ const submitBtn = document.getElementById('submit-btn');
 
 form.addEventListener('submit', async e => {
     e.preventDefault();
-    const libelle = document.getElementById('d-libelle').value.trim();
     const categorie = document.getElementById('d-categorie').value;
-    const montant = parseInt(document.getElementById('d-montant').value, 10);
+    const montant = montantValeur();
+    const justificatif = inpJustif.value.trim();
     const dateStr = document.getElementById('d-date').value;
 
-    if (!libelle || !categorie || !dateStr) { toast('Tous les champs obligatoires doivent être remplis.', 'err'); return; }
+    if (!categorie || !dateStr) { toast('Tous les champs obligatoires doivent être remplis.', 'err'); return; }
     if (!Number.isFinite(montant) || montant <= 0) { toast('Le montant doit être un nombre positif.', 'err'); return; }
+    if (categorie === 'Autre' && !justificatif) { toast('Précisez le justificatif pour la catégorie « Autre ».', 'err'); return; }
     if (dateStr > new Date().toISOString().slice(0, 10)) { toast('La date ne peut pas être dans le futur.', 'err'); return; }
+
+    // Le libellé n'est plus saisi : c'est le justificatif pour « Autre »,
+    // sinon simplement le nom de la catégorie.
+    const libelle = categorie === 'Autre' ? justificatif : categorie;
 
     // On horodate à midi : la dépense reste dans le bon jour quel que
     // soit le fuseau, sans risque de basculer la veille ou le lendemain.
@@ -460,6 +501,7 @@ form.addEventListener('submit', async e => {
         await push(depenseRef, data);
         form.reset();
         document.getElementById('d-date').value = new Date().toISOString().slice(0, 10);
+        majJustificatif();
         toast('Dépense enregistrée.', 'ok');
     } catch (err) {
         console.error(err);
@@ -479,17 +521,17 @@ document.getElementById('dep-container').addEventListener('click', async e => {
 
 // ── EXPORT PDF ──────────────────────────────────
 document.getElementById('btn-pdf').addEventListener('click', () => {
-    // Le bilan porte sur l'ensemble des dépenses (aucune période sélectionnée).
-    const dep = allDepenses, tk = allTickets, md = allVentes;
+    // Le bilan porte sur la période sélectionnée dans les onglets.
+    const dep = filtre(allDepenses), tk = filtre(allTickets), md = filtre(allVentes);
     const rTk = totalTickets(tk), rMd = totalVentes(md);
     const recettes = rTk + rMd, depenses = totalDepenses(dep);
     const solde = recettes - depenses;
 
     exporterPDF({
         titre: 'Bilan financier — Dépenses et recettes',
-        periodeLabel: 'Synthèse toutes périodes',
+        periodeLabel: libellePeriode(periode),
         meta: [
-            { k: 'Édité le', v: new Date().toLocaleDateString('fr-FR') },
+            { k: 'Période', v: PERIODES[periode].court },
             { k: 'Consultations', v: `${tk.length} ticket(s)` },
             { k: 'Ventes pharmacie', v: `${md.length} vente(s)` },
             { k: 'Dépenses', v: `${dep.length} opération(s)` },
