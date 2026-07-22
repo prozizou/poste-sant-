@@ -149,7 +149,8 @@
 
     onAuthStateChanged(auth, (user) => {
         if (!user) { window.location.href = '../index.html'; return; }
-        const role = sessionStorage.getItem('userRole');
+        const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+        if (role) sessionStorage.setItem('userRole', role);
         if (role === 'admin') { window.location.href = 'menu_admin.html'; return; }
         const email = user.email || '';
         document.getElementById('user-email-display').textContent = email;
