@@ -282,10 +282,23 @@ function statsFor(p) {
              nbDep: dep.length, nbTk: tk.length, nbMd: md.length };
 }
 
+const allLoaded = () => loadedD && loadedT && loadedM;
+
 function checkLoaded() {
-    if (loadedD && loadedT && loadedM) {
-        document.getElementById('conn-badge').innerHTML = '● En direct';
-    }
+    const badge = document.getElementById('conn-badge');
+    if (allLoaded()) { badge.textContent = '● En direct'; badge.style.color = ''; }
+}
+
+// Une erreur de lecture (règles RTDB, réseau) laissait auparavant la page
+// muette avec des « 0 FCFA » trompeurs. On l'affiche désormais explicitement.
+function onReadError(label) {
+    return err => {
+        console.error('[db_depenses] lecture', label, err);
+        const badge = document.getElementById('conn-badge');
+        badge.textContent = '● Hors ligne / accès refusé';
+        badge.style.color = '#ffd0cb';
+        render();
+    };
 }
 
 onValue(depenseRef, snap => {
@@ -293,20 +306,33 @@ onValue(depenseRef, snap => {
     snap.forEach(c => allDepenses.push({ _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() }));
     allDepenses.sort((a, b) => b._ts - a._ts);
     loadedD = true; render(); checkLoaded();
-});
+}, onReadError('depenses'));
 onValue(ticketRef, snap => {
     allTickets = [];
     snap.forEach(c => allTickets.push({ _ts: getSafeTs(c.val()), ...c.val() }));
     loadedT = true; render(); checkLoaded();
-});
+}, onReadError('tickets'));
 onValue(medRef, snap => {
     allVentes = [];
     snap.forEach(c => allVentes.push({ _ts: getSafeTs(c.val()), ...c.val() }));
     loadedM = true; render(); checkLoaded();
-});
+}, onReadError('ventes'));
 
 // ── RENDU ───────────────────────────────────────
 function render() {
+    // Tant que Firebase n'a pas répondu, on n'affiche PAS de « 0 FCFA »
+    // trompeur : un état de chargement explicite évite de croire, sur une
+    // connexion lente, que les dépenses ont disparu.
+    if (!loadedD) {
+        document.getElementById('periods-grid').innerHTML =
+            `<div class="period-card" style="grid-column:1/-1;align-items:center;text-align:center;color:var(--muted);font-weight:700;">⏳ Chargement des données…</div>`;
+        document.getElementById('dep-container').innerHTML =
+            `<div class="empty-state">⏳ Chargement des dépenses…</div>`;
+        document.getElementById('cat-container').innerHTML =
+            `<div class="empty-state">⏳ Chargement…</div>`;
+        return;
+    }
+
     // Une carte de bilan par période, toutes affichées ensemble.
     document.getElementById('periods-grid').innerHTML = PERIOD_ORDER.map(p => {
         const s = statsFor(p);
