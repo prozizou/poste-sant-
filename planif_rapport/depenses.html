@@ -270,28 +270,6 @@ const medRef     = ref(db, 'vente_medicaments');
 let allDepenses = [], allTickets = [], allVentes = [];
 let loadedD = false, loadedT = false, loadedM = false;
 
-// ── CACHE LOCAL DES DÉPENSES (résilience hors-ligne) ─────────────────
-// Realtime Database (version web) ne conserve rien entre deux ouvertures
-// hors connexion : sur une liaison faible (brousse), l'app ne recevait
-// qu'une bribe du serveur et « perdait » les autres dépenses. On garde donc
-// un miroir local (localStorage), indexé par clé, qu'on FUSIONNE avec ce que
-// Firebase renvoie. Ainsi, aucune dépense déjà vue ou saisie ici ne disparaît,
-// et la liste s'affiche au complet. Les suppressions explicites, elles, sont
-// bien répercutées (retrait du cache + du serveur).
-const CACHE_KEY = 'depenses_cache_v2';
-let depMap = (() => {
-    try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; }
-    catch { return {}; }
-})();
-function saveCache() {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify(depMap)); } catch {}
-}
-function rebuildDepenses() {
-    allDepenses = Object.values(depMap).sort((a, b) => b._ts - a._ts);
-}
-rebuildDepenses();                         // affichage immédiat depuis le cache
-if (allDepenses.length) loadedD = true;    // on a déjà de quoi montrer
-
 // Toutes les périodes sont affichées ensemble (une carte chacune) :
 // plus besoin de sélecteur. Le journal et la répartition portent, eux,
 // sur l'ensemble des dépenses enregistrées.
@@ -327,15 +305,12 @@ function onReadError(label) {
     };
 }
 
+// Lecture DIRECTE de RTDB : la liste reflète exactement le contenu du serveur
+// (db_depenses_v2), sans cache local. Ce que vous voyez = ce qui est dans la base.
 onValue(depenseRef, snap => {
-    // Fusion : on ajoute / met à jour les entrées du serveur dans le cache,
-    // sans supprimer les autres (une synchro partielle ne doit pas effacer la
-    // liste). Les suppressions passent par le bouton 🗑 (retrait explicite).
-    snap.forEach(c => {
-        depMap[c.key] = { _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() };
-    });
-    saveCache();
-    rebuildDepenses();
+    allDepenses = [];
+    snap.forEach(c => allDepenses.push({ _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() }));
+    allDepenses.sort((a, b) => b._ts - a._ts);
     loadedD = true; render(); checkLoaded();
 }, onReadError('depenses'));
 onValue(ticketRef, snap => {
@@ -476,14 +451,9 @@ form.addEventListener('submit', async e => {
 
     submitBtn.disabled = true; submitBtn.textContent = 'Enregistrement...';
     try {
-        // push() génère la clé côté client immédiatement : on l'ajoute au
-        // cache local tout de suite, pour que la dépense s'affiche et PERSISTE
-        // même si l'écriture serveur traîne (ou échoue faute de réseau).
-        const newRef = push(depenseRef, data);
-        depMap[newRef.key] = { _key: newRef.key, _ts: ts, ...data };
-        saveCache();
-        rebuildDepenses();
-        render();
+        // Écriture serveur : on attend la confirmation RTDB. L'affichage se met
+        // à jour via onValue quand le serveur renvoie la nouvelle dépense.
+        await push(depenseRef, data);
         form.reset();
         document.getElementById('d-date').value = new Date().toISOString().slice(0, 10);
         toast('Dépense enregistrée.', 'ok');
@@ -499,10 +469,7 @@ document.getElementById('dep-container').addEventListener('click', async e => {
     const btn = e.target.closest('.btn-del');
     if (!btn) return;
     if (!confirm('Supprimer cette dépense ? Cette action est irréversible.')) return;
-    const key = btn.dataset.key;
-    // Retrait immédiat du cache local (suppression explicite voulue).
-    delete depMap[key]; saveCache(); rebuildDepenses(); render();
-    try { await remove(ref(db, DEPENSES_NODE + '/' + key)); toast('Dépense supprimée.', 'ok'); }
+    try { await remove(ref(db, DEPENSES_NODE + '/' + btn.dataset.key)); toast('Dépense supprimée.', 'ok'); }
     catch (err) { toast('Erreur : ' + err.message, 'err'); }
 });
 
