@@ -368,13 +368,15 @@ function checkLoaded() {
 
 onValue(ticketRef, snap => {
     allTickets = [];
-    snap.forEach(c => allTickets.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }));
+    // Accolades obligatoires : sans elles, push() renvoie une valeur truthy
+    // qui interrompt snap.forEach() après le 1er élément (bug Firebase).
+    snap.forEach(c => { allTickets.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }); });
     allTickets.sort((a, b) => b._ts - a._ts);
     loadedT = true; render(); checkLoaded();
 });
 onValue(medRef, snap => {
     allVentes = [];
-    snap.forEach(c => allVentes.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }));
+    snap.forEach(c => { allVentes.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }); });
     allVentes.sort((a, b) => b._ts - a._ts);
     loadedM = true; render(); checkLoaded();
 });
