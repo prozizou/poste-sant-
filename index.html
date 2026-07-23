@@ -473,14 +473,26 @@
         // ressaisir email + code (jusqu'à ce qu'il se déconnecte).
         setPersistence(auth, browserLocalPersistence).catch(() => {});
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (!user) return;
-            const savedRole = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole');
-            if (!ROLE_HOME[savedRole]) return;
-            // On réalimente sessionStorage pour les pages de menu qui le lisent.
-            sessionStorage.setItem('userRole', savedRole);
-            sessionStorage.setItem('userEmail', user.email || localStorage.getItem('savedEmail') || '');
-            window.location.href = ROLE_HOME[savedRole];
+            let role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole');
+            // Rôle mémorisé absent (ex. connexion faite sur une ancienne version) :
+            // on le récupère directement depuis la base pour toute session déjà
+            // ouverte → l'auto-connexion fonctionne sans dépendre du localStorage.
+            if (!ROLE_HOME[role]) {
+                try {
+                    const email = (user.email || '').toLowerCase();
+                    const snap = await get(query(ref(db, 'administration/auth_db'), orderByChild('email'), equalTo(email)));
+                    if (snap.exists()) snap.forEach(c => { role = c.val().role; });
+                } catch (e) { /* réseau/permissions : on reste sur l'écran de connexion */ }
+            }
+            if (!ROLE_HOME[role]) return;
+            // On mémorise et on réalimente sessionStorage pour les pages de menu.
+            localStorage.setItem('savedRole', role);
+            localStorage.setItem('savedEmail', user.email || '');
+            sessionStorage.setItem('userRole', role);
+            sessionStorage.setItem('userEmail', user.email || '');
+            window.location.href = ROLE_HOME[role];
         });
 
         // 6. MOT DE PASSE OUBLIÉ
