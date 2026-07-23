@@ -1102,8 +1102,8 @@ window.exportInventairePDF = function () {
             qte:       fmt(q),
             unite:     m.unite || '—',
             perempt:   m.date_peremption || '—',
-            pu:        fcfa(pu),
-            valeur:    fcfa(valeur),
+            pu:        fmt(pu),
+            valeur:    fmt(valeur),
             statut:    statutPeremption(m.date_peremption, q).txt,
         };
     });
@@ -1121,6 +1121,7 @@ window.exportInventairePDF = function () {
 
     exporterPDF({
         titre: 'Inventaire du stock pharmacie — État des lieux',
+        sousTitre: '',
         periodeLabel: 'Situation au ' + new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' }),
         meta: [
             { k: 'Références', v: String(arr.length) },
@@ -1134,23 +1135,25 @@ window.exportInventairePDF = function () {
         ],
         sections: [{
             titre: 'Liste des médicaments en stock',
+            // Largeurs = 100 % ; montants en nombres seuls (unité « FCFA »
+            // dans l'en-tête) pour tenir dans la largeur A4 sans coupure.
             cols: [
-                { t: 'Médicament', k: 'nom', w: '24%' },
-                { t: 'Forme', k: 'forme', w: '10%' },
-                { t: 'Catégorie', k: 'categorie', w: '13%' },
-                { t: 'Qté', k: 'qte', num: true, w: '7%' },
+                { t: 'Médicament', k: 'nom', w: '25%' },
+                { t: 'Forme', k: 'forme', w: '9%' },
+                { t: 'Catégorie', k: 'categorie', w: '11%' },
+                { t: 'Qté', k: 'qte', num: true, w: '6%' },
                 { t: 'Unité', k: 'unite', w: '9%' },
-                { t: 'Péremption', k: 'perempt', w: '10%' },
-                { t: 'P. Unitaire', k: 'pu', num: true, w: '10%' },
-                { t: 'Valeur', k: 'valeur', num: true, w: '11%' },
+                { t: 'Péremption', k: 'perempt', num: true, w: '11%' },
+                { t: 'P.U. (FCFA)', k: 'pu', num: true, w: '9%' },
+                { t: 'Valeur (FCFA)', k: 'valeur', num: true, w: '11%' },
                 { t: 'Statut', k: 'statut', w: '9%' },
             ],
             rows,
             totalLabel: `TOTAL — ${arr.length} référence(s)`,
-            totalValue: fcfa(valeurTotale),
+            totalValue: fmt(valeurTotale),
             vide: 'Aucun médicament en stock.',
         }],
-        note: 'Document généré pour l’assemblée générale — état du stock initial. Les prix sont exprimés en FCFA.',
+        note: 'Document généré pour l’assemblée générale — état du stock initial. Montants en FCFA.',
     });
 };
 
