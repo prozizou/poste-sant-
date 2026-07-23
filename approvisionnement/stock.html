@@ -13,6 +13,8 @@
     <title>Stock Pharmacie – Poste de Santé de Diandioly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Feuille A4 partagée pour l'export PDF (voir planif_rapport/rapport-lib.js) -->
+    <link rel="stylesheet" href="../planif_rapport/rapport-print.css">
     <style>
         /* ══════════════════════════════════════════
            VARIABLES
@@ -362,6 +364,10 @@
                         <p>Vue complète de tous les médicaments enregistrés</p>
                     </div>
                 </div>
+                <button class="btn-submit" id="btn-pdf-inv" onclick="exportInventairePDF()"
+                        title="Générer un PDF de la liste des médicaments (stock initial) pour les assemblées générales">
+                    <span>📄</span> Exporter en PDF
+                </button>
             </div>
             <div class="panel-body">
                 <div class="toolbar">
@@ -927,6 +933,7 @@
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { exporterPDF, fcfa } from '../planif_rapport/rapport-lib.js';
 
 // ── Auth guard ──────────────────────────────────────────────────
 onAuthStateChanged(auth, (user) => {
@@ -1022,9 +1029,8 @@ function updateStats() {
         arr.filter(m => (m.date_entree||'').startsWith(todayStr)).length;
 }
 
-// ── Rendu inventaire ────────────────────────────────────────────
-function renderInventaire() {
-    const tbody = document.getElementById('inv-tbody');
+// ── Filtrage inventaire (partagé écran + export PDF) ────────────
+function getFilteredStock() {
     const cat   = document.getElementById('filter-cat')?.value   || '';
     const stat  = document.getElementById('filter-statut')?.value || '';
     const q     = (document.getElementById('search-inv')?.value  || '').toLowerCase();
@@ -1035,6 +1041,13 @@ function renderInventaire() {
         (m.nom||'').toLowerCase().includes(q) || (m.lot||'').toLowerCase().includes(q));
     if (stat) arr = arr.filter(m =>
         statutPeremption(m.date_peremption, m.quantite).cls === stat);
+    return arr;
+}
+
+// ── Rendu inventaire ────────────────────────────────────────────
+function renderInventaire() {
+    const tbody = document.getElementById('inv-tbody');
+    const arr   = getFilteredStock();
 
     if (!arr.length) {
         tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">📦</div><p>Aucun médicament trouvé.</p></div></td></tr>`;
@@ -1062,6 +1075,84 @@ function renderInventaire() {
 }
 
 window.filterInventaire = () => renderInventaire();
+
+// ── Export PDF de l'inventaire (stock initial pour assemblées) ──
+// Reprend exactement le stock affiché (filtres/recherche appliqués) et
+// produit une feuille A4 imprimable via « Imprimer > Enregistrer en PDF ».
+window.exportInventairePDF = function () {
+    const arr = getFilteredStock()
+        .sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+
+    if (!arr.length) {
+        alert('Aucun médicament à exporter avec les filtres actuels.');
+        return;
+    }
+
+    let valeurTotale = 0, qteTotale = 0;
+    const rows = arr.map(m => {
+        const q      = Number(m.quantite || 0);
+        const pu     = Number(m.prix_unitaire || 0);
+        const valeur = q * pu;
+        valeurTotale += valeur;
+        qteTotale    += q;
+        return {
+            nom:       (m.nom || '—') + (m.dosage ? ' — ' + m.dosage : ''),
+            forme:     m.forme || '—',
+            categorie: m.categorie || '—',
+            qte:       fmt(q),
+            unite:     m.unite || '—',
+            perempt:   m.date_peremption || '—',
+            pu:        fcfa(pu),
+            valeur:    fcfa(valeur),
+            statut:    statutPeremption(m.date_peremption, q).txt,
+        };
+    });
+
+    // Description des filtres actifs, pour tracer ce que contient le PDF.
+    const cat  = document.getElementById('filter-cat')?.value   || '';
+    const stat = document.getElementById('filter-statut')?.value || '';
+    const q    = (document.getElementById('search-inv')?.value  || '').trim();
+    const statLbl = { ok:'En stock', warn:'Expire bientôt', expired:'Périmé', low:'Stock faible' }[stat] || '';
+    const filtres = [
+        cat ? `Catégorie : ${cat}` : '',
+        statLbl ? `Statut : ${statLbl}` : '',
+        q ? `Recherche : « ${q} »` : '',
+    ].filter(Boolean).join('  —  ') || 'Toutes catégories, tous statuts';
+
+    exporterPDF({
+        titre: 'Inventaire du stock pharmacie — État des lieux',
+        periodeLabel: 'Situation au ' + new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' }),
+        meta: [
+            { k: 'Références', v: String(arr.length) },
+            { k: 'Unités en stock', v: fmt(qteTotale) },
+            { k: 'Filtres', v: filtres },
+        ],
+        resume: [
+            { label: 'Nombre de références', valeur: String(arr.length) },
+            { label: 'Total unités en stock', valeur: fmt(qteTotale) },
+            { label: 'Valeur totale du stock', valeur: fcfa(valeurTotale), type: 'positif' },
+        ],
+        sections: [{
+            titre: 'Liste des médicaments en stock',
+            cols: [
+                { t: 'Médicament', k: 'nom', w: '24%' },
+                { t: 'Forme', k: 'forme', w: '10%' },
+                { t: 'Catégorie', k: 'categorie', w: '13%' },
+                { t: 'Qté', k: 'qte', num: true, w: '7%' },
+                { t: 'Unité', k: 'unite', w: '9%' },
+                { t: 'Péremption', k: 'perempt', w: '10%' },
+                { t: 'P. Unitaire', k: 'pu', num: true, w: '10%' },
+                { t: 'Valeur', k: 'valeur', num: true, w: '11%' },
+                { t: 'Statut', k: 'statut', w: '9%' },
+            ],
+            rows,
+            totalLabel: `TOTAL — ${arr.length} référence(s)`,
+            totalValue: fcfa(valeurTotale),
+            vide: 'Aucun médicament en stock.',
+        }],
+        note: 'Document généré pour l’assemblée générale — état du stock initial. Les prix sont exprimés en FCFA.',
+    });
+};
 
 // ── Select réappro ──────────────────────────────────────────────
 function renderSelectReappro() {
