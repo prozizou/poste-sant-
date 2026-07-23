@@ -89,7 +89,11 @@
     .rs-count { float: right; font-weight: 600; font-size: 8pt;
                 color: #667; text-transform: none; letter-spacing: 0; }
 
-    .rs-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+    /* table-layout: fixed → les largeurs de colonnes (%) sont strictement
+       respectées et le contenu long est renvoyé à la ligne dans sa cellule,
+       au lieu d'élargir le tableau au-delà de la page (colonnes coupées). */
+    .rs-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 8.5pt; }
+    .rs-table td, .rs-table th { overflow-wrap: break-word; word-break: break-word; }
     /* En-têtes répétés sur chaque page d'un tableau long. */
     .rs-table thead { display: table-header-group; }
     .rs-table tfoot { display: table-footer-group; }
