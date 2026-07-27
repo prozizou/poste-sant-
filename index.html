@@ -31,23 +31,6 @@
             --border:    #d8e0e8;
             --shadow:    0 12px 40px rgba(26,58,92,0.10);
         }
-        /* ── MODE SOMBRE (suit le thème de l'appareil) ── */
-        @media (prefers-color-scheme: dark){
-            :root{
-                --primary:#5a90cf;--primary-light:#4678b0;
-                --bg:#0e1621;--card-bg:#172231;--text:#e6edf3;--muted:#9fb0c0;--border:#2b3a4d;
-                --shadow:0 12px 40px rgba(0,0,0,0.45);
-            }
-            .login-container{border-color:#2b3a4d;}
-            .role-selector{background:#0e1621 !important;}
-            .role-btn.active{background:#172231 !important;}
-            .input-wrapper input[type="email"]{background:#0e1621 !important;color:var(--text);}
-            .input-wrapper input[type="email"]:focus{background:#101b28 !important;}
-            .passcode-container input{background:#0e1621 !important;color:#e6edf3;}
-            .passcode-container input.filled{background:#101b28 !important;}
-            .message-box.error{background:#2c1614 !important;border-color:#5b2b26 !important;}
-            .footer-note{border-top-color:#2b3a4d;}
-        }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
         body {
