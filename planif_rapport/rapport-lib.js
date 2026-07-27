@@ -178,7 +178,8 @@ function sectionTable({ titre, cols, rows, totalLabel, totalValue, vide }) {
     Le contenu est injecté dans #report-sheet, que la feuille de style
     d'impression est seule à révéler. Rien n'est visible à l'écran. */
 export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], sections = [], note,
-    sousTitre = 'République du Sénégal — Ministère de la Santé' }) {
+    sousTitre = 'République du Sénégal — Ministère de la Santé',
+    signatures = ['Le Chef de Poste', 'Le Gestionnaire'] }) {
     let hote = document.getElementById('report-sheet');
     if (!hote) {
         hote = document.createElement('div');
@@ -220,14 +221,10 @@ export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], secti
       ${note ? `<p class="rs-note">${esc(note)}</p>` : ''}
 
       <footer class="rs-foot">
-        <div class="rs-sign">
-          <span>Le Chef de Poste</span>
+        ${signatures.map(s => `<div class="rs-sign">
+          <span>${esc(s)}</span>
           <span class="rs-sign-line"></span>
-        </div>
-        <div class="rs-sign">
-          <span>Le Gestionnaire</span>
-          <span class="rs-sign-line"></span>
-        </div>
+        </div>`).join('')}
       </footer>
       <p class="rs-edit">Document édité le ${esc(dateHeure(Date.now()))} — Poste de Santé de Diandioly</p>`;
 
