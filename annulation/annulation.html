@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#1a3a5c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PS Diandioly">
+    <link rel="apple-touch-icon" href="../icons/icon-152x152.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-96x96.png">
+    <title>Retours & Annulations – Poste de Santé de Diandioly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary:       #1a3a5c;
+            --primary-light: #274e74;
+            --accent:        #0ea472;
+            --accent-bg:     #e6f7f1;
+            --danger:        #c0392b;
+            --danger-light:  #e0685a;
+            --danger-bg:     #fdf1f0;
+            --warning:       #d68910;
+            --warning-bg:    #fef9ec;
+            --bg:            #f0f4f8;
+            --card-bg:       #ffffff;
+            --text:          #1e2a38;
+            --muted:         #6b7a8d;
+            --border:        #d8e0e8;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            background: linear-gradient(135deg, var(--danger), var(--danger-light));
+            color: white; padding: 0 28px; height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(192,57,43,.3);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .back-btn {
+            background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.3);
+            color: white; padding: 7px 14px; border-radius: 8px;
+            font-family: inherit; font-size: .82rem; font-weight: 600;
+            cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px; transition: background .2s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,.25); }
+        .topbar h1 { font-size: 1.05rem; font-weight: 700; }
+        .topbar p  { font-size: .72rem; opacity: .8; }
+        .conn-badge {
+            background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35);
+            color: white; font-size: .75rem; font-weight: 700; padding: 5px 12px; border-radius: 20px;
+        }
+
+        .page { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+        /* ── NOTICE ── */
+        .notice {
+            background: var(--warning-bg); border: 1.5px solid #f5d78a; border-radius: 12px;
+            padding: 14px 18px; margin-bottom: 22px; font-size: .85rem; color: #7a5200;
+            line-height: 1.5; display: flex; gap: 10px; align-items: flex-start;
+        }
+
+        /* ── STATS ── */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 14px; margin-bottom: 24px; }
+        .stat-card {
+            background: var(--card-bg); border-radius: 12px; padding: 16px 18px;
+            border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,.03);
+        }
+        .stat-label { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+        .stat-val   { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+        .stat-val.red { color: var(--danger); }
+
+        /* ── TABS ── */
+        .tabs-wrap {
+            display: flex; gap: 4px; background: var(--card-bg);
+            padding: 4px; border-radius: 12px; border: 1px solid var(--border);
+            margin-bottom: 24px; width: fit-content;
+        }
+        .tab-btn {
+            padding: 9px 20px; border: none; border-radius: 9px;
+            font-family: inherit; font-size: .85rem; font-weight: 700;
+            cursor: pointer; transition: all .2s; background: transparent; color: var(--muted);
+        }
+        .tab-btn.active { background: var(--danger); color: white; box-shadow: 0 2px 8px rgba(192,57,43,.3); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* ── PANEL ── */
+        .panel {
+            background: var(--card-bg); border-radius: 14px; border: 1px solid var(--border);
+            box-shadow: 0 2px 10px rgba(0,0,0,.03); margin-bottom: 24px; overflow: hidden;
+        }
+        .panel-head {
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        }
+        .panel-head-left { display: flex; align-items: center; gap: 10px; }
+        .panel-icon {
+            width: 36px; height: 36px; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; background: var(--danger-bg);
+        }
+        .panel-head h2 { font-size: .95rem; font-weight: 700; color: var(--primary); }
+        .panel-head p  { font-size: .76rem; color: var(--muted); margin-top: 1px; }
+        .panel-body { padding: 22px; }
+
+        /* ── TOOLBAR ── */
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+        .search-wrap { position: relative; flex: 1; min-width: 200px; }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: .45; font-size: .9rem; }
+        .search-input {
+            width: 100%; padding: 9px 12px 9px 32px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: .85rem; font-family: inherit; background: #fafbfc;
+        }
+        .search-input:focus { outline: none; border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
+        .filter-select {
+            padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            font-size: .82rem; font-family: inherit; background: #fafbfc;
+            cursor: pointer; color: var(--text);
+        }
+
+        /* ── TABLE ── */
+        .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+        thead tr { background: #f5f7fa; }
+        th {
+            padding: 11px 14px; text-align: left; font-size: .72rem; font-weight: 800;
+            color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
+            border-bottom: 1px solid var(--border); white-space: nowrap;
+        }
+        td { padding: 11px 14px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafbfd; }
+        tr.row-annule td { opacity: .55; }
+        tr.row-annule .montant { text-decoration: line-through; }
+
+        /* ── BADGES ── */
+        .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+        .badge.ok      { background: var(--accent-bg); color: #0b6e4c; }
+        .badge.annule  { background: var(--danger-bg); color: var(--danger); }
+        .pill-nattente { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; background: var(--accent-bg); color: #0b6e4c; }
+
+        /* ── BUTTONS ── */
+        .btn-annuler {
+            padding: 7px 14px; background: var(--danger); color: white; border: none;
+            border-radius: 7px; font-family: inherit; font-size: .78rem; font-weight: 700;
+            cursor: pointer; transition: opacity .2s; white-space: nowrap;
+        }
+        .btn-annuler:hover { opacity: .88; }
+        .btn-annuler:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-secondary {
+            padding: 10px 18px; background: var(--bg); border: 1.5px solid var(--border);
+            color: var(--muted); border-radius: 9px; font-family: inherit;
+            font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .2s;
+        }
+        .btn-secondary:hover { border-color: var(--danger); color: var(--danger); }
+        .btn-submit {
+            padding: 11px 24px; background: var(--danger); color: white; border: none; border-radius: 9px;
+            font-family: inherit; font-size: .9rem; font-weight: 700;
+            cursor: pointer; transition: opacity .2s, transform .15s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-submit:hover    { opacity: .9; transform: translateY(-1px); }
+        .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+        .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+        .empty-state p { font-size: .88rem; }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(20,25,35,.55);
+            z-index: 500; align-items: center; justify-content: center; padding: 16px;
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal-box {
+            background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 480px;
+            max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,.25);
+        }
+        .modal-head {
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .modal-head .m-icon {
+            width: 38px; height: 38px; border-radius: 10px; background: var(--danger-bg);
+            display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+        }
+        .modal-head h3 { font-size: 1rem; color: var(--primary); font-weight: 700; }
+        .modal-head p { font-size: .78rem; color: var(--muted); margin-top: 1px; }
+        .modal-body { padding: 20px 22px; }
+        .modal-summary {
+            background: #fafbfc; border: 1.5px solid var(--border); border-radius: 10px;
+            padding: 12px 14px; font-size: .82rem; margin-bottom: 18px; line-height: 1.6;
+        }
+        .modal-summary strong { color: var(--primary); }
+        .m-field { margin-bottom: 14px; }
+        .m-field label { display: block; font-size: .78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
+        .m-field select, .m-field textarea {
+            width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: .85rem; font-family: inherit; background: #fafbfc; color: var(--text);
+        }
+        .m-field select:focus, .m-field textarea:focus { outline: none; border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
+        .m-field textarea { resize: vertical; }
+        .modal-foot { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: white; padding: 12px 20px; border-radius: 10px;
+            font-size: .85rem; font-weight: 600; display: none; align-items: center; gap: 8px;
+            z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,.2);
+        }
+        .toast.show { display: flex; }
+        .toast.ok  { background: #0b6e4c; }
+        .toast.err { background: var(--danger); }
+
+        @media (max-width: 700px) {
+            .page { padding: 14px; }
+            .panel-body { padding: 14px; }
+            .topbar { height: auto; min-height: 58px; padding: 10px 14px; flex-wrap: wrap; gap: 8px 10px; }
+            .topbar-left { min-width: 0; flex: 1 1 auto; }
+            .topbar-left > div { min-width: 0; }
+            .topbar h1 { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .tabs-wrap { width: 100%; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+            .tab-btn { flex: 0 0 auto; white-space: nowrap; padding: 9px 14px; font-size: .8rem; }
+            .table-wrap table { min-width: 620px; }
+            .stats-row { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="topbar">
+    <div class="topbar-left">
+        <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
+        <div>
+            <h1>↩️ Retours & Annulations</h1>
+            <p>Module 5 – Corrections de caisse</p>
+        </div>
+    </div>
+    <div class="conn-badge" id="conn-badge">● Synchronisation…</div>
+</nav>
+
+<div class="page">
+
+    <div class="notice">
+        <span>⚠️</span>
+        <span>
+            Utilisez cette page pour annuler un ticket ou une vente enregistrés <strong>par erreur</strong>
+            (mauvaise saisie de la caisse) ou suite au <strong>désistement d'un client</strong>. Une vente de
+            médicaments annulée <strong>remet automatiquement les quantités en stock</strong>. Les enregistrements
+            annulés restent visibles ici pour traçabilité, mais sont exclus des statistiques et du bilan.
+        </span>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-label">Tickets annulés (jour)</div>
+            <div class="stat-val red" id="s-tk-day">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Ventes retournées (jour)</div>
+            <div class="stat-val red" id="s-md-day">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Valeur retournée (jour)</div>
+            <div class="stat-val red" id="s-val-day">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total annulations (historique)</div>
+            <div class="stat-val" id="s-total-hist">—</div>
+        </div>
+    </div>
+
+    <div class="tabs-wrap">
+        <button class="tab-btn active" id="tbtn-ticket" onclick="switchTab('ticket')">🎟️ Tickets de consultation</button>
+        <button class="tab-btn"        id="tbtn-med"    onclick="switchTab('med')">💊 Ventes médicaments</button>
+    </div>
+
+    <!-- ═══ TICKETS ═══ -->
+    <div class="tab-pane active" id="pane-ticket">
+        <div class="panel">
+            <div class="panel-head">
+                <div class="panel-head-left">
+                    <div class="panel-icon">🎟️</div>
+                    <div>
+                        <h2>Tickets de consultation</h2>
+                        <p>Annuler un ticket saisi par erreur ou suite au désistement d'un patient</p>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="toolbar">
+                    <div class="search-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-input" id="tk-search" placeholder="Rechercher un patient…" oninput="renderTickets()">
+                    </div>
+                    <select class="filter-select" id="tk-periode" onchange="renderTickets()">
+                        <option value="day">Aujourd'hui</option>
+                        <option value="week">Cette semaine</option>
+                        <option value="month">Ce mois</option>
+                        <option value="all">Toutes les périodes</option>
+                    </select>
+                    <select class="filter-select" id="tk-statut" onchange="renderTickets()">
+                        <option value="actifs">Actifs uniquement</option>
+                        <option value="annules">Annulés uniquement</option>
+                        <option value="tous">Tous les statuts</option>
+                    </select>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>N° att.</th><th>Patient</th><th>Âge</th><th>Prestation</th>
+                                <th>Montant</th><th>Date &amp; heure</th><th>Statut</th><th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tk-tbody">
+                            <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎟️</div><p>Chargement…</p></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MÉDICAMENTS ═══ -->
+    <div class="tab-pane" id="pane-med">
+        <div class="panel">
+            <div class="panel-head">
+                <div class="panel-head-left">
+                    <div class="panel-icon">💊</div>
+                    <div>
+                        <h2>Ventes de médicaments</h2>
+                        <p>Annuler une vente et remettre automatiquement les médicaments en stock</p>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="toolbar">
+                    <div class="search-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-input" id="md-search" placeholder="Rechercher un patient…" oninput="renderMeds()">
+                    </div>
+                    <select class="filter-select" id="md-periode" onchange="renderMeds()">
+                        <option value="day">Aujourd'hui</option>
+                        <option value="week">Cette semaine</option>
+                        <option value="month">Ce mois</option>
+                        <option value="all">Toutes les périodes</option>
+                    </select>
+                    <select class="filter-select" id="md-statut" onchange="renderMeds()">
+                        <option value="actifs">Actifs uniquement</option>
+                        <option value="annules">Annulés uniquement</option>
+                        <option value="tous">Tous les statuts</option>
+                    </select>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Réf.</th><th>Patient</th><th>Médicaments</th>
+                                <th>Montant</th><th>Date &amp; heure</th><th>Statut</th><th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="md-tbody">
+                            <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💊</div><p>Chargement…</p></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /page -->
+
+<!-- ══ MODAL D'ANNULATION ══ -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="m-icon">↩️</div>
+            <div>
+                <h3 id="modal-title">Annuler l'enregistrement</h3>
+                <p id="modal-sub">Cette action sera tracée</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="modal-summary" id="modal-summary"></div>
+            <div class="m-field">
+                <label>Motif de l'annulation <span style="color:var(--danger)">*</span></label>
+                <select id="m-motif">
+                    <option value="Erreur de saisie (caisse)">Erreur de saisie (caisse)</option>
+                    <option value="Désistement du client">Désistement du client</option>
+                    <option value="Autre motif">Autre motif</option>
+                </select>
+            </div>
+            <div class="m-field">
+                <label>Observation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optionnel)</span></label>
+                <textarea id="m-obs" rows="2" placeholder="Précisions complémentaires…"></textarea>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-secondary" onclick="closeModal()">Fermer</button>
+            <button class="btn-submit" id="modal-confirm-btn" onclick="confirmerAnnulation()">✕ Confirmer l'annulation</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { auth, db } from '../firebase-config.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { ref, onValue, update, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+// ── Auth guard : réservé à l'administration ─────────────────────
+onAuthStateChanged(auth, (user) => {
+    if (!user) { window.location.href = '../index.html'; return; }
+    const role = sessionStorage.getItem('userRole');
+    if (role !== 'admin') { window.location.href = '../accueil/menu_caissier.html'; return; }
+    const badge = document.getElementById('conn-badge');
+    badge.textContent = '● Connecté';
+});
+
+// ── Utilitaires ──────────────────────────────────────────────────
+function esc(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str ?? '');
+    return div.innerHTML;
+}
+function fmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
+function getSafeTs(val) {
+    if (val.date_heure_ts) return val.date_heure_ts;
+    if (val.date) {
+        const p = String(val.date).split('/');
+        if (p.length === 3) {
+            let hr = 0, min = 0;
+            if (val.heure) { const hp = String(val.heure).split(':'); if (hp.length >= 2) { hr = parseInt(hp[0],10); min = parseInt(hp[1],10); } }
+            return new Date(parseInt(p[2],10), parseInt(p[1],10) - 1, parseInt(p[0],10), hr, min).getTime();
+        }
+    }
+    return Date.now();
+}
+function isToday(ts) { const d=new Date(ts),n=new Date(); return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
+function isThisWeek(ts) {
+    const d=new Date(ts),now=new Date(),dow=now.getDay(),numDay=dow===0?6:dow-1;
+    const sow=new Date(now); sow.setDate(now.getDate()-numDay); sow.setHours(0,0,0,0);
+    return d>=sow;
+}
+function isMonth(ts) { const d=new Date(ts),n=new Date(); return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
+function dateTimeStr(ts) {
+    const d=new Date(ts);
+    return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function toast(msg, type='ok') {
+    const el = document.getElementById('toast');
+    el.textContent = (type==='ok' ? '✓ ' : '✗ ') + msg;
+    el.className = 'toast show ' + type;
+    setTimeout(() => el.classList.remove('show'), 4500);
+}
+function filterByPeriod(list, period) {
+    if (period === 'day')   return list.filter(x => isToday(x._ts));
+    if (period === 'week')  return list.filter(x => isThisWeek(x._ts));
+    if (period === 'month') return list.filter(x => isMonth(x._ts));
+    return list;
+}
+function filterByStatut(list, statut) {
+    if (statut === 'actifs')  return list.filter(x => !x.annule);
+    if (statut === 'annules') return list.filter(x => x.annule);
+    return list;
+}
+
+// ── Firebase refs & state ───────────────────────────────────────
+const ticketRef = ref(db, 'ticket_dbase');
+const medRef    = ref(db, 'vente_medicaments');
+const stockRef  = ref(db, 'db_pharmacie_stock');
+
+let allTickets = [], allMedVentes = [], allStock = [];
+let loadedT = false, loadedM = false, loadedS = false;
+
+function checkLoad() {
+    if (loadedT && loadedM && loadedS) {
+        const b = document.getElementById('conn-badge');
+        b.textContent = '● En direct';
+    }
+}
+
+onValue(ticketRef, snap => {
+    allTickets = [];
+    snap.forEach(c => { allTickets.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }); });
+    allTickets.sort((a,b) => b._ts - a._ts);
+    loadedT = true; checkLoad(); updateStats(); renderTickets();
+});
+onValue(medRef, snap => {
+    allMedVentes = [];
+    snap.forEach(c => { allMedVentes.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }); });
+    allMedVentes.sort((a,b) => b._ts - a._ts);
+    loadedM = true; checkLoad(); updateStats(); renderMeds();
+});
+onValue(stockRef, snap => {
+    allStock = [];
+    snap.forEach(c => { allStock.push({ _key: c.key, ...c.val() }); });
+    loadedS = true; checkLoad();
+});
+
+// ── Stats ────────────────────────────────────────────────────────
+function updateStats() {
+    const tkAnnulesDay = allTickets.filter(x => x.annule && isToday(x._ts));
+    const mdAnnulesDay = allMedVentes.filter(x => x.annule && isToday(x._ts));
+    const valDay = tkAnnulesDay.reduce((s,x)=>s+(Number(x.prix)||0),0) + mdAnnulesDay.reduce((s,x)=>s+(Number(x.total)||0),0);
+    document.getElementById('s-tk-day').textContent = tkAnnulesDay.length;
+    document.getElementById('s-md-day').textContent = mdAnnulesDay.length;
+    document.getElementById('s-val-day').textContent = fmt(valDay) + ' F';
+    document.getElementById('s-total-hist').textContent =
+        allTickets.filter(x=>x.annule).length + allMedVentes.filter(x=>x.annule).length;
+}
+
+// ── Onglets ──────────────────────────────────────────────────────
+window.switchTab = function(t) {
+    ['ticket','med'].forEach(id => {
+        document.getElementById('pane-'+id).classList.toggle('active', id===t);
+        document.getElementById('tbtn-'+id).classList.toggle('active', id===t);
+    });
+};
+
+// ── Rendu tickets ────────────────────────────────────────────────
+window.renderTickets = function() {
+    const q = document.getElementById('tk-search').value.trim().toLowerCase();
+    const periode = document.getElementById('tk-periode').value;
+    const statut = document.getElementById('tk-statut').value;
+    let list = filterByStatut(filterByPeriod(allTickets, periode), statut);
+    if (q) list = list.filter(x => (x.name||'').toLowerCase().includes(q));
+
+    const tbody = document.getElementById('tk-tbody');
+    if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎟️</div><p>Aucun ticket pour ces critères.</p></div></td></tr>`;
+        return;
+    }
+    tbody.innerHTML = list.map(x => `
+        <tr class="${x.annule ? 'row-annule' : ''}">
+            <td><span class="pill-nattente">${esc(x.num_attente||'—')}</span></td>
+            <td><strong>${esc(x.name||'—')}</strong></td>
+            <td>${esc(x.age||'—')} ans</td>
+            <td>${esc(x.choix||'—')}</td>
+            <td class="montant"><strong>${esc(fmt(x.prix||0))} FCFA</strong></td>
+            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
+            <td>${x.annule
+                ? `<span class="badge annule" title="${esc(x.annule_motif||'')} ${x.annule_obs ? '— '+esc(x.annule_obs) : ''}">✕ Annulé</span>`
+                : `<span class="badge ok">Actif</span>`}</td>
+            <td>${x.annule
+                ? `<span style="font-size:.72rem;color:var(--muted);">par ${esc((x.annule_par||'').split('@')[0]||'—')}</span>`
+                : `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">✕ Annuler le ticket</button>`}</td>
+        </tr>
+    `).join('');
+};
+
+// ── Rendu ventes médicaments ─────────────────────────────────────
+window.renderMeds = function() {
+    const q = document.getElementById('md-search').value.trim().toLowerCase();
+    const periode = document.getElementById('md-periode').value;
+    const statut = document.getElementById('md-statut').value;
+    let list = filterByStatut(filterByPeriod(allMedVentes, periode), statut);
+    if (q) list = list.filter(x => (x.patient_nom||'').toLowerCase().includes(q));
+
+    const tbody = document.getElementById('md-tbody');
+    if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💊</div><p>Aucune vente pour ces critères.</p></div></td></tr>`;
+        return;
+    }
+    tbody.innerHTML = list.map(x => {
+        const meds = x.medicaments || [];
+        const medsStr = meds.map(m => `${m.qte}× ${m.nom}`).join(', ');
+        return `
+        <tr class="${x.annule ? 'row-annule' : ''}">
+            <td><span class="pill-nattente" style="background:var(--danger-bg);color:var(--danger);">MED-${esc(x._key.substring(0,6).toUpperCase())}</span></td>
+            <td><strong>${esc(x.patient_nom||'—')}</strong></td>
+            <td style="max-width:260px;font-size:.78rem;" title="${esc(medsStr)}">${esc(medsStr.length > 60 ? medsStr.slice(0,60)+'…' : medsStr)}</td>
+            <td class="montant"><strong>${esc(fmt(x.total||0))} FCFA</strong></td>
+            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
+            <td>${x.annule
+                ? `<span class="badge annule" title="${esc(x.annule_motif||'')} ${x.annule_obs ? '— '+esc(x.annule_obs) : ''}">↩ Retourné</span>`
+                : `<span class="badge ok">Actif</span>`}</td>
+            <td>${x.annule
+                ? `<span style="font-size:.72rem;color:var(--muted);">par ${esc((x.annule_par||'').split('@')[0]||'—')}</span>`
+                : `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">↩ Annuler &amp; Retourner</button>`}</td>
+        </tr>`;
+    }).join('');
+};
+
+// ── Modal d'annulation ────────────────────────────────────────────
+let pending = null; // { type: 'ticket'|'med', key }
+
+window.ouvrirModalTicket = function(key) {
+    const x = allTickets.find(t => t._key === key);
+    if (!x || x.annule) return;
+    pending = { type: 'ticket', key };
+    document.getElementById('modal-title').textContent = 'Annuler le ticket de consultation';
+    document.getElementById('modal-sub').textContent = 'Aucun impact sur le stock — le ticket sera exclu du bilan.';
+    document.getElementById('modal-summary').innerHTML = `
+        <div><strong>Patient :</strong> ${esc(x.name||'—')} (${esc(x.age||'?')} ans)</div>
+        <div><strong>Prestation :</strong> ${esc(x.choix||'—')}</div>
+        <div><strong>Montant :</strong> ${esc(fmt(x.prix||0))} FCFA</div>
+        <div><strong>N° attente :</strong> ${esc(x.num_attente||'—')}</div>`;
+    document.getElementById('m-motif').value = 'Erreur de saisie (caisse)';
+    document.getElementById('m-obs').value = '';
+    document.getElementById('modal-overlay').classList.add('visible');
+};
+
+window.ouvrirModalMed = function(key) {
+    const x = allMedVentes.find(m => m._key === key);
+    if (!x || x.annule) return;
+    pending = { type: 'med', key };
+    const meds = x.medicaments || [];
+    document.getElementById('modal-title').textContent = 'Annuler la vente & retourner en pharmacie';
+    document.getElementById('modal-sub').textContent = 'Les quantités seront automatiquement remises en stock.';
+    document.getElementById('modal-summary').innerHTML = `
+        <div><strong>Patient :</strong> ${esc(x.patient_nom||'—')}</div>
+        <div><strong>Montant :</strong> ${esc(fmt(x.total||0))} FCFA</div>
+        <div><strong>Médicaments à retourner :</strong></div>
+        <ul style="margin:4px 0 0 18px;">${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
+    document.getElementById('m-motif').value = 'Désistement du client';
+    document.getElementById('m-obs').value = '';
+    document.getElementById('modal-overlay').classList.add('visible');
+};
+
+window.closeModal = function() {
+    document.getElementById('modal-overlay').classList.remove('visible');
+    pending = null;
+};
+
+// ── Confirmation ──────────────────────────────────────────────────
+window.confirmerAnnulation = async function() {
+    if (!pending) return;
+    const motif = document.getElementById('m-motif').value;
+    const obs = document.getElementById('m-obs').value.trim();
+    const btn = document.getElementById('modal-confirm-btn');
+    btn.disabled = true; btn.innerHTML = '⏳ Traitement…';
+
+    const adminEmail = auth.currentUser?.email || '';
+    const annuleFields = {
+        annule: true,
+        annule_ts: Date.now(),
+        annule_motif: motif,
+        annule_obs: obs,
+        annule_par: adminEmail
+    };
+
+    try {
+        if (pending.type === 'ticket') {
+            await update(ref(db, 'ticket_dbase/' + pending.key), annuleFields);
+            toast('Ticket annulé. Il est exclu du bilan.', 'ok');
+        } else {
+            const vente = allMedVentes.find(m => m._key === pending.key);
+            const items = (vente && vente.medicaments) || [];
+            let restockOk = 0, restockFail = [];
+
+            for (const item of items) {
+                let key = item.stock_key;
+                if (!key || !allStock.find(s => s._key === key)) {
+                    const nomLower = (item.nom || '').trim().toLowerCase();
+                    const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
+                    key = matches.length === 1 ? matches[0]._key : null;
+                }
+                if (!key) { restockFail.push(item.nom); continue; }
+                try {
+                    await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), (current) => {
+                        const n = parseInt(current, 10);
+                        return (isNaN(n) ? 0 : n) + Number(item.qte || 0);
+                    });
+                    restockOk++;
+                } catch (e) {
+                    restockFail.push(item.nom);
+                }
+            }
+
+            await update(ref(db, 'vente_medicaments/' + pending.key), {
+                ...annuleFields,
+                retour_stock_ok: restockOk,
+                retour_stock_echec: restockFail
+            });
+
+            if (restockFail.length) {
+                toast(`Vente annulée. ${restockOk}/${items.length} médicament(s) retourné(s) — non retrouvé(s) en stock : ${restockFail.join(', ')}.`, 'err');
+            } else {
+                toast(`Vente annulée. ${restockOk} médicament(s) remis en stock.`, 'ok');
+            }
+        }
+        closeModal();
+    } catch (e) {
+        console.error(e);
+        toast("Erreur lors de l'annulation : " + e.message, 'err');
+    }
+
+    btn.disabled = false; btn.innerHTML = '✕ Confirmer l\'annulation';
+};
+
+window.addEventListener('beforeunload', () => {});
+</script>
+</body>
+</html>

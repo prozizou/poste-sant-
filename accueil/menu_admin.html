@@ -9,7 +9,7 @@
     <style>
         :root {
             --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
-            --warning:#d68910;--purple:#7b5ea7;--purple-light:#9b7ec8;
+            --warning:#d68910;--purple:#7b5ea7;--purple-light:#9b7ec8;--danger:#c0392b;
             --bg:#f0f4f8;--card-bg:#ffffff;
             --text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
         }
@@ -47,11 +47,15 @@
         .module-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
         .module-card.gold::before{background:var(--warning);}
         .module-card.purple::before{background:var(--purple);}
+        .module-card.red::before{background:var(--danger);}
         .module-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.08);}
         .module-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
         .module-emoji{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
         .module-card.gold .module-emoji{background:#fef9ec;}
         .module-card.purple .module-emoji{background:#f0ebf8;}
+        .module-card.red .module-emoji{background:#fdf1f0;}
+        .red-btn{background:var(--danger);color:white;}
+        .new-badge.red-badge{background:var(--danger);}
         .module-title-group h3{font-size:1rem;font-weight:700;color:var(--primary);}
         .module-sub{font-size:.78rem;color:var(--muted);margin-top:2px;}
         .module-desc{font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:18px;}
@@ -192,6 +196,25 @@
             </div>
             <a class="module-action gold-btn" href="../planif_rapport/depenses.html">Ouvrir le Bilan (supervision) →</a>
         </div>
+        <!-- Module 5 -->
+        <div class="module-card red">
+            <div class="new-badge red-badge">✨ NOUVEAU</div>
+            <div class="module-header">
+                <div class="module-emoji">↩️</div>
+                <div class="module-title-group">
+                    <h3>Retours & Annulations</h3>
+                    <div class="module-sub">Module 5 – Corrections de caisse</div>
+                </div>
+            </div>
+            <p class="module-desc">Annuler un ticket de consultation ou une vente de médicaments enregistrés par erreur (ou suite au désistement d'un client), avec retour automatique des médicaments en stock. Ces annulations n'affectent jamais le bilan.</p>
+            <div class="module-features">
+                <span class="feature-tag">Annulation ticket</span>
+                <span class="feature-tag">Retour en stock</span>
+                <span class="feature-tag">Motif tracé</span>
+                <span class="feature-tag">Bilan préservé</span>
+            </div>
+            <a class="module-action red-btn" href="../annulation/annulation.html">Gérer les Retours →</a>
+        </div>
     </div>
 </main>
 <script type="module">
@@ -236,6 +259,7 @@
         let count = 0, total = 0;
         snap.forEach(c => {
             const d = c.val(), ts = d.date_heure_ts || Date.now();
+            if (d.annule) return; // ticket annulé/retourné : exclu du bilan
             if (isToday(ts)) { count++; total += (d.prix || 0); }
         });
         document.getElementById('stat-tickets-day').textContent = count;
@@ -246,6 +270,7 @@
         let totalMed = 0;
         snap.forEach(c => {
             const d = c.val(), ts = d.date_heure_ts || Date.now();
+            if (d.annule) return; // vente annulée/retournée : exclue du bilan
             if (isToday(ts)) totalMed += (d.total || 0);
         });
         document.getElementById('stat-meds-day').textContent = fmt(totalMed) + ' F';

@@ -95,14 +95,19 @@ export function libellePeriode(periode) {
 }
 
 // ── AGRÉGATIONS ──────────────────────────────────
-export const totalTickets = list => list.reduce((s, x) => s + Number(x.prix || 0), 0);
-export const totalVentes  = list => list.reduce((s, x) => s + Number(x.total || 0), 0);
+// Les tickets/ventes annulés (retour à la pharmacie, erreur de caisse,
+// désistement du client…) sont exclus de toutes les agrégations : un
+// enregistrement annulé ne doit jamais fausser le bilan.
+const actifs = list => list.filter(x => !x.annule);
+
+export const totalTickets = list => actifs(list).reduce((s, x) => s + Number(x.prix || 0), 0);
+export const totalVentes  = list => actifs(list).reduce((s, x) => s + Number(x.total || 0), 0);
 export const totalDepenses = list => list.reduce((s, x) => s + Number(x.montant || 0), 0);
 
 // Répartition des consultations par type de prestation.
 export function parPrestation(tickets) {
     const m = new Map();
-    for (const t of tickets) {
+    for (const t of actifs(tickets)) {
         const k = t.choix || 'Non précisé';
         const e = m.get(k) || { nom: k, nb: 0, montant: 0 };
         e.nb++; e.montant += Number(t.prix || 0);
@@ -114,7 +119,7 @@ export function parPrestation(tickets) {
 // Médicaments les plus vendus, agrégés sur toutes les ventes de la période.
 export function parMedicament(ventes) {
     const m = new Map();
-    for (const v of ventes) {
+    for (const v of actifs(ventes)) {
         for (const li of (v.medicaments || [])) {
             const k = li.nom || '(sans nom)';
             const e = m.get(k) || { nom: k, qte: 0, montant: 0 };

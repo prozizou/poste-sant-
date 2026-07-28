@@ -390,7 +390,9 @@ document.getElementById('period-tabs').addEventListener('click', e => {
     render();
 });
 
-const filtre = list => list.filter(x => dansPeriode(x._ts, periode));
+// Un ticket/vente annulé (retour à la pharmacie, erreur de caisse…) est
+// exclu du rapport : il ne doit apparaître dans aucune statistique du bilan.
+const filtre = list => list.filter(x => dansPeriode(x._ts, periode) && !x.annule);
 
 // ── RENDU ───────────────────────────────────────
 function render() {
@@ -494,8 +496,8 @@ function renderStatsComparees() {
     const P = ['jour', 'semaine', 'mois', 'trimestre', 'annee'];
     const ids = ['jour', 'semaine', 'mois', 'trim', 'annee'];
     P.forEach((p, i) => {
-        const tk = allTickets.filter(x => dansPeriode(x._ts, p));
-        const md = allVentes.filter(x => dansPeriode(x._ts, p));
+        const tk = allTickets.filter(x => dansPeriode(x._ts, p) && !x.annule);
+        const md = allVentes.filter(x => dansPeriode(x._ts, p) && !x.annule);
         document.getElementById('tk-' + ids[i]).textContent = tk.length;
         document.getElementById('ts-' + ids[i]).textContent = fmt(totalTickets(tk));
         document.getElementById('mn-' + ids[i]).textContent = md.length;

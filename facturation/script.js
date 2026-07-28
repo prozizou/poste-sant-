@@ -320,18 +320,23 @@ async function prochainNumeroAttente() {
     }
 }
 // ── STATS GLOBALES (TICKETS + MÉDICAMENTS) ───────
+// Les tickets/ventes annulés (retour pharmacie, erreur de caisse…) sont
+// exclus de toutes les statistiques pour ne pas fausser le bilan.
 function updateStats() {
-    const tDay = allTickets.filter(x=>isToday(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const tWeek = allTickets.filter(x=>isThisWeek(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const tMonth = allTickets.filter(x=>isMonth(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const tQuarter = allTickets.filter(x=>isThisQuarter(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const tYear = allTickets.filter(x=>isThisYear(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
+    const tickets = allTickets.filter(x=>!x.annule);
+    const ventes  = allMedVentes.filter(x=>!x.annule);
 
-    const mDay = allMedVentes.filter(x=>isToday(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
-    const mWeek = allMedVentes.filter(x=>isThisWeek(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
-    const mMonth = allMedVentes.filter(x=>isMonth(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
-    const mQuarter = allMedVentes.filter(x=>isThisQuarter(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
-    const mYear = allMedVentes.filter(x=>isThisYear(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    const tDay = tickets.filter(x=>isToday(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
+    const tWeek = tickets.filter(x=>isThisWeek(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
+    const tMonth = tickets.filter(x=>isMonth(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
+    const tQuarter = tickets.filter(x=>isThisQuarter(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
+    const tYear = tickets.filter(x=>isThisYear(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
+
+    const mDay = ventes.filter(x=>isToday(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    const mWeek = ventes.filter(x=>isThisWeek(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    const mMonth = ventes.filter(x=>isMonth(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    const mQuarter = ventes.filter(x=>isThisQuarter(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    const mYear = ventes.filter(x=>isThisYear(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
 
     if(document.getElementById('s-g-day')) document.getElementById('s-g-day').textContent = fmt(tDay + mDay) + ' F';
     if(document.getElementById('s-g-week')) document.getElementById('s-g-week').textContent = fmt(tWeek + mWeek) + ' F';
@@ -339,8 +344,8 @@ function updateStats() {
     if(document.getElementById('s-g-quarter')) document.getElementById('s-g-quarter').textContent = fmt(tQuarter + mQuarter) + ' F';
     if(document.getElementById('s-g-year')) document.getElementById('s-g-year').textContent = fmt(tYear + mYear) + ' F';
 
-    if(document.getElementById('cnt-ticket')) document.getElementById('cnt-ticket').textContent = allTickets.filter(x=>isToday(x._ts)).length;
-    if(document.getElementById('cnt-med')) document.getElementById('cnt-med').textContent = allMedVentes.filter(x=>isToday(x._ts)).length;
+    if(document.getElementById('cnt-ticket')) document.getElementById('cnt-ticket').textContent = tickets.filter(x=>isToday(x._ts)).length;
+    if(document.getElementById('cnt-med')) document.getElementById('cnt-med').textContent = ventes.filter(x=>isToday(x._ts)).length;
 }
 
 // ── FIREBASE LISTENERS ───────────────────────────
@@ -525,12 +530,12 @@ window.renderHistTickets = function() {
         return;
     }
     tbody.innerHTML = list.map(x=>`
-        <tr>
+        <tr${x.annule ? ' style="opacity:.55;"' : ''}>
             <td><span class="tbadge" style="background:var(--accent);color:white;">${esc(x.num_attente||'—')}</span></td>
             <td><strong>${esc(x.name||'—')}</strong></td>
             <td>${esc(x.age||'—')} ans</td>
             <td><span class="tbadge">${esc(x.choix||'—')}</span></td>
-            <td><strong>${esc(fmt(x.prix||0))} FCFA</strong></td>
+            <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.prix||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">✕ Annulé</span>' : ''}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
             <td><button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">🖨️ Réimprimer</button></td>
         </tr>
@@ -775,7 +780,7 @@ window.encaisserMedicaments = async function() {
     const payload = {
         patient_nom:  patientNom,
         num_attente:  patientAtt,
-        medicaments:  panier.map(p=>({nom:p.nom, prix:p.prix, qte:p.qte})),
+        medicaments:  panier.map(p=>({nom:p.nom, prix:p.prix, qte:p.qte, stock_key:p.stock_key})),
         total,
         argent_remis: recu,
         monnaie_rendue: monnaie,
@@ -846,10 +851,10 @@ window.renderHistMeds = function() {
         return;
     }
     tbody.innerHTML=list.map(x=>`
-        <tr>
+        <tr${x.annule ? ' style="opacity:.55;"' : ''}>
             <td><span class="tbadge ordo">MED-${esc(x._key.substring(0,6).toUpperCase())}</span></td>
             <td><strong>${esc(x.patient_nom||'—')}</strong></td>
-            <td><strong>${esc(fmt(x.total||0))} FCFA</strong></td>
+            <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.total||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">↩ Retourné</span>' : ''}</td>
             <td>${esc(String((x.medicaments||[]).length))}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
             <td><button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">🖨️ Réimprimer</button></td>
