@@ -1,5 +1,5 @@
 import { db, auth } from '../firebase-config.js';
-import { ref, push, onValue, off, get, runTransaction }
+import { ref, push, onValue, off, get, update, runTransaction }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -537,7 +537,10 @@ window.renderHistTickets = function() {
             <td><span class="tbadge">${esc(x.choix||'—')}</span></td>
             <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.prix||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">✕ Annulé</span>' : ''}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
-            <td><button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">🖨️ Réimprimer</button></td>
+            <td><div class="hist-actions">
+                <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">🖨️ Réimprimer</button>
+                ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">✕ Annuler</button>` : ''}
+            </div></td>
         </tr>
     `).join('');
 };
@@ -857,7 +860,10 @@ window.renderHistMeds = function() {
             <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.total||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">↩ Retourné</span>' : ''}</td>
             <td>${esc(String((x.medicaments||[]).length))}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
-            <td><button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">🖨️ Réimprimer</button></td>
+            <td><div class="hist-actions">
+                <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">🖨️ Réimprimer</button>
+                ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">↩ Annuler &amp; Retourner</button>` : ''}
+            </div></td>
         </tr>
     `).join('');
 };
@@ -876,6 +882,118 @@ window.reimprimerMed = async function(key) {
     document.getElementById('print-content').innerHTML = buildMedicamentsHTML(data);
     await imprimerTicket('medicaments', data);
     toast('Ticket réimprimé.', 'ok');
+};
+
+// ═══════════════════════════════════════════════
+//  ANNULATION / RETOUR PHARMACIE (accessible à la caisse)
+//  Permet à la caissière/au caissier de corriger elle/lui-même une
+//  erreur de saisie ou un désistement de client, sans passer par
+//  l'administration. La vente/le ticket n'est jamais supprimé (traçable),
+//  seulement marqué "annule" et exclu de toutes les statistiques.
+// ═══════════════════════════════════════════════
+let pendingAnnulation = null; // { type: 'ticket'|'med', key }
+
+window.ouvrirModalTicket = function(key) {
+    const x = allTickets.find(t => t._key === key);
+    if (!x || x.annule) return;
+    pendingAnnulation = { type: 'ticket', key };
+    document.getElementById('modal-title').textContent = 'Annuler le ticket de consultation';
+    document.getElementById('modal-sub').textContent = 'Aucun impact sur le stock — le ticket sera exclu du bilan.';
+    document.getElementById('modal-summary').innerHTML = `
+        <div><strong>Patient :</strong> ${esc(x.name||'—')} (${esc(x.age||'?')} ans)</div>
+        <div><strong>Prestation :</strong> ${esc(x.choix||'—')}</div>
+        <div><strong>Montant :</strong> ${esc(fmt(x.prix||0))} FCFA</div>
+        <div><strong>N° attente :</strong> ${esc(x.num_attente||'—')}</div>`;
+    document.getElementById('m-motif').value = 'Erreur de saisie (caisse)';
+    document.getElementById('m-obs').value = '';
+    document.getElementById('modal-overlay').classList.add('visible');
+};
+
+window.ouvrirModalMed = function(key) {
+    const x = allMedVentes.find(m => m._key === key);
+    if (!x || x.annule) return;
+    pendingAnnulation = { type: 'med', key };
+    const meds = x.medicaments || [];
+    document.getElementById('modal-title').textContent = 'Annuler la vente & retourner en pharmacie';
+    document.getElementById('modal-sub').textContent = 'Les quantités seront automatiquement remises en stock.';
+    document.getElementById('modal-summary').innerHTML = `
+        <div><strong>Patient :</strong> ${esc(x.patient_nom||'—')}</div>
+        <div><strong>Montant :</strong> ${esc(fmt(x.total||0))} FCFA</div>
+        <div><strong>Médicaments à retourner :</strong></div>
+        <ul style="margin:4px 0 0 18px;">${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
+    document.getElementById('m-motif').value = 'Désistement du client';
+    document.getElementById('m-obs').value = '';
+    document.getElementById('modal-overlay').classList.add('visible');
+};
+
+window.closeModalAnnulation = function() {
+    document.getElementById('modal-overlay').classList.remove('visible');
+    pendingAnnulation = null;
+};
+
+window.confirmerAnnulation = async function() {
+    if (!pendingAnnulation) return;
+    const motif = document.getElementById('m-motif').value;
+    const obs = document.getElementById('m-obs').value.trim();
+    const btn = document.getElementById('modal-confirm-btn');
+    btn.disabled = true; btn.innerHTML = '⏳ Traitement…';
+
+    const caissierEmail = auth.currentUser?.email || '';
+    const annuleFields = {
+        annule: true,
+        annule_ts: Date.now(),
+        annule_motif: motif,
+        annule_obs: obs,
+        annule_par: caissierEmail
+    };
+
+    try {
+        if (pendingAnnulation.type === 'ticket') {
+            await update(ref(db, 'ticket_dbase/' + pendingAnnulation.key), annuleFields);
+            toast('Ticket annulé. Il est exclu du bilan.', 'ok');
+        } else {
+            const vente = allMedVentes.find(m => m._key === pendingAnnulation.key);
+            const items = (vente && vente.medicaments) || [];
+            let restockOk = 0, restockFail = [];
+
+            for (const item of items) {
+                let key = item.stock_key;
+                if (!key || !allStock.find(s => s._key === key)) {
+                    const nomLower = (item.nom || '').trim().toLowerCase();
+                    const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
+                    key = matches.length === 1 ? matches[0]._key : null;
+                }
+                if (!key) { restockFail.push(item.nom); continue; }
+                try {
+                    await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), (current) => {
+                        const n = parseInt(current, 10);
+                        return (isNaN(n) ? 0 : n) + Number(item.qte || 0);
+                    });
+                    restockOk++;
+                } catch (e) {
+                    restockFail.push(item.nom);
+                }
+            }
+
+            await update(ref(db, 'vente_medicaments/' + pendingAnnulation.key), {
+                ...annuleFields,
+                retour_stock_ok: restockOk,
+                retour_stock_echec: restockFail
+            });
+
+            if (restockFail.length) {
+                toast(`Vente annulée. ${restockOk}/${items.length} médicament(s) retourné(s) — non retrouvé(s) en stock : ${restockFail.join(', ')}.`, 'err');
+            } else {
+                toast(`Vente annulée. ${restockOk} médicament(s) remis en stock.`, 'ok');
+            }
+        }
+        closeModalAnnulation();
+    } catch (e) {
+        console.error(e);
+        toast("Erreur lors de l'annulation : " + e.message, 'err');
+    }
+
+    btn.disabled = false; btn.innerHTML = '✕ Confirmer l\'annulation';
 };
 
 function filterByPeriod(list, period) {

@@ -264,6 +264,40 @@ progress:not([value])::-moz-progress-bar {
 .tbadge { font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: var(--blue-bg); color: var(--primary); white-space: nowrap; }
 .tbadge.ordo { background: var(--purple-bg); color: var(--purple); }
 .hist-empty { text-align: center; color: var(--muted); padding: 28px; font-size: 0.86rem; }
+.hist-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-annuler {
+    font-size: 0.7rem; font-weight: 700; padding: 5px 10px; border-radius: 7px; cursor: pointer;
+    background: var(--danger-bg); border: 1.5px solid var(--danger); color: var(--danger); white-space: nowrap;
+}
+.btn-annuler:hover { background: var(--danger); color: white; }
+
+/* ════════════════════════════════
+   MODALE D'ANNULATION / RETOUR
+════════════════════════════════ */
+.modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(20,25,35,.55);
+    z-index: 500; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.visible { display: flex; }
+.modal-box {
+    background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 460px;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,.25);
+}
+.modal-head { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.modal-head .m-icon {
+    width: 38px; height: 38px; border-radius: 10px; background: var(--danger-bg);
+    display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+}
+.modal-head h3 { font-size: 0.98rem; color: var(--primary); font-weight: 800; }
+.modal-head p  { font-size: 0.76rem; color: var(--muted); margin-top: 1px; }
+.modal-body { padding: 18px 20px; }
+.modal-summary {
+    background: #fafbfc; border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; font-size: 0.82rem; margin-bottom: 16px; line-height: 1.6;
+}
+.modal-summary strong { color: var(--primary); }
+.modal-foot { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+.modal-foot .btn { width: auto; padding: 10px 18px; font-size: 0.85rem; }
 
 /* ════════════════════════════════
    REÇU THERMIQUE 58 mm

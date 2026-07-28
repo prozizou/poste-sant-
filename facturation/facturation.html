@@ -334,6 +334,38 @@
 <div id="print-zone"><div class="receipt" id="print-content"></div></div>
 <div class="toast" id="toast"></div>
 
+<!-- ══ MODALE D'ANNULATION / RETOUR PHARMACIE ══ -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="m-icon">↩️</div>
+            <div>
+                <h3 id="modal-title">Annuler l'enregistrement</h3>
+                <p id="modal-sub">Cette action sera tracée</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="modal-summary" id="modal-summary"></div>
+            <div class="fg">
+                <label>Motif de l'annulation <span class="req">*</span></label>
+                <select id="m-motif" class="fc">
+                    <option value="Erreur de saisie (caisse)">Erreur de saisie (caisse)</option>
+                    <option value="Désistement du client">Désistement du client</option>
+                    <option value="Autre motif">Autre motif</option>
+                </select>
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+                <label>Observation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optionnel)</span></label>
+                <textarea id="m-obs" class="fc" rows="2" placeholder="Précisions complémentaires…" style="resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-blue" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);" onclick="closeModalAnnulation()">Fermer</button>
+            <button type="button" class="btn" style="background:var(--danger);color:white;" id="modal-confirm-btn" onclick="confirmerAnnulation()">✕ Confirmer l'annulation</button>
+        </div>
+    </div>
+</div>
+
 <script type="module" src="script.js"></script>
 </body>
 </html>
