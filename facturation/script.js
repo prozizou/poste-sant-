@@ -568,10 +568,16 @@ window.reimprimerTicket = async function(key) {
 window.filtrerPatients = function() {
     const q=document.getElementById('m-search-patient').value.trim().toLowerCase();
     const container=document.getElementById('patient-suggestions');
-    if (!q) { container.innerHTML=''; return; }
+    // Toute frappe invalide la sélection précédente : le nom saisi devient la
+    // nouvelle source de vérité (évite un patient "fantôme" qui ne
+    // correspondrait plus au texte affiché à l'écran).
+    patientSelectionne = null;
+    document.getElementById('patient-selectionne').style.display='none';
+    if (!q) { container.innerHTML=''; checkMedBtn(); return; }
     const todayTickets=allTickets.filter(x=>isToday(x._ts)&&(x.name||'').toLowerCase().includes(q));
     if (!todayTickets.length) {
-        container.innerHTML='<div style="padding:8px;font-size:0.8rem;color:var(--muted);">Aucun patient trouvé aujourd\'hui</div>';
+        container.innerHTML='<div style="padding:8px;font-size:0.8rem;color:var(--muted);">Aucun ticket trouvé aujourd\'hui — le nom saisi sera utilisé tel quel.</div>';
+        checkMedBtn();
         return;
     }
     window._patientSuggestions = todayTickets.slice(0, 5);
@@ -583,6 +589,7 @@ window.filtrerPatients = function() {
             <span class="pi-attente">${esc(x.num_attente||'—')}</span>
         </div>
     `).join('');
+    checkMedBtn();
 };
 
 window.selectPatientById = function(i) {
@@ -758,11 +765,18 @@ window.calcMonnaieM = function() {
 };
 
 function checkMedBtn() {
-    document.getElementById('btn-med').disabled = panier.length === 0;
+    const manualName = document.getElementById('m-search-patient').value.trim();
+    const hasPatient = !!(patientSelectionne || manualName);
+    document.getElementById('btn-med').disabled = panier.length === 0 || !hasPatient;
 }
 
 window.encaisserMedicaments = async function() {
     if (!panier.length) return;
+    const manualName = document.getElementById('m-search-patient').value.trim();
+    if (!patientSelectionne && !manualName) {
+        toast('Le nom du patient est obligatoire.', 'err');
+        return;
+    }
     if (!loadedS) {
         toast("⏳ Chargement du stock en cours — veuillez patienter avant d'encaisser.", 'err');
         return;
@@ -773,7 +787,7 @@ window.encaisserMedicaments = async function() {
 
     if (recu > 0 && recu < total) { toast('Montant remis insuffisant.', 'err'); return; }
 
-    const patientNom = patientSelectionne ? patientSelectionne.name : '(non identifié)';
+    const patientNom = patientSelectionne ? patientSelectionne.name : manualName;
     const patientAtt = patientSelectionne ? (patientSelectionne.num_attente||'—') : '—';
 
     const btn=document.getElementById('btn-med');

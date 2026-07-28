@@ -226,8 +226,8 @@
                         <div class="card-body">
                             <div class="patient-lookup">
                                 <div class="fg">
-                                    <label>🔍 Rechercher le patient par nom (ticket du jour)</label>
-                                    <input type="text" id="m-search-patient" class="fc" placeholder="Saisir le nom du patient…" oninput="filtrerPatients()">
+                                    <label>🔍 Nom du patient <span class="req">*</span> <span style="color:var(--muted);font-weight:400;text-transform:none;">(ticket du jour ou saisie libre)</span></label>
+                                    <input type="text" id="m-search-patient" class="fc" placeholder="Rechercher un ticket du jour ou saisir le nom…" oninput="filtrerPatients()">
                                 </div>
                                 <div id="patient-suggestions" class="patient-list"></div>
                                 <div class="recap-box" id="patient-selectionne" style="display:none;">
