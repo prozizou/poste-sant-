@@ -907,6 +907,33 @@ window.reimprimerMed = async function(key) {
 // ═══════════════════════════════════════════════
 let pendingAnnulation = null; // { type: 'ticket'|'med', key }
 
+// Remet en stock les médicaments d'une vente annulée. Retourne le détail
+// par ligne (clé stock résolue, succès/échec) pour que l'administration
+// puisse plus tard reverser précisément cette remise en stock si elle
+// décide de révoquer l'annulation.
+async function restockerMedicaments(items) {
+    const detail = [];
+    for (const item of items) {
+        let key = item.stock_key;
+        if (!key || !allStock.find(s => s._key === key)) {
+            const nomLower = (item.nom || '').trim().toLowerCase();
+            const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
+            key = matches.length === 1 ? matches[0]._key : null;
+        }
+        if (!key) { detail.push({ nom: item.nom, qte: item.qte, stock_key: null, ok: false }); continue; }
+        try {
+            await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), (current) => {
+                const n = parseInt(current, 10);
+                return (isNaN(n) ? 0 : n) + Number(item.qte || 0);
+            });
+            detail.push({ nom: item.nom, qte: item.qte, stock_key: key, ok: true });
+        } catch (e) {
+            detail.push({ nom: item.nom, qte: item.qte, stock_key: key, ok: false });
+        }
+    }
+    return detail;
+}
+
 window.ouvrirModalTicket = function(key) {
     const x = allTickets.find(t => t._key === key);
     if (!x || x.annule) return;
@@ -968,29 +995,13 @@ window.confirmerAnnulation = async function() {
         } else {
             const vente = allMedVentes.find(m => m._key === pendingAnnulation.key);
             const items = (vente && vente.medicaments) || [];
-            let restockOk = 0, restockFail = [];
-
-            for (const item of items) {
-                let key = item.stock_key;
-                if (!key || !allStock.find(s => s._key === key)) {
-                    const nomLower = (item.nom || '').trim().toLowerCase();
-                    const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
-                    key = matches.length === 1 ? matches[0]._key : null;
-                }
-                if (!key) { restockFail.push(item.nom); continue; }
-                try {
-                    await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), (current) => {
-                        const n = parseInt(current, 10);
-                        return (isNaN(n) ? 0 : n) + Number(item.qte || 0);
-                    });
-                    restockOk++;
-                } catch (e) {
-                    restockFail.push(item.nom);
-                }
-            }
+            const retourDetail = await restockerMedicaments(items);
+            const restockOk = retourDetail.filter(d => d.ok).length;
+            const restockFail = retourDetail.filter(d => !d.ok).map(d => d.nom);
 
             await update(ref(db, 'vente_medicaments/' + pendingAnnulation.key), {
                 ...annuleFields,
+                retour_detail: retourDetail,
                 retour_stock_ok: restockOk,
                 retour_stock_echec: restockFail
             });
