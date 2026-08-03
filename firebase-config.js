@@ -16,21 +16,58 @@
 //  être contourné en modifiant le sessionStorage ou en appelant l'API REST
 //  Firebase directement.
 //
-//  RECOMMANDATION : stocker le rôle de chaque utilisateur côté serveur, par ex.
-//  dans un nœud "db_users/{uid}/role" écrit UNIQUEMENT par un administrateur
-//  (ou via des "custom claims" Firebase Auth), puis écrire des règles RTDB du type :
+//  RECOMMANDATION : stocker le rôle de chaque utilisateur côté serveur, dans
+//  un nœud "db_users/{uid}/role" écrit UNIQUEMENT par un administrateur (ou
+//  via des "custom claims" Firebase Auth), puis écrire des règles RTDB du
+//  type ci-dessous. Ce jeu de règles reflète les nœuds RÉELLEMENT utilisés
+//  par le code (facturation, stock, dépenses, compteur d'attente) et le
+//  modèle de rôles déjà appliqué côté UI (admin / caissier / trésorier) :
 //
 //    {
 //      "rules": {
-//        "db_pharmacie_stock":   { ".read": "auth != null", ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'" },
+//        ".read": false,
+//        ".write": false,
+//
+//        "db_users": {
+//          "$uid": {
+//            ".read":  "auth != null && (auth.uid === $uid || root.child('db_users').child(auth.uid).child('role').val() === 'admin')",
+//            ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'",
+//            ".validate": "newData.child('role').val() === 'admin' || newData.child('role').val() === 'caissier' || newData.child('role').val() === 'tresorier'"
+//          }
+//        },
+//
+//        "administration": {
+//          "auth_db": {
+//            ".indexOn": "email",
+//            ".read":  "auth != null && query.orderByChild === 'email' && query.equalTo === auth.token.email",
+//            ".write": false
+//          }
+//        },
+//
+//        "ticket_dbase":      { ".read": "auth != null", ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')" },
+//        "vente_medicaments": { ".read": "auth != null", ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')" },
+//        "db_pharmacie_stock":{ ".read": "auth != null", ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')" },
+//        "compteurs":         { ".read": "auth != null", ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')" },
+//
 //        "db_pharmacie_reappro": { ".read": "auth != null", ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'" },
-//        "db_agenda":            { ".read": "auth != null", ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'" },
-//        "ticket_dbase":         { ".read": "auth != null", ".write": "auth != null" },
-//        "vente_medicaments":    { ".read": "auth != null", ".write": "auth != null" },
-//        "compteurs":            { ".read": "auth != null", ".write": "auth != null" },
-//        "db_users":             { ".read": "auth != null", ".write": false }
+//
+//        "db_depenses": {
+//          ".read":  "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier')",
+//          ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier'"
+//        }
 //      }
 //    }
+//
+//  Étape préalable (manuelle, une fois par compte, pas d'écran dédié dans
+//  l'app) : pour chaque utilisateur déjà créé, ajouter dans la Console
+//  Firebase → Realtime Database le nœud "db_users/{UID}/role" avec la
+//  valeur "admin", "caissier" ou "tresorier" — l'UID se trouve dans
+//  Authentication > Users. Répéter à chaque nouveau compte créé.
+//
+//  Tout nœud non listé ci-dessus (db_patients, db_consultations,
+//  db_suivi_vulnerables, db_agenda — pas encore utilisés par le code) reste
+//  bloqué par le refus par défaut (".read"/".write": false) tant qu'il n'est
+//  pas explicitement ouvert avec ses propres règles.
 //
 //  Règles Authentication recommandées :
 //  - Activer uniquement Email/Password dans Firebase Console
