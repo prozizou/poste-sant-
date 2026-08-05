@@ -172,6 +172,39 @@ progress:not([value])::-moz-progress-bar {
 .fc.err   { border-color: var(--danger); background: var(--danger-bg); }
 
 /* ════════════════════════════════
+   SAISIE A POSTERIORI (DATE DE L'OPÉRATION)
+   Permet d'enregistrer, un autre jour, les consultations/ventes d'une
+   journée où la caisse n'a pas pu être tenue (ex. week-end).
+════════════════════════════════ */
+.backdate-bar {
+    background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; margin: 14px 0 18px; display: flex; align-items: flex-end; gap: 12px;
+    flex-wrap: wrap; transition: background 0.2s, border-color 0.2s;
+}
+.backdate-bar.active { background: #fff8e8; border-color: var(--warning); }
+.backdate-bar .fg { margin-bottom: 0; }
+.backdate-bar input[type=date], .backdate-bar input[type=time] {
+    width: auto; padding: 8px 11px; font-size: 0.82rem;
+}
+.backdate-bar .bd-check { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; color: var(--muted); padding-bottom: 9px; }
+.backdate-bar .bd-check input { width: auto; }
+.btn-reset-date {
+    padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--muted);
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.btn-reset-date:hover { border-color: var(--primary); color: var(--primary); }
+.backdate-hint { font-size: 0.72rem; color: var(--muted); flex-basis: 100%; line-height: 1.4; }
+.backdate-banner {
+    display: none; align-items: center; gap: 8px; background: var(--warning); color: #fff; font-weight: 800;
+    font-size: 0.82rem; padding: 9px 16px; border-radius: 10px; margin-bottom: 14px;
+}
+.backdate-banner.visible { display: flex; }
+.tag-differe {
+    display: inline-block; font-size: 0.65rem; font-weight: 800; padding: 2px 7px; border-radius: 10px;
+    background: #fef5e7; color: var(--warning); border: 1px solid #f0d090; margin-left: 6px; white-space: nowrap;
+}
+
+/* ════════════════════════════════
    TARIF CARDS
 ════════════════════════════════ */
 .tarif-label { font-size: 0.72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }

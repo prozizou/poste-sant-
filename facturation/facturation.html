@@ -41,6 +41,27 @@
 
 <div class="page">
 
+    <!-- ══ SAISIE A POSTERIORI : date/heure de l'opération ══
+         Par défaut = maintenant (saisie normale). Permet à la caissière (ou,
+         un autre jour, à l'administration) d'enregistrer une consultation ou
+         une vente survenue un jour précédent (ex. week-end sans caissier). -->
+    <div class="backdate-bar" id="backdate-bar">
+        <div class="fg">
+            <label for="op-date">Date de l'opération</label>
+            <input type="date" id="op-date" class="fc">
+        </div>
+        <div class="fg">
+            <label for="op-heure">Heure</label>
+            <input type="time" id="op-heure" class="fc">
+        </div>
+        <label class="bd-check"><input type="checkbox" id="op-imprimer" checked> Imprimer le reçu</label>
+        <button type="button" class="btn-reset-date" id="btn-reset-date">↺ Revenir à aujourd'hui</button>
+        <span class="backdate-hint">Par défaut : maintenant, pour une saisie normale. Choisissez une date antérieure pour enregistrer une consultation ou une vente qui a eu lieu un autre jour (ex. le week-end en l'absence du caissier) — le numéro d'attente et les statistiques seront rattachés à cette date-là, pas à aujourd'hui.</span>
+    </div>
+    <div class="backdate-banner" id="backdate-banner">
+        ⚠️ Mode saisie a posteriori — les enregistrements seront datés du <span id="backdate-banner-date">—</span>, pas d'aujourd'hui.
+    </div>
+
     <h3 class="sect-title">💰 Recettes Globales (Consultations + Pharmacie)</h3>
     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
         <div class="stat-card">
