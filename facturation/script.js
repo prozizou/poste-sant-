@@ -6,10 +6,15 @@ import { onAuthStateChanged }
 import * as printer from './escpos-printer.js';
 
 // ── AUTH GUARD ──────────────────────────────────
+// Admin ET caissier(ère) partagent cette page : l'admin peut notamment s'en
+// servir pour la saisie a posteriori (ex. week-end sans caissier). Seul le
+// trésorier n'a pas accès à la caisse.
 onAuthStateChanged(auth, u => {
     if (!u) { window.location.href = '../index.html'; return; }
     const role = sessionStorage.getItem('userRole');
-    if (role === 'admin') { window.location.href = '../accueil/menu_admin.html'; }
+    if (role === 'tresorier') { window.location.href = '../accueil/menu_tresorier.html'; return; }
+    const back = document.querySelector('.back-btn');
+    if (back) back.href = (role === 'admin') ? '../accueil/menu_admin.html' : '../accueil/menu_caissier.html';
 });
 
 // ── REFS FIREBASE ───────────────────────────────
@@ -25,6 +30,79 @@ let prixActuel   = 0;
 let panier       = [];          // [{nom, prix, stock_key, qte, stock_max}]
 let patientSelectionne = null;  // {name, age, attente}
 let loadedT = false, loadedM = false, loadedS = false;
+
+// ── SAISIE A POSTERIORI : date/heure de l'opération ──────────────
+// Par défaut : maintenant (saisie normale). Modifiable pour rattacher un
+// ticket/une vente à un jour précédent (ex. week-end sans caissier) : le
+// numéro d'attente, les statistiques et le reçu imprimé suivent alors cette
+// date-là plutôt que l'instant réel de la saisie.
+let backdateEtaitActif = false;
+
+function getOpTimestamp() {
+    const dEl = document.getElementById('op-date');
+    const hEl = document.getElementById('op-heure');
+    if (!dEl || !dEl.value) return Date.now();
+    const [y, m, d] = dEl.value.split('-').map(Number);
+    let hh, mm;
+    if (hEl && hEl.value) { [hh, mm] = hEl.value.split(':').map(Number); }
+    else { const n = new Date(); hh = n.getHours(); mm = n.getMinutes(); }
+    return new Date(y, m - 1, d, hh, mm, 0, 0).getTime();
+}
+
+function reglerHeureActuelle() {
+    const n = new Date();
+    const dEl = document.getElementById('op-date');
+    const hEl = document.getElementById('op-heure');
+    if (dEl) dEl.value = ymd(n.getTime());
+    if (hEl) hEl.value = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+}
+
+// Refuse une date de l'opération dans le futur (remet « aujourd'hui »).
+function validerOpDate() {
+    const dEl = document.getElementById('op-date');
+    if (dEl && dEl.value && dEl.value > ymd(Date.now())) {
+        toast("La date de l'opération ne peut pas être dans le futur.", 'err');
+        dEl.value = ymd(Date.now());
+        majBackdateUI();
+        return false;
+    }
+    return true;
+}
+
+function majBackdateUI() {
+    const bar = document.getElementById('backdate-bar');
+    const banner = document.getElementById('backdate-banner');
+    const imprimerEl = document.getElementById('op-imprimer');
+    if (!bar || !banner) return;
+    const backdate = !isSameDay(getOpTimestamp(), Date.now());
+    bar.classList.toggle('active', backdate);
+    banner.classList.toggle('visible', backdate);
+    if (backdate) {
+        document.getElementById('backdate-banner-date').textContent =
+            new Date(getOpTimestamp()).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+    }
+    // Décoché par défaut en entrant en mode « a posteriori » (l'imprimé n'a
+    // souvent plus lieu d'être plusieurs jours après) — mais on ne revient
+    // pas dessus tant que le mode ne change pas, pour respecter un choix
+    // manuel de l'utilisateur au sein d'une même saisie.
+    if (backdate !== backdateEtaitActif && imprimerEl) imprimerEl.checked = !backdate;
+    backdateEtaitActif = backdate;
+}
+
+// Script chargé en <script type="module"> : le DOM est déjà disponible
+// (comportement "defer" natif des modules), pas besoin d'attendre
+// DOMContentLoaded — cohérent avec le reste du fichier.
+reglerHeureActuelle();
+majBackdateUI();
+document.getElementById('op-date')?.addEventListener('change', () => {
+    if (validerOpDate()) majBackdateUI();
+    if (document.getElementById('m-search-patient')?.value.trim()) window.filtrerPatients();
+});
+document.getElementById('op-heure')?.addEventListener('change', () => { majBackdateUI(); });
+document.getElementById('btn-reset-date')?.addEventListener('click', () => {
+    reglerHeureActuelle(); majBackdateUI();
+    toast("Date de l'opération réinitialisée à maintenant.", 'ok');
+});
 
 // ── SÉCURITÉ : Échappement XSS ──────────────────
 function esc(str) {
@@ -48,6 +126,11 @@ function getSafeTs(val) {
     return Date.now();
 }
 function isToday(ts) { const d=new Date(ts),n=new Date(); return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
+// Comme isToday(), mais comparé à une date de référence quelconque — utilisé
+// pour la saisie a posteriori (ex. rattacher un ticket à un samedi précis).
+function isSameDay(ts, refTs) { const d=new Date(ts),r=new Date(refTs); return d.getDate()===r.getDate()&&d.getMonth()===r.getMonth()&&d.getFullYear()===r.getFullYear(); }
+// Date locale « AAAA-MM-JJ » (pour les clés Firebase du compteur d'attente).
+function ymd(ts) { const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function isThisWeek(ts) {
     const d=new Date(ts),now=new Date(),dow=now.getDay(),numDay=dow===0?6:dow-1;
     const sow=new Date(now); sow.setDate(now.getDate()-numDay); sow.setHours(0,0,0,0);
@@ -64,8 +147,10 @@ function dateTimeStr(ts) {
     const d=new Date(ts);
     return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 }
-function dateISO() {
-    const d=new Date();
+// ts optionnel : sert à dater un reçu sur la date de l'opération choisie
+// (saisie a posteriori), et non sur l'instant réel de l'impression.
+function dateISO(ts = Date.now()) {
+    const d=new Date(ts);
     return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 }
 function toast(msg, type='ok') {
@@ -294,18 +379,20 @@ setTimeout(() => {
 }, 10000);
 
 // ── NUMÉRO D'ATTENTE ATOMIQUE (sans doublons) ────
-async function prochainNumeroAttente() {
-    const todayTickets = allTickets.filter(x => isToday(x._ts));
+// refTs : jour auquel rattacher le compteur — le jour réel en saisie
+// normale, ou le jour choisi dans la barre de saisie a posteriori.
+async function prochainNumeroAttente(refTs = Date.now()) {
+    const jourTickets = allTickets.filter(x => isSameDay(x._ts, refTs));
     let maxAttente = 0;
-    todayTickets.forEach(t => {
+    jourTickets.forEach(t => {
         if (t.num_attente) {
             const num = parseInt(String(t.num_attente).replace(/\D/g, ''), 10);
             if (!isNaN(num) && num > maxAttente) maxAttente = num;
         }
     });
 
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    const compteurRef = ref(db, `compteurs/attente_${today}`);
+    const jour = ymd(refTs); // AAAA-MM-JJ du jour de l'opération
+    const compteurRef = ref(db, `compteurs/attente_${jour}`);
     try {
         const result = await runTransaction(compteurRef, (current) => {
             let c = current || 0;
@@ -460,16 +547,21 @@ window.encaisserTicket = async function() {
     if (!prenom||!nom||!age||!prixActuel) return;
     if (!validateAge(age)) { toast('Âge invalide (0–120 ans).', 'err'); return; }
     if (recu > 0 && recu < prixActuel) { toast('Montant remis insuffisant.', 'err'); return; }
+    if (!validerOpDate()) return;
 
     const btn=document.getElementById('btn-ticket');
     btn.disabled=true; btn.innerHTML='⏳ Enregistrement…';
 
-    const now=Date.now();
-    const { num: nAtt, fiable } = await prochainNumeroAttente();
+    // opTs = date/heure choisie dans la barre « saisie a posteriori » (ou
+    // maintenant, en saisie normale). Tout le ticket (n° d'attente, reçu,
+    // validité) est daté sur cette base, pas sur l'instant de la saisie.
+    const opTs = getOpTimestamp();
+    const enDiffere = !isSameDay(opTs, Date.now());
+    const { num: nAtt, fiable } = await prochainNumeroAttente(opTs);
     const numAttente='N° ' + String(nAtt).padStart(3, '0');
     if (!fiable) toast('Connexion instable : risque de doublon.', 'err');
-    
-    const validiteTs=now + 24*60*60*1000;
+
+    const validiteTs=opTs + 24*60*60*1000;
     const validiteStr=new Date(validiteTs).toLocaleDateString('fr-FR')+' à '+new Date(validiteTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 
     const payload = {
@@ -479,16 +571,18 @@ window.encaisserTicket = async function() {
         num_attente:    numAttente,
         argent_remis:   recu,
         monnaie_rendue: monnaie,
-        date:           new Date(now).toLocaleDateString('fr-FR'),
-        heure:          new Date(now).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
-        date_heure_ts:  now,
-        validite_ts:    validiteTs
+        date:           new Date(opTs).toLocaleDateString('fr-FR'),
+        heure:          new Date(opTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+        date_heure_ts:  opTs,
+        validite_ts:    validiteTs,
+        saisi_par:      auth.currentUser?.email || '',
+        ...(enDiffere ? { saisie_differee: true, saisie_le: Date.now() } : {})
     };
 
     try {
         const newRef=await push(ticketRef, payload);
         const refNum='TK-'+newRef.key.substring(0,6).toUpperCase();
-        const dateStr=dateISO();
+        const dateStr=dateISO(opTs);
 
         const ticketData = {
             refNum, dateStr, prenom, nom, age, choix, numAttente,
@@ -497,8 +591,13 @@ window.encaisserTicket = async function() {
             validiteStr
         };
         document.getElementById('print-content').innerHTML = buildConsultationHTML(ticketData);
-        await imprimerTicket('consultation', ticketData);
-        toast('Ticket enregistré et imprimé avec succès.','ok');
+        const imprimer = document.getElementById('op-imprimer')?.checked !== false;
+        if (imprimer) {
+            await imprimerTicket('consultation', ticketData);
+            toast('Ticket enregistré et imprimé avec succès.','ok');
+        } else {
+            toast('Ticket enregistré avec succès (sans impression).','ok');
+        }
 
         document.getElementById('t-prenom').value='';
         document.getElementById('t-nom').value='';
@@ -536,7 +635,7 @@ window.renderHistTickets = function() {
             <td>${esc(x.age||'—')} ans</td>
             <td><span class="tbadge">${esc(x.choix||'—')}</span></td>
             <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.prix||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">✕ Annulé</span>' : ''}</td>
-            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
+            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? '<span class="tag-differe">🕒 a posteriori</span>' : ''}</td>
             <td><div class="hist-actions">
                 <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">🖨️ Réimprimer</button>
                 ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">✕ Annuler</button>` : ''}
@@ -574,13 +673,18 @@ window.filtrerPatients = function() {
     patientSelectionne = null;
     document.getElementById('patient-selectionne').style.display='none';
     if (!q) { container.innerHTML=''; checkMedBtn(); return; }
-    const todayTickets=allTickets.filter(x=>isToday(x._ts)&&(x.name||'').toLowerCase().includes(q));
-    if (!todayTickets.length) {
-        container.innerHTML='<div style="padding:8px;font-size:0.8rem;color:var(--muted);">Aucun ticket trouvé aujourd\'hui — le nom saisi sera utilisé tel quel.</div>';
+    // Recherche les tickets du JOUR DE L'OPÉRATION choisi (barre de saisie a
+    // posteriori) : en saisie normale, c'est aujourd'hui ; en rattrapage
+    // d'un samedi/dimanche, ce sont les tickets déjà saisis pour ce jour-là.
+    const opTs = getOpTimestamp();
+    const jourTickets=allTickets.filter(x=>isSameDay(x._ts, opTs)&&(x.name||'').toLowerCase().includes(q));
+    if (!jourTickets.length) {
+        const msgJour = isSameDay(opTs, Date.now()) ? "aujourd'hui" : ('le ' + new Date(opTs).toLocaleDateString('fr-FR'));
+        container.innerHTML=`<div style="padding:8px;font-size:0.8rem;color:var(--muted);">Aucun ticket trouvé ${msgJour} — le nom saisi sera utilisé tel quel.</div>`;
         checkMedBtn();
         return;
     }
-    window._patientSuggestions = todayTickets.slice(0, 5);
+    window._patientSuggestions = jourTickets.slice(0, 5);
     container.innerHTML = window._patientSuggestions.map((x, i)=>`
         <div class="patient-item" tabindex="0" role="button"
              onclick="selectPatientById(${i})"
@@ -786,6 +890,7 @@ window.encaisserMedicaments = async function() {
     const monnaie = recu - total;
 
     if (recu > 0 && recu < total) { toast('Montant remis insuffisant.', 'err'); return; }
+    if (!validerOpDate()) return;
 
     const patientNom = patientSelectionne ? patientSelectionne.name : manualName;
     const patientAtt = patientSelectionne ? (patientSelectionne.num_attente||'—') : '—';
@@ -793,7 +898,9 @@ window.encaisserMedicaments = async function() {
     const btn=document.getElementById('btn-med');
     btn.disabled=true; btn.innerHTML='⏳ Enregistrement…';
 
-    const now=Date.now();
+    // Voir encaisserTicket() : opTs suit la barre « saisie a posteriori ».
+    const opTs = getOpTimestamp();
+    const enDiffere = !isSameDay(opTs, Date.now());
     const payload = {
         patient_nom:  patientNom,
         num_attente:  patientAtt,
@@ -801,9 +908,11 @@ window.encaisserMedicaments = async function() {
         total,
         argent_remis: recu,
         monnaie_rendue: monnaie,
-        date:  new Date(now).toLocaleDateString('fr-FR'),
-        heure: new Date(now).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
-        date_heure_ts: now
+        date:  new Date(opTs).toLocaleDateString('fr-FR'),
+        heure: new Date(opTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+        date_heure_ts: opTs,
+        saisi_par: auth.currentUser?.email || '',
+        ...(enDiffere ? { saisie_differee: true, saisie_le: Date.now() } : {})
     };
 
     try {
@@ -824,7 +933,7 @@ window.encaisserMedicaments = async function() {
 
         const newRef=await push(medVenteRef, payload);
         const refNum='MED-'+newRef.key.substring(0,6).toUpperCase();
-        const dateStr=dateISO();
+        const dateStr=dateISO(opTs);
 
         const medData = {
             refNum, dateStr, patientNom, patientAtt,
@@ -833,8 +942,13 @@ window.encaisserMedicaments = async function() {
             recu, recuFmt: fmt(recu), monnaieFmt: fmt(monnaie)
         };
         document.getElementById('print-content').innerHTML = buildMedicamentsHTML(medData);
-        await imprimerTicket('medicaments', medData);
-        toast('Vente enregistrée et ticket imprimé.','ok');
+        const imprimer = document.getElementById('op-imprimer')?.checked !== false;
+        if (imprimer) {
+            await imprimerTicket('medicaments', medData);
+            toast('Vente enregistrée et ticket imprimé.','ok');
+        } else {
+            toast('Vente enregistrée avec succès (sans impression).','ok');
+        }
 
         panier=[];
         patientSelectionne=null;
@@ -873,7 +987,7 @@ window.renderHistMeds = function() {
             <td><strong>${esc(x.patient_nom||'—')}</strong></td>
             <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.total||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">↩ Retourné</span>' : ''}</td>
             <td>${esc(String((x.medicaments||[]).length))}</td>
-            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
+            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? '<span class="tag-differe">🕒 a posteriori</span>' : ''}</td>
             <td><div class="hist-actions">
                 <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">🖨️ Réimprimer</button>
                 ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">↩ Annuler &amp; Retourner</button>` : ''}
