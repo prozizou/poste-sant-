@@ -49,6 +49,17 @@
         .period-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
         .hidden{display:none !important;}
 
+        /* ── PLAGE DE DATES PERSONNALISÉE ── */
+        .custom-range-bar{display:none;align-items:flex-end;gap:12px;flex-wrap:wrap;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;}
+        .custom-range-bar.visible{display:flex;}
+        .custom-range-bar .fg{display:flex;flex-direction:column;gap:4px;}
+        .custom-range-bar label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+        .custom-range-bar input[type=date]{padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.82rem;color:var(--text);background:#fafbfc;}
+        .custom-range-bar input[type=date]:focus{outline:none;border-color:var(--primary);}
+        .btn-apply-range{padding:9px 18px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .2s;}
+        .btn-apply-range:hover{background:var(--primary-light);}
+        .custom-range-hint{font-size:.72rem;color:var(--muted);flex-basis:100%;}
+
         .main-grid{display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start;}
         @media(max-width:1024px){.main-grid{grid-template-columns:1fr;}}
         /* Empêche un enfant de grille (ex. tableau min-width:520px) de forcer
@@ -141,6 +152,20 @@
         <button class="period-btn" data-p="trimestre">📅 Trimestriel</button>
         <button class="period-btn" data-p="annee">📅 Annuel</button>
         <button class="period-btn" data-p="tout">📅 Tout</button>
+        <button class="period-btn" data-p="personnalise">🗓️ Date / Plage…</button>
+    </div>
+
+    <div class="custom-range-bar" id="custom-range-bar">
+        <div class="fg">
+            <label for="date-debut">Du</label>
+            <input type="date" id="date-debut">
+        </div>
+        <div class="fg">
+            <label for="date-fin">Au (facultatif)</label>
+            <input type="date" id="date-fin">
+        </div>
+        <button class="btn-apply-range" id="btn-apply-range">Appliquer</button>
+        <span class="custom-range-hint">Laissez « Au » vide (ou identique à « Du ») pour consulter une seule date.</span>
     </div>
 
     <!-- BILAN DE LA PÉRIODE SÉLECTIONNÉE -->
@@ -319,6 +344,11 @@ let allDepenses = [], allTickets = [], allVentes = [];
 let loadedD = false, loadedT = false, loadedM = false;
 let periode = 'mois';   // période sélectionnée par le sélecteur d'onglets
 
+// ── PLAGE DE DATES PERSONNALISÉE ────────────────
+// customDebut/customFin : bornes en millisecondes (journée complète, du
+// début 00:00:00 à la fin 23:59:59.999) ; customLabel : libellé affiché.
+let customDebut = null, customFin = null, customLabel = '';
+
 // Ordre des périodes (aussi utilisé pour la synthèse de l'export PDF).
 const PERIOD_ORDER = ['jour', 'semaine', 'mois', 'trimestre', 'annee', 'tout'];
 
@@ -382,10 +412,63 @@ document.getElementById('period-tabs').addEventListener('click', e => {
     if (!btn) return;
     periode = btn.dataset.p;
     document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.getElementById('custom-range-bar').classList.toggle('visible', periode === 'personnalise');
     render();
 });
 
-const filtre = list => list.filter(x => dansPeriode(x._ts, periode));
+// ── PLAGE DE DATES PERSONNALISÉE ─────────────────
+// Convertit « AAAA-MM-JJ » (valeur d'un <input type=date>) en date lisible.
+function formatISOtoFR(iso) {
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+}
+
+function appliquerPlagePersonnalisee() {
+    const dEl = document.getElementById('date-debut');
+    const fEl = document.getElementById('date-fin');
+    let dStr = dEl.value;
+    let fStr = fEl.value || dStr; // « Au » vide → date unique
+    if (!dStr) { toast('Choisissez au moins une date de début.', 'err'); return; }
+    if (!fStr) fStr = dStr;
+    if (fStr < dStr) { [dStr, fStr] = [fStr, dStr]; } // bornes inversées : on les remet dans l'ordre
+    dEl.value = dStr; fEl.value = fStr;
+
+    const [ya, ma, da] = dStr.split('-').map(Number);
+    const [yb, mb, db] = fStr.split('-').map(Number);
+    customDebut = new Date(ya, ma - 1, da, 0, 0, 0, 0).getTime();
+    customFin   = new Date(yb, mb - 1, db, 23, 59, 59, 999).getTime();
+    customLabel = (dStr === fStr) ? `Le ${formatISOtoFR(dStr)}` : `Du ${formatISOtoFR(dStr)} au ${formatISOtoFR(fStr)}`;
+
+    periode = 'personnalise';
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.dataset.p === 'personnalise'));
+    document.getElementById('custom-range-bar').classList.add('visible');
+    render();
+}
+document.getElementById('btn-apply-range').addEventListener('click', appliquerPlagePersonnalisee);
+['date-debut', 'date-fin'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') appliquerPlagePersonnalisee();
+    });
+});
+
+// Libellés affichés selon la période active — gèrent aussi le mode
+// « personnalise », absent de l'objet PERIODES partagé avec rapports.html.
+function libelleCourant() {
+    if (periode === 'personnalise') return customLabel || 'Choisissez une plage de dates ci-dessus';
+    return PERIODES[periode].label;
+}
+function libelleDetailCourant() {
+    if (periode === 'personnalise') return customLabel || 'Choisissez une plage de dates ci-dessus';
+    return libellePeriode(periode);
+}
+function courtCourant() {
+    return periode === 'personnalise' ? 'Plage personnalisée' : PERIODES[periode].court;
+}
+
+const filtre = list => list.filter(x => {
+    if (periode === 'personnalise') return customDebut != null && x._ts >= customDebut && x._ts <= customFin;
+    return dansPeriode(x._ts, periode);
+});
 
 // ── RENDU ───────────────────────────────────────
 function render() {
@@ -413,10 +496,10 @@ function render() {
     document.getElementById('b-solde').textContent = (solde < 0 ? '– ' : '') + fcfa(Math.abs(solde));
     document.getElementById('card-solde').classList.toggle('negatif', solde < 0);
 
-    const lbl = PERIODES[periode].label;
+    const lbl = libelleCourant();
     document.getElementById('lbl-periode').textContent = lbl;
     document.getElementById('cat-periode').textContent = lbl;
-    document.getElementById('jrn-periode').textContent = libellePeriode(periode);
+    document.getElementById('jrn-periode').textContent = libelleDetailCourant();
 
     renderJournal(dep);
     renderCategories(dep, depenses);
@@ -425,7 +508,10 @@ function render() {
 function renderJournal(dep) {
     const c = document.getElementById('dep-container');
     if (!dep.length) {
-        c.innerHTML = `<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">🗒️</span>Aucune dépense enregistrée pour le moment.</div>`;
+        const msg = (periode === 'personnalise' && customDebut == null)
+            ? 'Choisissez une plage de dates ci-dessus, puis cliquez sur « Appliquer ».'
+            : 'Aucune dépense enregistrée pour le moment.';
+        c.innerHTML = `<div class="empty-state"><span style="font-size:2rem;display:block;margin-bottom:10px;">🗒️</span>${msg}</div>`;
         return;
     }
     const total = totalDepenses(dep);
@@ -544,9 +630,9 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
 
     exporterPDF({
         titre: 'Bilan financier — Dépenses et recettes',
-        periodeLabel: libellePeriode(periode),
+        periodeLabel: libelleDetailCourant(),
         meta: [
-            { k: 'Période', v: PERIODES[periode].court },
+            { k: 'Période', v: courtCourant() },
             { k: 'Consultations', v: `${tk.length} ticket(s)` },
             { k: 'Ventes pharmacie', v: `${md.length} vente(s)` },
             { k: 'Dépenses', v: `${dep.length} opération(s)` },
