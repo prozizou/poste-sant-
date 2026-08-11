@@ -103,6 +103,21 @@
         .rank-bar.purple span{background:var(--purple);}
         .rank-row .rk-val{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
         .rk-sub{color:var(--muted);font-weight:600;font-size:.74rem;}
+        .rank-row--clickable{cursor:pointer;border-radius:8px;padding:4px 6px;margin:-4px -6px;transition:background .15s;}
+        .rank-row--clickable:hover,.rank-row--clickable:focus-visible{background:var(--purple-bg);}
+        .rank-row--clickable:focus-visible{outline:2px solid var(--purple);outline-offset:1px;}
+
+        /* ── DIALOG « DÉTAIL D'UN MÉDICAMENT » ── */
+        dialog.med-dialog{border:none;border-radius:14px;padding:0;width:min(640px,92vw);max-height:85vh;box-shadow:0 20px 60px rgba(0,0,0,.28);}
+        dialog.med-dialog::backdrop{background:rgba(15,23,32,.55);}
+        .med-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:linear-gradient(135deg,var(--purple),#5f4483);color:#fff;}
+        .med-dialog-head h3{font-size:1rem;font-weight:800;}
+        .med-dialog-close{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:.9rem;line-height:1;flex:0 0 auto;}
+        .med-dialog-close:hover{background:rgba(255,255,255,.28);}
+        .med-dialog-body{padding:18px 20px 20px;max-height:calc(85vh - 62px);overflow-y:auto;}
+        .med-dialog-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+        .med-dialog-stats .stat-box{padding:12px 10px;}
+        @media(max-width:520px){.med-dialog-stats{grid-template-columns:1fr;}}
 
         .export-actions{display:flex;flex-direction:column;gap:8px;background:var(--gold-bg);padding:18px;border-radius:10px;border:1px dashed var(--gold);}
         .export-title{font-size:.88rem;font-weight:700;color:var(--gold-dark);display:flex;align-items:center;gap:8px;}
@@ -244,21 +259,6 @@
             <div class="kpi-val" id="kpi-unites">—</div>
             <div class="kpi-sub">Médicaments (pharmacie)</div>
         </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Ticket moyen</div>
-            <div class="kpi-val" id="kpi-ticket-moyen">—</div>
-            <div class="kpi-sub">Par consultation</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Panier moyen</div>
-            <div class="kpi-val" id="kpi-panier-moyen">—</div>
-            <div class="kpi-sub">Par vente pharmacie</div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-label">Part pharmacie</div>
-            <div class="kpi-val" id="kpi-part-pharma">—</div>
-            <div class="kpi-sub">Des recettes totales</div>
-        </div>
     </div>
 
     <div class="main-grid">
@@ -381,6 +381,17 @@
 
     </div>
 </div>
+
+<dialog class="med-dialog" id="med-detail-dialog">
+    <div class="med-dialog-head">
+        <h3 id="med-dialog-title">—</h3>
+        <button type="button" class="med-dialog-close" id="med-dialog-close" aria-label="Fermer">✕</button>
+    </div>
+    <div class="med-dialog-body">
+        <div class="med-dialog-stats" id="med-dialog-stats"></div>
+        <div class="tbl-wrap"><div id="med-dialog-table"></div></div>
+    </div>
+</dialog>
 
 <div class="toast" id="toast"></div>
 
@@ -547,23 +558,19 @@ function render() {
     document.getElementById('md-periode').textContent = libelleDetailCourant();
     document.getElementById('periode-range').textContent = '📅 ' + libelleDetailCourant();
 
-    // ── KPI secondaires (exacts, arrondis à l'entier) ──
-    const rTot   = rTk + rMd;
+    // ── KPI secondaires ──
     const unites = md.reduce((s, v) => s + (v.medicaments || []).reduce((n, l) => n + Number(l.qte || 0), 0), 0);
-    const ticketMoyen = tk.length ? Math.round(rTk / tk.length) : 0;
-    const panierMoyen = md.length ? Math.round(rMd / md.length) : 0;
-    const partPharma  = rTot ? Math.round(rMd / rTot * 100) : 0;
-    document.getElementById('kpi-unites').textContent       = fmt(unites);
-    document.getElementById('kpi-ticket-moyen').textContent = fcfa(ticketMoyen);
-    document.getElementById('kpi-panier-moyen').textContent = fcfa(panierMoyen);
-    document.getElementById('kpi-part-pharma').textContent  = partPharma + ' %';
+    document.getElementById('kpi-unites').textContent = fmt(unites);
+
+    // Conservée pour le dialog de détail par médicament (clic sur le classement).
+    currentMdPeriode = md;
 
     renderTicketsTable(trier(tk, 'tk', sortTk), rTk);
     renderVentesTable(trier(md, 'md', sortMd), rMd);
     renderRank('prestation-rank', parPrestation(tk).map(p =>
         ({ nom: p.nom, val: p.montant, sub: `${p.nb} ticket(s)` })), '');
     renderRank('med-rank', parMedicament(md).slice(0, 10).map(p =>
-        ({ nom: p.nom, val: p.montant, sub: `${p.qte} u.` })), 'purple');
+        ({ nom: p.nom, val: p.montant, sub: `${p.qte} u.` })), 'purple', { clickable: true });
 
     renderStatsComparees();
 }
@@ -625,17 +632,92 @@ function renderVentesTable(md, total) {
       </tr></tfoot></table>`;
 }
 
-function renderRank(id, items, variante) {
+function renderRank(id, items, variante, opts = {}) {
     const c = document.getElementById(id);
     if (!items.length) { c.innerHTML = `<div class="empty-state">Rien à classer sur cette période.</div>`; return; }
     const max = items[0].val || 1;
     c.innerHTML = items.map(i => `
-      <div class="rank-row">
+      <div class="rank-row${opts.clickable ? ' rank-row--clickable' : ''}"${opts.clickable ? ` data-nom="${esc(i.nom)}" tabindex="0" role="button"` : ''}>
         <span class="rk-nom" title="${esc(i.nom)}">${esc(i.nom)}</span>
         <span class="rank-bar ${variante}"><span style="width:${Math.round(i.val / max * 100)}%"></span></span>
         <span class="rk-val">${esc(fmt(i.val))} <span class="rk-sub">${esc(i.sub)}</span></span>
       </div>`).join('');
 }
+
+// ── DIALOG « DÉTAIL D'UN MÉDICAMENT » ────────────
+// Ouvert au clic sur un élément du classement « Médicaments les plus
+// vendus » : liste chaque vente contenant ce médicament sur la période
+// actuellement affichée (currentMdPeriode, tenu à jour par render()).
+let currentMdPeriode = [];
+
+function openMedDialog(nom) {
+    const lignes = [];
+    let qteTotal = 0, montantTotal = 0;
+    for (const v of currentMdPeriode) {
+        for (const li of (v.medicaments || [])) {
+            if ((li.nom || '(sans nom)') !== nom) continue;
+            const qte = Number(li.qte || 0);
+            const prixU = Number(li.prix || 0);
+            qteTotal += qte;
+            montantTotal += prixU * qte;
+            lignes.push({
+                ts: v._ts, ref: v._key,
+                patient: v.patient_nom || '(non identifié)',
+                numAttente: v.num_attente, qte, prixU, montant: prixU * qte,
+            });
+        }
+    }
+    lignes.sort((a, b) => b.ts - a.ts);
+
+    document.getElementById('med-dialog-title').textContent = '💊 ' + nom;
+    document.getElementById('med-dialog-stats').innerHTML = `
+        <div class="stat-box purple"><div class="stat-period">Ventes</div><div class="stat-val">${esc(fmt(lignes.length))}</div><div class="stat-sub">ligne(s)</div></div>
+        <div class="stat-box purple"><div class="stat-period">Unités</div><div class="stat-val">${esc(fmt(qteTotal))}</div><div class="stat-sub">délivrées</div></div>
+        <div class="stat-box gold"><div class="stat-period">Chiffre d'affaires</div><div class="stat-val">${esc(fcfa(montantTotal))}</div><div class="stat-sub">${esc(libelleDetailCourant())}</div></div>
+    `;
+
+    const c = document.getElementById('med-dialog-table');
+    if (!lignes.length) {
+        c.innerHTML = `<div class="empty-state">Aucune vente de ce médicament sur cette période.</div>`;
+    } else {
+        c.innerHTML = `<table class="data">
+          <thead><tr>
+            <th>Réf.</th><th>Date &amp; heure</th><th>Patient</th>
+            <th class="num">Qté</th><th class="num">PU</th><th class="num">Montant</th>
+          </tr></thead>
+          <tbody>${lignes.map(l => `<tr>
+            <td class="ref-tag">MED-${esc(l.ref.substring(0, 6).toUpperCase())}</td>
+            <td>${esc(dateHeure(l.ts))}</td>
+            <td style="font-weight:600;">${esc(l.patient)}
+                <div class="rk-sub">N° ${esc(l.numAttente ?? '—')}</div></td>
+            <td class="num">${esc(fmt(l.qte))}</td>
+            <td class="num">${esc(fcfa(l.prixU))}</td>
+            <td class="num">${esc(fcfa(l.montant))}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+    }
+
+    const dlg = document.getElementById('med-detail-dialog');
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else dlg.setAttribute('open', '');
+}
+
+document.getElementById('med-rank').addEventListener('click', e => {
+    const row = e.target.closest('.rank-row[data-nom]');
+    if (row) openMedDialog(row.dataset.nom);
+});
+document.getElementById('med-rank').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const row = e.target.closest('.rank-row[data-nom]');
+    if (row) { e.preventDefault(); openMedDialog(row.dataset.nom); }
+});
+document.getElementById('med-dialog-close').addEventListener('click', () => {
+    document.getElementById('med-detail-dialog').close();
+});
+document.getElementById('med-detail-dialog').addEventListener('click', e => {
+    // Clic sur le fond (::backdrop) : la cible du clic est le <dialog> lui-même.
+    if (e.target === e.currentTarget) e.currentTarget.close();
+});
 
 // Blocs « toutes périodes » : volontairement indépendants du filtre courant.
 function renderStatsComparees() {
