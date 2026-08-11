@@ -1021,6 +1021,24 @@ window.reimprimerMed = async function(key) {
 //  seulement marqué "annule" et exclu de toutes les statistiques.
 // ═══════════════════════════════════════════════
 let pendingAnnulation = null; // { type: 'ticket'|'med', key }
+let pendingAnnulationCode = ''; // code de confirmation attendu (n° d'attente, ou nom si patient non identifié)
+
+// ── CONFIRMATION PAR CODE PATIENT ────────────────
+// Avant toute action sensible (annulation, modification), on exige de
+// resaisir le n° d'attente du patient concerné : un simple clic ne suffit
+// plus, ce qui évite d'agir sur le mauvais patient dans une liste. Repli sur
+// le nom si le patient n'a pas de n° d'attente (saisie libre en pharmacie).
+function normaliseCode(s) { return String(s || '').trim().toLowerCase(); }
+function chiffresDe(s) { return String(s || '').replace(/\D/g, ''); }
+// Tolère les variantes de saisie d'un n° d'attente (« N° 003 », « 003 », « 3 »…)
+// mais reste strict (comparaison exacte du nom) quand le repli est un nom.
+function codeConfirmationValide(saisi, attendu) {
+    const s = normaliseCode(saisi), a = normaliseCode(attendu);
+    if (!a) return false;
+    if (s === a) return true;
+    const ds = chiffresDe(saisi), da = chiffresDe(attendu);
+    return !!ds && !!da && parseInt(ds, 10) === parseInt(da, 10);
+}
 
 // Remet en stock les médicaments d'une vente annulée. Retourne le détail
 // par ligne (clé stock résolue, succès/échec) pour que l'administration
@@ -1049,6 +1067,17 @@ async function restockerMedicaments(items) {
     return detail;
 }
 
+// Prépare le champ de confirmation d'une modale d'action sensible : mémorise
+// le code attendu, vide la saisie précédente, affiche l'indice et laisse le
+// bouton de confirmation désactivé tant que le code n'est pas resaisi.
+function armerConfirmation(code, indiceHtml, inputId, hintId) {
+    pendingAnnulationCode = code;
+    const input = document.getElementById(inputId);
+    if (input) input.value = '';
+    const hint = document.getElementById(hintId);
+    if (hint) { hint.textContent = indiceHtml; hint.className = 'confirm-hint'; }
+}
+
 window.ouvrirModalTicket = function(key) {
     const x = allTickets.find(t => t._key === key);
     if (!x || x.annule) return;
@@ -1062,6 +1091,8 @@ window.ouvrirModalTicket = function(key) {
         <div><strong>N° attente :</strong> ${esc(x.num_attente||'—')}</div>`;
     document.getElementById('m-motif').value = 'Erreur de saisie (caisse)';
     document.getElementById('m-obs').value = '';
+    armerConfirmation(x.num_attente || '', `Pour confirmer, saisissez le n° d'attente : ${esc(x.num_attente || '—')}`, 'm-confirm-code', 'm-confirm-hint');
+    checkAnnulationConfirm();
     document.getElementById('modal-overlay').classList.add('visible');
 };
 
@@ -1079,16 +1110,38 @@ window.ouvrirModalMed = function(key) {
         <ul style="margin:4px 0 0 18px;">${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
     document.getElementById('m-motif').value = 'Désistement du client';
     document.getElementById('m-obs').value = '';
+    const identifie = x.num_attente && x.num_attente !== '—';
+    const code = identifie ? x.num_attente : (x.patient_nom || '');
+    const indice = identifie
+        ? `Pour confirmer, saisissez le n° d'attente : ${esc(x.num_attente)}`
+        : `Patient non identifié — pour confirmer, saisissez son nom : ${esc(x.patient_nom || '—')}`;
+    armerConfirmation(code, indice, 'm-confirm-code', 'm-confirm-hint');
+    checkAnnulationConfirm();
     document.getElementById('modal-overlay').classList.add('visible');
+};
+
+window.checkAnnulationConfirm = function() {
+    const val = document.getElementById('m-confirm-code')?.value || '';
+    const ok = codeConfirmationValide(val, pendingAnnulationCode);
+    const btn = document.getElementById('modal-confirm-btn');
+    if (btn) btn.disabled = !ok;
+    const hint = document.getElementById('m-confirm-hint');
+    if (hint) hint.classList.toggle('ok', ok);
 };
 
 window.closeModalAnnulation = function() {
     document.getElementById('modal-overlay').classList.remove('visible');
     pendingAnnulation = null;
+    pendingAnnulationCode = '';
 };
 
 window.confirmerAnnulation = async function() {
     if (!pendingAnnulation) return;
+    const codeSaisi = document.getElementById('m-confirm-code').value;
+    if (!codeConfirmationValide(codeSaisi, pendingAnnulationCode)) {
+        toast('Le code de confirmation ne correspond pas au patient.', 'err');
+        return;
+    }
     const motif = document.getElementById('m-motif').value;
     const obs = document.getElementById('m-obs').value.trim();
     const btn = document.getElementById('modal-confirm-btn');
@@ -1133,7 +1186,8 @@ window.confirmerAnnulation = async function() {
         toast("Erreur lors de l'annulation : " + e.message, 'err');
     }
 
-    btn.disabled = false; btn.innerHTML = '✕ Confirmer l\'annulation';
+    btn.innerHTML = '✕ Confirmer l\'annulation';
+    checkAnnulationConfirm(); // ré-évalue l'état du bouton (modale restée ouverte après une erreur)
 };
 
 // ═══════════════════════════════════════════════
@@ -1145,6 +1199,7 @@ window.confirmerAnnulation = async function() {
 // ═══════════════════════════════════════════════
 let modifVente = null;   // enregistrement Firebase d'origine (référence)
 let modifPanier = [];    // copie de travail éditable, indépendante tant que non enregistrée
+let modifConfirmCode = ''; // code de confirmation attendu (n° d'attente, ou nom si patient non identifié)
 
 // Ajuste le stock d'un médicament d'un écart signé : positif = remis en
 // stock (quantité retirée de la vente), négatif = prélevé en plus
@@ -1187,13 +1242,30 @@ window.ouvrirModalModifMed = function(key) {
     document.getElementById('modif-med-search').value = '';
     document.getElementById('modif-motif').value = "Médicament oublié à l'ajout";
     document.getElementById('modif-obs').value = '';
+    const identifie = x.num_attente && x.num_attente !== '—';
+    modifConfirmCode = identifie ? x.num_attente : (x.patient_nom || '');
+    document.getElementById('modif-confirm-code').value = '';
+    document.getElementById('modif-confirm-hint').textContent = identifie
+        ? `Pour confirmer, saisissez le n° d'attente : ${x.num_attente}`
+        : `Patient non identifié — pour confirmer, saisissez son nom : ${x.patient_nom || '—'}`;
+    document.getElementById('modif-confirm-hint').className = 'confirm-hint';
+    checkModifConfirm();
     renderModifPanier();
     document.getElementById('modal-modif-overlay').classList.add('visible');
 };
 
+window.checkModifConfirm = function() {
+    const val = document.getElementById('modif-confirm-code')?.value || '';
+    const ok = codeConfirmationValide(val, modifConfirmCode);
+    const btn = document.getElementById('modif-confirm-btn');
+    if (btn) btn.disabled = !ok;
+    const hint = document.getElementById('modif-confirm-hint');
+    if (hint) hint.classList.toggle('ok', ok);
+};
+
 window.closeModalModifMed = function() {
     document.getElementById('modal-modif-overlay').classList.remove('visible');
-    modifVente = null; modifPanier = [];
+    modifVente = null; modifPanier = []; modifConfirmCode = '';
 };
 
 function renderModifPanier() {
@@ -1309,6 +1381,11 @@ function updateModifTotal() {
 
 window.confirmerModifMed = async function() {
     if (!modifVente) return;
+    const codeSaisi = document.getElementById('modif-confirm-code').value;
+    if (!codeConfirmationValide(codeSaisi, modifConfirmCode)) {
+        toast('Le code de confirmation ne correspond pas au patient.', 'err');
+        return;
+    }
     if (!modifPanier.length) {
         toast('Pour retirer tous les médicaments, utilisez plutôt « Annuler & Retourner ».', 'err');
         return;
@@ -1394,7 +1471,8 @@ window.confirmerModifMed = async function() {
         console.error(e);
         toast('Erreur lors de la modification : ' + e.message, 'err');
     } finally {
-        btn.disabled = false; btn.innerHTML = '💾 Enregistrer les modifications';
+        btn.innerHTML = '💾 Enregistrer les modifications';
+        checkModifConfirm(); // ré-évalue l'état du bouton (modale restée ouverte après une erreur)
     }
 };
 

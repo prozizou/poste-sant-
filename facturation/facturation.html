@@ -375,14 +375,19 @@
                     <option value="Autre motif">Autre motif</option>
                 </select>
             </div>
-            <div class="fg" style="margin-bottom:0;">
+            <div class="fg">
                 <label>Observation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optionnel)</span></label>
                 <textarea id="m-obs" class="fc" rows="2" placeholder="Précisions complémentaires…" style="resize:vertical;"></textarea>
+            </div>
+            <div class="fg confirm-fg" style="margin-bottom:0;">
+                <label>Confirmation — code patient <span class="req">*</span></label>
+                <input type="text" id="m-confirm-code" class="fc" placeholder="Saisir le n° d'attente…" oninput="checkAnnulationConfirm()" autocomplete="off">
+                <div class="confirm-hint" id="m-confirm-hint">—</div>
             </div>
         </div>
         <div class="modal-foot">
             <button type="button" class="btn btn-blue" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);" onclick="closeModalAnnulation()">Fermer</button>
-            <button type="button" class="btn" style="background:var(--danger);color:white;" id="modal-confirm-btn" onclick="confirmerAnnulation()">✕ Confirmer l'annulation</button>
+            <button type="button" class="btn" style="background:var(--danger);color:white;" id="modal-confirm-btn" onclick="confirmerAnnulation()" disabled>✕ Confirmer l'annulation</button>
         </div>
     </div>
 </div>
@@ -434,14 +439,19 @@
                     <option value="Autre motif">Autre motif</option>
                 </select>
             </div>
-            <div class="fg" style="margin-bottom:0;">
+            <div class="fg">
                 <label>Observation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optionnel)</span></label>
                 <textarea id="modif-obs" class="fc" rows="2" placeholder="Précisions complémentaires…" style="resize:vertical;"></textarea>
+            </div>
+            <div class="fg confirm-fg" style="margin-bottom:0;">
+                <label>Confirmation — code patient <span class="req">*</span></label>
+                <input type="text" id="modif-confirm-code" class="fc" placeholder="Saisir le n° d'attente…" oninput="checkModifConfirm()" autocomplete="off">
+                <div class="confirm-hint" id="modif-confirm-hint">—</div>
             </div>
         </div>
         <div class="modal-foot">
             <button type="button" class="btn btn-blue" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);" onclick="closeModalModifMed()">Fermer</button>
-            <button type="button" class="btn btn-purple" id="modif-confirm-btn" onclick="confirmerModifMed()">💾 Enregistrer les modifications</button>
+            <button type="button" class="btn btn-purple" id="modif-confirm-btn" onclick="confirmerModifMed()" disabled>💾 Enregistrer les modifications</button>
         </div>
     </div>
 </div>
