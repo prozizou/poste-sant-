@@ -220,6 +220,17 @@
         .m-field textarea { resize: vertical; }
         .modal-foot { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
 
+        /* ── CONFIRMATION PAR CODE PATIENT ── */
+        .confirm-fg { background: var(--warning-bg); border: 1.5px dashed var(--warning); border-radius: 10px; padding: 12px 14px; margin-top: 4px; }
+        .confirm-fg label { color: #7a5200; }
+        .confirm-fg input {
+            width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: .85rem; font-family: inherit; background: #fff; color: var(--text);
+        }
+        .confirm-fg input:focus { outline: none; border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
+        .confirm-hint { font-size: .72rem; color: var(--muted); margin-top: 5px; }
+        .confirm-hint.ok { color: #0b6e4c; font-weight: 700; }
+
         /* ── TOAST ── */
         .toast {
             position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -414,10 +425,15 @@
                 <label>Observation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optionnel)</span></label>
                 <textarea id="m-obs" rows="2" placeholder="Précisions complémentaires…"></textarea>
             </div>
+            <div class="m-field confirm-fg" style="margin-bottom:0;">
+                <label>Confirmation — code patient <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="m-confirm-code" placeholder="Saisir le n° d'attente…" oninput="checkConfirm()" autocomplete="off">
+                <div class="confirm-hint" id="m-confirm-hint">—</div>
+            </div>
         </div>
         <div class="modal-foot">
             <button class="btn-secondary" onclick="closeModal()">Fermer</button>
-            <button class="btn-submit" id="modal-confirm-btn" onclick="confirmerAnnulation()">✕ Confirmer l'annulation</button>
+            <button class="btn-submit" id="modal-confirm-btn" onclick="confirmerAnnulation()" disabled>✕ Confirmer l'annulation</button>
         </div>
     </div>
 </div>
@@ -611,6 +627,47 @@ window.renderMeds = function() {
 
 // ── Modal d'annulation / restauration ─────────────────────────────
 let pending = null; // { type: 'ticket'|'med'|'restaurer_ticket'|'restaurer_med', key }
+let pendingCode = ''; // code de confirmation attendu (n° d'attente, ou nom si patient non identifié)
+
+// ── Confirmation par code patient ──────────────────────────────────
+// Avant toute annulation/restauration, on exige de resaisir le n° d'attente
+// du patient concerné : évite d'agir sur la mauvaise ligne dans une liste.
+// Repli sur le nom si le patient n'a pas de n° d'attente (saisie libre).
+function normaliseCode(s) { return String(s || '').trim().toLowerCase(); }
+function chiffresDe(s) { return String(s || '').replace(/\D/g, ''); }
+function codeConfirmationValide(saisi, attendu) {
+    const s = normaliseCode(saisi), a = normaliseCode(attendu);
+    if (!a) return false;
+    if (s === a) return true;
+    const ds = chiffresDe(saisi), da = chiffresDe(attendu);
+    return !!ds && !!da && parseInt(ds, 10) === parseInt(da, 10);
+}
+function armerConfirmation(code, indiceTexte) {
+    pendingCode = code;
+    document.getElementById('m-confirm-code').value = '';
+    const hint = document.getElementById('m-confirm-hint');
+    hint.textContent = indiceTexte;
+    hint.className = 'confirm-hint';
+    window.checkConfirm();
+}
+window.checkConfirm = function() {
+    const val = document.getElementById('m-confirm-code')?.value || '';
+    const ok = codeConfirmationValide(val, pendingCode);
+    const btn = document.getElementById('modal-confirm-btn');
+    if (btn) btn.disabled = !ok;
+    const hint = document.getElementById('m-confirm-hint');
+    if (hint) hint.classList.toggle('ok', ok);
+};
+// Renvoie { code, indice } : le n° d'attente s'il existe, sinon repli sur le nom.
+function codePatient(numAttente, nom) {
+    const identifie = numAttente && numAttente !== '—';
+    return {
+        code: identifie ? numAttente : (nom || ''),
+        indice: identifie
+            ? `Pour confirmer, saisissez le n° d'attente : ${numAttente}`
+            : `Patient non identifié — pour confirmer, saisissez son nom : ${nom || '—'}`
+    };
+}
 
 const MOTIFS_ANNULATION = [
     'Erreur de saisie (caisse)',
@@ -644,6 +701,7 @@ window.ouvrirModalTicket = function(key) {
     document.getElementById('m-obs').value = '';
     document.getElementById('modal-confirm-btn').className = 'btn-submit';
     document.getElementById('modal-confirm-btn').innerHTML = '✕ Confirmer l\'annulation';
+    { const { code, indice } = codePatient(x.num_attente, x.name); armerConfirmation(code, indice); }
     document.getElementById('modal-overlay').classList.add('visible');
 };
 
@@ -663,6 +721,7 @@ window.ouvrirModalMed = function(key) {
     document.getElementById('m-obs').value = '';
     document.getElementById('modal-confirm-btn').className = 'btn-submit';
     document.getElementById('modal-confirm-btn').innerHTML = '✕ Confirmer l\'annulation';
+    { const { code, indice } = codePatient(x.num_attente, x.patient_nom); armerConfirmation(code, indice); }
     document.getElementById('modal-overlay').classList.add('visible');
 };
 
@@ -681,6 +740,7 @@ window.ouvrirModalRestaurerTicket = function(key) {
     document.getElementById('m-obs').value = '';
     document.getElementById('modal-confirm-btn').className = 'btn-submit btn-restaurer-submit';
     document.getElementById('modal-confirm-btn').innerHTML = '↺ Confirmer la restauration';
+    { const { code, indice } = codePatient(x.num_attente, x.name); armerConfirmation(code, indice); }
     document.getElementById('modal-overlay').classList.add('visible');
 };
 
@@ -702,12 +762,14 @@ window.ouvrirModalRestaurerMed = function(key) {
     document.getElementById('m-obs').value = '';
     document.getElementById('modal-confirm-btn').className = 'btn-submit btn-restaurer-submit';
     document.getElementById('modal-confirm-btn').innerHTML = '↺ Confirmer la restauration';
+    { const { code, indice } = codePatient(x.num_attente, x.patient_nom); armerConfirmation(code, indice); }
     document.getElementById('modal-overlay').classList.add('visible');
 };
 
 window.closeModal = function() {
     document.getElementById('modal-overlay').classList.remove('visible');
     pending = null;
+    pendingCode = '';
 };
 
 // Résout la clé stock d'une ligne (clé stockée en priorité, sinon
@@ -776,6 +838,11 @@ async function reverserStockRetour(vente) {
 // ── Confirmation ──────────────────────────────────────────────────
 window.confirmerAnnulation = async function() {
     if (!pending) return;
+    const codeSaisi = document.getElementById('m-confirm-code').value;
+    if (!codeConfirmationValide(codeSaisi, pendingCode)) {
+        toast('Le code de confirmation ne correspond pas au patient.', 'err');
+        return;
+    }
     const motif = document.getElementById('m-motif').value;
     const obs = document.getElementById('m-obs').value.trim();
     const btn = document.getElementById('modal-confirm-btn');
@@ -839,8 +906,8 @@ window.confirmerAnnulation = async function() {
         toast("Erreur lors de l'opération : " + e.message, 'err');
     }
 
-    btn.disabled = false;
     btn.innerHTML = isRestauration ? restaurerBtnLabel : annulerBtnLabel;
+    window.checkConfirm(); // ré-évalue l'état du bouton (modale restée ouverte après une erreur)
 };
 
 window.addEventListener('beforeunload', () => {});

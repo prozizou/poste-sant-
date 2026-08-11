@@ -990,6 +990,7 @@ window.renderHistMeds = function() {
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? '<span class="tag-differe">🕒 a posteriori</span>' : ''}</td>
             <td><div class="hist-actions">
                 <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">🖨️ Réimprimer</button>
+                ${!x.annule ? `<button type="button" class="btn-modifier" onclick="ouvrirModalModifMed('${x._key}')">✏️ Modifier</button>` : ''}
                 ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">↩ Annuler &amp; Retourner</button>` : ''}
             </div></td>
         </tr>
@@ -1020,6 +1021,24 @@ window.reimprimerMed = async function(key) {
 //  seulement marqué "annule" et exclu de toutes les statistiques.
 // ═══════════════════════════════════════════════
 let pendingAnnulation = null; // { type: 'ticket'|'med', key }
+let pendingAnnulationCode = ''; // code de confirmation attendu (n° d'attente, ou nom si patient non identifié)
+
+// ── CONFIRMATION PAR CODE PATIENT ────────────────
+// Avant toute action sensible (annulation, modification), on exige de
+// resaisir le n° d'attente du patient concerné : un simple clic ne suffit
+// plus, ce qui évite d'agir sur le mauvais patient dans une liste. Repli sur
+// le nom si le patient n'a pas de n° d'attente (saisie libre en pharmacie).
+function normaliseCode(s) { return String(s || '').trim().toLowerCase(); }
+function chiffresDe(s) { return String(s || '').replace(/\D/g, ''); }
+// Tolère les variantes de saisie d'un n° d'attente (« N° 003 », « 003 », « 3 »…)
+// mais reste strict (comparaison exacte du nom) quand le repli est un nom.
+function codeConfirmationValide(saisi, attendu) {
+    const s = normaliseCode(saisi), a = normaliseCode(attendu);
+    if (!a) return false;
+    if (s === a) return true;
+    const ds = chiffresDe(saisi), da = chiffresDe(attendu);
+    return !!ds && !!da && parseInt(ds, 10) === parseInt(da, 10);
+}
 
 // Remet en stock les médicaments d'une vente annulée. Retourne le détail
 // par ligne (clé stock résolue, succès/échec) pour que l'administration
@@ -1048,6 +1067,17 @@ async function restockerMedicaments(items) {
     return detail;
 }
 
+// Prépare le champ de confirmation d'une modale d'action sensible : mémorise
+// le code attendu, vide la saisie précédente, affiche l'indice et laisse le
+// bouton de confirmation désactivé tant que le code n'est pas resaisi.
+function armerConfirmation(code, indiceHtml, inputId, hintId) {
+    pendingAnnulationCode = code;
+    const input = document.getElementById(inputId);
+    if (input) input.value = '';
+    const hint = document.getElementById(hintId);
+    if (hint) { hint.textContent = indiceHtml; hint.className = 'confirm-hint'; }
+}
+
 window.ouvrirModalTicket = function(key) {
     const x = allTickets.find(t => t._key === key);
     if (!x || x.annule) return;
@@ -1061,6 +1091,8 @@ window.ouvrirModalTicket = function(key) {
         <div><strong>N° attente :</strong> ${esc(x.num_attente||'—')}</div>`;
     document.getElementById('m-motif').value = 'Erreur de saisie (caisse)';
     document.getElementById('m-obs').value = '';
+    armerConfirmation(x.num_attente || '', `Pour confirmer, saisissez le n° d'attente : ${esc(x.num_attente || '—')}`, 'm-confirm-code', 'm-confirm-hint');
+    checkAnnulationConfirm();
     document.getElementById('modal-overlay').classList.add('visible');
 };
 
@@ -1078,16 +1110,38 @@ window.ouvrirModalMed = function(key) {
         <ul style="margin:4px 0 0 18px;">${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
     document.getElementById('m-motif').value = 'Désistement du client';
     document.getElementById('m-obs').value = '';
+    const identifie = x.num_attente && x.num_attente !== '—';
+    const code = identifie ? x.num_attente : (x.patient_nom || '');
+    const indice = identifie
+        ? `Pour confirmer, saisissez le n° d'attente : ${esc(x.num_attente)}`
+        : `Patient non identifié — pour confirmer, saisissez son nom : ${esc(x.patient_nom || '—')}`;
+    armerConfirmation(code, indice, 'm-confirm-code', 'm-confirm-hint');
+    checkAnnulationConfirm();
     document.getElementById('modal-overlay').classList.add('visible');
+};
+
+window.checkAnnulationConfirm = function() {
+    const val = document.getElementById('m-confirm-code')?.value || '';
+    const ok = codeConfirmationValide(val, pendingAnnulationCode);
+    const btn = document.getElementById('modal-confirm-btn');
+    if (btn) btn.disabled = !ok;
+    const hint = document.getElementById('m-confirm-hint');
+    if (hint) hint.classList.toggle('ok', ok);
 };
 
 window.closeModalAnnulation = function() {
     document.getElementById('modal-overlay').classList.remove('visible');
     pendingAnnulation = null;
+    pendingAnnulationCode = '';
 };
 
 window.confirmerAnnulation = async function() {
     if (!pendingAnnulation) return;
+    const codeSaisi = document.getElementById('m-confirm-code').value;
+    if (!codeConfirmationValide(codeSaisi, pendingAnnulationCode)) {
+        toast('Le code de confirmation ne correspond pas au patient.', 'err');
+        return;
+    }
     const motif = document.getElementById('m-motif').value;
     const obs = document.getElementById('m-obs').value.trim();
     const btn = document.getElementById('modal-confirm-btn');
@@ -1132,7 +1186,294 @@ window.confirmerAnnulation = async function() {
         toast("Erreur lors de l'annulation : " + e.message, 'err');
     }
 
-    btn.disabled = false; btn.innerHTML = '✕ Confirmer l\'annulation';
+    btn.innerHTML = '✕ Confirmer l\'annulation';
+    checkAnnulationConfirm(); // ré-évalue l'état du bouton (modale restée ouverte après une erreur)
+};
+
+// ═══════════════════════════════════════════════
+//  MODIFICATION D'UNE VENTE (AJOUT / RETRAIT DE MÉDICAMENTS)
+//  Corrige une erreur de saisie — un médicament oublié ou ajouté par
+//  erreur — directement sur la vente existante : pas de nouvelle entrée,
+//  seul l'écart de quantité est répercuté sur le stock, et la
+//  modification est tracée (auteur, motif, avant/après) sur l'enregistrement.
+// ═══════════════════════════════════════════════
+let modifVente = null;   // enregistrement Firebase d'origine (référence)
+let modifPanier = [];    // copie de travail éditable, indépendante tant que non enregistrée
+let modifConfirmCode = ''; // code de confirmation attendu (n° d'attente, ou nom si patient non identifié)
+
+// Ajuste le stock d'un médicament d'un écart signé : positif = remis en
+// stock (quantité retirée de la vente), négatif = prélevé en plus
+// (quantité ajoutée à la vente). Résout stock_key par nom en repli, comme
+// restockerMedicaments(), pour les lignes anciennes ou dont la clé a disparu.
+async function ajusterStockDelta(nom, stockKeyHint, delta) {
+    if (!delta) return { ok: true, stock_key: stockKeyHint || null };
+    let key = stockKeyHint;
+    if (!key || !allStock.find(s => s._key === key)) {
+        const nomLower = (nom || '').trim().toLowerCase();
+        const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
+        key = matches.length === 1 ? matches[0]._key : null;
+    }
+    if (!key) return { ok: false, stock_key: null };
+    let insuffisant = false;
+    try {
+        await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), current => {
+            const n = parseInt(current, 10);
+            const next = (isNaN(n) ? 0 : n) + delta;
+            if (next < 0) { insuffisant = true; return; } // undefined -> Firebase abandonne la transaction
+            return next;
+        });
+    } catch (e) {
+        return { ok: false, stock_key: key };
+    }
+    return { ok: !insuffisant, stock_key: key };
+}
+
+window.ouvrirModalModifMed = function(key) {
+    const x = allMedVentes.find(m => m._key === key);
+    if (!x || x.annule) return;
+    modifVente = x;
+    // Copie de travail : les boutons +/-, ✕ et l'ajout n'écrivent rien en
+    // base tant que « Enregistrer les modifications » n'est pas cliqué.
+    modifPanier = (x.medicaments || []).map(m => ({
+        nom: m.nom, prix: Number(m.prix || 0), qte: Number(m.qte || 0), stock_key: m.stock_key || null
+    }));
+    document.getElementById('modif-sub').textContent =
+        `${x.patient_nom || '(non identifié)'} · N° ${x.num_attente || '—'} · Vente MED-${key.substring(0, 6).toUpperCase()}`;
+    document.getElementById('modif-med-search').value = '';
+    document.getElementById('modif-motif').value = "Médicament oublié à l'ajout";
+    document.getElementById('modif-obs').value = '';
+    const identifie = x.num_attente && x.num_attente !== '—';
+    modifConfirmCode = identifie ? x.num_attente : (x.patient_nom || '');
+    document.getElementById('modif-confirm-code').value = '';
+    document.getElementById('modif-confirm-hint').textContent = identifie
+        ? `Pour confirmer, saisissez le n° d'attente : ${x.num_attente}`
+        : `Patient non identifié — pour confirmer, saisissez son nom : ${x.patient_nom || '—'}`;
+    document.getElementById('modif-confirm-hint').className = 'confirm-hint';
+    checkModifConfirm();
+    renderModifPanier();
+    document.getElementById('modal-modif-overlay').classList.add('visible');
+};
+
+window.checkModifConfirm = function() {
+    const val = document.getElementById('modif-confirm-code')?.value || '';
+    const ok = codeConfirmationValide(val, modifConfirmCode);
+    const btn = document.getElementById('modif-confirm-btn');
+    if (btn) btn.disabled = !ok;
+    const hint = document.getElementById('modif-confirm-hint');
+    if (hint) hint.classList.toggle('ok', ok);
+};
+
+window.closeModalModifMed = function() {
+    document.getElementById('modal-modif-overlay').classList.remove('visible');
+    modifVente = null; modifPanier = []; modifConfirmCode = '';
+};
+
+function renderModifPanier() {
+    const container = document.getElementById('modif-panier-liste');
+    if (!modifPanier.length) {
+        container.outerHTML = '<div id="modif-panier-liste" class="panier-vide">Aucun médicament — pour tout retourner, utilisez plutôt « ↩ Annuler &amp; Retourner ».</div>';
+    } else {
+        container.outerHTML = `<div id="modif-panier-liste" class="panier-list">${modifPanier.map((p, i) => `
+            <div class="panier-item">
+                <div style="flex:1;">
+                    <div class="panier-item-nom">💊 ${esc(p.nom)}</div>
+                    <div style="font-size:0.7rem;color:var(--muted);">${esc(fmt(p.prix))} F / unité</div>
+                </div>
+                <div class="panier-qte-ctrl">
+                    <button class="panier-btn" onclick="modifierQteModif(${i}, -1)">-</button>
+                    <div class="panier-qte-val">${p.qte}</div>
+                    <button class="panier-btn" onclick="modifierQteModif(${i}, 1)">+</button>
+                </div>
+                <div class="panier-item-prix" style="width:70px;text-align:right;">${esc(fmt(p.prix * p.qte))} F</div>
+                <button class="panier-del" style="margin-left:10px;" onclick="retirerMedModif(${i})">✕</button>
+            </div>`).join('')}</div>`;
+    }
+    updateModifTotal();
+    renderModifMedGrid(document.getElementById('modif-med-search')?.value || '');
+}
+
+window.modifierQteModif = function(i, delta) {
+    const item = modifPanier[i];
+    if (!item) return;
+    item.qte += delta;
+    if (item.qte <= 0) { retirerMedModif(i); return; }
+    renderModifPanier();
+};
+
+window.retirerMedModif = function(i) {
+    modifPanier.splice(i, 1);
+    renderModifPanier();
+};
+
+function renderModifMedGrid(q) {
+    const container = document.getElementById('modif-med-liste');
+    if (!allStock.length) { container.innerHTML = '<div class="med-empty">Chargement des médicaments…</div>'; return; }
+    const filtered = allStock.filter(m => {
+        if (!q) return true;
+        return (m.nom || '').toLowerCase().includes(q.toLowerCase()) ||
+               (m.categorie || '').toLowerCase().includes(q.toLowerCase());
+    });
+    if (!filtered.length) {
+        container.innerHTML = `<div class="med-empty">Aucun médicament trouvé${q ? ` pour "${esc(q)}"` : ''}.</div>`;
+        return;
+    }
+    const panierKeys = modifPanier.map(p => p.stock_key);
+    const items = filtered.map(m => {
+        const inPanier = panierKeys.includes(m._key);
+        const stockNum = parseInt(m.quantite, 10) || 0;
+        const isOutOfStock = stockNum <= 0;
+        const hasPrix = (m.prix_unitaire !== undefined && m.prix_unitaire !== null && m.prix_unitaire !== '');
+        const prixHtml = hasPrix
+            ? `<div class="med-prix">${esc(fmt(m.prix_unitaire))} FCFA${inPanier ? ' ✓' : ''}</div>`
+            : (inPanier ? '<div class="med-prix">✓</div>' : '');
+        const catHtml = m.categorie ? ` · <span style="font-style:italic;">${esc(m.categorie)}</span>` : '';
+        const isBlocked = inPanier || isOutOfStock;
+        return `
+            <div class="med-item ${inPanier ? 'added' : ''}"
+                 tabindex="${isBlocked ? '-1' : '0'}" role="button"
+                 style="${isOutOfStock ? 'opacity:0.5;cursor:not-allowed;border-color:var(--danger);' : ''}"
+                 onclick="${isBlocked ? '' : `ajouterMedModif('${m._key}')`}"
+                 onkeydown="if(!${isBlocked}&&(event.key==='Enter'||event.key===' ')){ajouterMedModif('${m._key}')}">
+                <div class="med-item-left">
+                    <div class="med-nom">${esc(m.nom || '—')}</div>
+                    <div class="med-meta">
+                        Stock : ${stockNum}${isOutOfStock ? ' <b style="color:var(--danger)">(Rupture)</b>' : ''}${catHtml}
+                    </div>
+                </div>
+                ${prixHtml}
+            </div>`;
+    });
+    container.innerHTML = items.join('');
+}
+
+window.filtrerModifMeds = function() {
+    renderModifMedGrid(document.getElementById('modif-med-search').value);
+};
+
+window.ajouterMedModif = function(key) {
+    const med = allStock.find(m => m._key === key);
+    if (!med) return;
+    const existing = modifPanier.find(p => p.stock_key === key);
+    if (existing) {
+        existing.qte++;
+    } else {
+        const prix = (med.prix_unitaire !== undefined && med.prix_unitaire !== null && med.prix_unitaire !== '') ? parseFloat(med.prix_unitaire) : 0;
+        modifPanier.push({ nom: med.nom, prix, qte: 1, stock_key: key });
+    }
+    renderModifPanier();
+};
+
+function updateModifTotal() {
+    const total = modifPanier.reduce((s, p) => s + p.prix * p.qte, 0);
+    document.getElementById('modif-total').textContent = fmt(total) + ' FCFA';
+    const diffRow = document.getElementById('modif-diff-row');
+    const diffEl = document.getElementById('modif-diff');
+    const totalInitial = Number(modifVente?.total || 0);
+    const diff = total - totalInitial;
+    if (diff !== 0) {
+        diffRow.style.display = 'flex';
+        diffEl.textContent = (diff > 0 ? '+' : '') + fmt(diff) + ' FCFA';
+        diffEl.className = 'recap-val ' + (diff > 0 ? 'modal-diff-pos' : 'modal-diff-neg');
+    } else {
+        diffRow.style.display = 'none';
+    }
+}
+
+window.confirmerModifMed = async function() {
+    if (!modifVente) return;
+    const codeSaisi = document.getElementById('modif-confirm-code').value;
+    if (!codeConfirmationValide(codeSaisi, modifConfirmCode)) {
+        toast('Le code de confirmation ne correspond pas au patient.', 'err');
+        return;
+    }
+    if (!modifPanier.length) {
+        toast('Pour retirer tous les médicaments, utilisez plutôt « Annuler & Retourner ».', 'err');
+        return;
+    }
+
+    const motif = document.getElementById('modif-motif').value;
+    const obs = document.getElementById('modif-obs').value.trim();
+    const btn = document.getElementById('modif-confirm-btn');
+
+    const original = modifVente.medicaments || [];
+    // Regroupe par clé stable (stock_key si connu, sinon nom en repli) pour
+    // calculer l'écart de quantité à répercuter sur le stock.
+    const cleDe = l => l.stock_key || ('nom:' + (l.nom || '').trim().toLowerCase());
+    const avantMap = new Map(), apresMap = new Map(), infoMap = new Map();
+    original.forEach(l => {
+        const k = cleDe(l);
+        avantMap.set(k, (avantMap.get(k) || 0) + Number(l.qte || 0));
+        infoMap.set(k, { nom: l.nom, stock_key: l.stock_key || null });
+    });
+    modifPanier.forEach(l => {
+        const k = cleDe(l);
+        apresMap.set(k, (apresMap.get(k) || 0) + Number(l.qte || 0));
+        infoMap.set(k, { nom: l.nom, stock_key: l.stock_key || null });
+    });
+
+    // Pré-vérification : refuse d'enregistrer si le stock disponible ne
+    // couvre pas les quantités supplémentaires demandées — évite un état
+    // à moitié appliqué en base (certaines lignes ajustées, d'autres non).
+    const insuffisants = [];
+    for (const [k, info] of infoMap) {
+        const delta = (avantMap.get(k) || 0) - (apresMap.get(k) || 0);
+        if (delta >= 0) continue; // pas de prélèvement supplémentaire sur cette ligne
+        let stockItem = info.stock_key ? allStock.find(s => s._key === info.stock_key) : null;
+        if (!stockItem) {
+            const nomLower = (info.nom || '').trim().toLowerCase();
+            const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
+            stockItem = matches.length === 1 ? matches[0] : null;
+        }
+        const dispo = stockItem ? (parseInt(stockItem.quantite, 10) || 0) : 0;
+        if (dispo < -delta) insuffisants.push(`${info.nom} (dispo ${dispo}, besoin ${-delta})`);
+    }
+    if (insuffisants.length) {
+        toast(`Stock insuffisant : ${insuffisants.join(', ')}.`, 'err');
+        return;
+    }
+
+    btn.disabled = true; btn.innerHTML = '⏳ Enregistrement…';
+
+    try {
+        const stockErrors = [];
+        for (const [k, info] of infoMap) {
+            const delta = (avantMap.get(k) || 0) - (apresMap.get(k) || 0);
+            if (delta === 0) continue;
+            const res = await ajusterStockDelta(info.nom, info.stock_key, delta);
+            if (!res.ok) stockErrors.push(info.nom);
+        }
+        if (stockErrors.length) toast(`Stock non ajusté pour : ${stockErrors.join(', ')}`, 'err');
+
+        const total = modifPanier.reduce((s, p) => s + p.prix * p.qte, 0);
+        const caissierEmail = auth.currentUser?.email || '';
+        const recu = Number(modifVente.argent_remis || 0);
+        const monnaie = recu > 0 ? recu - total : (modifVente.monnaie_rendue || 0);
+        const apres = modifPanier.map(p => ({ nom: p.nom, prix: p.prix, qte: p.qte, stock_key: p.stock_key || null }));
+
+        const entree = {
+            ts: Date.now(), par: caissierEmail, motif, obs,
+            avant: original, apres,
+            avant_total: modifVente.total || 0, apres_total: total
+        };
+
+        await update(ref(db, 'vente_medicaments/' + modifVente._key), {
+            medicaments: apres,
+            total,
+            monnaie_rendue: monnaie,
+            modifie_par: caissierEmail,
+            modifie_ts: Date.now(),
+            modifications: [...(modifVente.modifications || []), entree]
+        });
+
+        toast('Vente modifiée avec succès.', 'ok');
+        closeModalModifMed();
+    } catch (e) {
+        console.error(e);
+        toast('Erreur lors de la modification : ' + e.message, 'err');
+    } finally {
+        btn.innerHTML = '💾 Enregistrer les modifications';
+        checkModifConfirm(); // ré-évalue l'état du bouton (modale restée ouverte après une erreur)
+    }
 };
 
 function filterByPeriod(list, period) {
