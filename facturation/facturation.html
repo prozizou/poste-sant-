@@ -387,6 +387,65 @@
     </div>
 </div>
 
+<!-- ══ MODALE DE MODIFICATION D'UNE VENTE (AJOUT / RETRAIT DE MÉDICAMENTS) ══
+     Corrige une erreur de saisie (médicament oublié ou ajouté par erreur)
+     sans annuler toute la vente ni créer un nouvel enregistrement : la vente
+     existante est mise à jour, le stock est ajusté du seul écart, et la
+     modification est tracée (motif, auteur, avant/après). -->
+<div class="modal-overlay" id="modal-modif-overlay">
+    <div class="modal-box modal-box-lg">
+        <div class="modal-head">
+            <div class="m-icon" style="background:var(--purple-bg);color:var(--purple);">✏️</div>
+            <div>
+                <h3>Modifier les médicaments de la vente</h3>
+                <p id="modif-sub">—</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <h4 class="panier-title">🛒 Médicaments de cette vente</h4>
+            <div id="modif-panier-liste" class="panier-vide">—</div>
+
+            <div class="divider"></div>
+
+            <div class="fg">
+                <label>➕ Ajouter un médicament</label>
+                <input type="text" id="modif-med-search" class="fc" placeholder="Rechercher un médicament du stock…" oninput="filtrerModifMeds()">
+            </div>
+            <div id="modif-med-liste" class="med-grid" style="max-height:220px;"></div>
+
+            <div class="recap-box">
+                <div class="recap-row">
+                    <span class="recap-lbl">Nouveau total</span>
+                    <span class="recap-big" id="modif-total">0 FCFA</span>
+                </div>
+                <div class="recap-row" id="modif-diff-row" style="display:none;">
+                    <span class="recap-lbl">Écart avec le total initial</span>
+                    <span class="recap-val" id="modif-diff">—</span>
+                </div>
+            </div>
+
+            <div class="fg">
+                <label>Motif de la modification <span class="req">*</span></label>
+                <select id="modif-motif" class="fc">
+                    <option value="Médicament oublié à l'ajout">Médicament oublié à l'ajout</option>
+                    <option value="Médicament ajouté par erreur">Médicament ajouté par erreur</option>
+                    <option value="Erreur de quantité">Erreur de quantité</option>
+                    <option value="Substitution de médicament">Substitution de médicament</option>
+                    <option value="Autre motif">Autre motif</option>
+                </select>
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+                <label>Observation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optionnel)</span></label>
+                <textarea id="modif-obs" class="fc" rows="2" placeholder="Précisions complémentaires…" style="resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-blue" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);" onclick="closeModalModifMed()">Fermer</button>
+            <button type="button" class="btn btn-purple" id="modif-confirm-btn" onclick="confirmerModifMed()">💾 Enregistrer les modifications</button>
+        </div>
+    </div>
+</div>
+
 <script type="module" src="script.js"></script>
 </body>
 </html>
