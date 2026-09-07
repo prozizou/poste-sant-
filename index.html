@@ -16,14 +16,16 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96x96.png">
     <title>Connexion – Poste de Santé de Diandioly</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary:   #1a3a5c;
             --primary-light: #274e74;
+            --primary-bg: #eaf0f6;
             --accent:    #0ea472;
             --accent-bg: #e6f7f1;
             --danger:    #c0392b;
+            --danger-bg: #fdf1f0;
             --bg:        #f0f4f8;
             --card-bg:   #ffffff;
             --text:      #1e2a38;
@@ -43,89 +45,49 @@
             padding: 20px;
             color: var(--text);
         }
+        .icon{width:1em;height:1em;display:inline-block;vertical-align:-.15em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
         .login-container {
             width: 100%;
-            max-width: 440px;
+            max-width: 420px;
             background: var(--card-bg);
-            border-radius: 20px;
+            border-radius: 18px;
             box-shadow: var(--shadow);
-            padding: 40px 35px;
+            padding: 30px 28px;
             border: 1px solid rgba(216,224,232,0.6);
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
+
+        /* ── EN-TÊTE ── */
+        .brand-logo {
+            width: 46px; height: 46px; margin: 0 auto 10px;
+            border-radius: 50%; background: var(--primary-bg); color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
         }
-        .header h1 {
-            font-size: 1.6rem;
-            color: var(--primary);
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin-bottom: 6px;
-        }
-        .header p {
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-        .role-selector {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 30px;
-            background: #f4f7fa;
-            padding: 6px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-        }
-        .role-btn {
-            border: none;
-            background: transparent;
-            padding: 12px;
-            border-radius: 9px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            color: var(--muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-        }
-        .role-btn:hover { color: var(--primary); }
-        .role-btn.active {
-            background: var(--card-bg);
-            color: var(--primary);
-            box-shadow: 0 4px 12px rgba(26,58,92,0.08);
-            border: 1px solid rgba(216,224,232,0.5);
-        }
-        .form-group {
-            margin-bottom: 24px;
-        }
+        .brand-logo .icon { width: 24px; height: 24px; stroke-width: 2.2; }
+        .header { text-align: center; margin-bottom: 22px; }
+        .header h1 { font-size: 1.28rem; color: var(--primary); font-weight: 800; letter-spacing: -0.3px; line-height: 1.25; }
+        .header p { color: var(--muted); font-size: 0.82rem; margin-top: 3px; }
+
+        /* ── FORMULAIRE ── */
+        .form-group { margin-bottom: 18px; }
         .form-group label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+            font-size: 0.82rem; font-weight: 700; color: var(--primary); margin-bottom: 7px;
         }
         .forgot-link {
-            text-transform: none;
-            color: var(--accent);
-            text-decoration: none;
-            font-size: 0.8rem;
-            cursor: pointer;
+            color: var(--accent); text-decoration: none; font-size: 0.78rem;
+            font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+            background: none; border: none; font-family: inherit;
         }
         .forgot-link:hover { text-decoration: underline; }
+
+        .input-wrapper { position: relative; }
         .input-wrapper input[type="email"] {
             width: 100%;
-            padding: 14px 16px;
+            padding: 12px 14px;
             border: 1.5px solid var(--border);
-            border-radius: 12px;
-            font-size: 0.95rem;
+            border-radius: 11px;
+            font-size: 0.92rem;
             font-family: inherit;
             color: var(--text);
             background: #fafbfc;
@@ -137,20 +99,32 @@
             background: var(--card-bg);
             box-shadow: 0 0 0 4px rgba(26,58,92,0.06);
         }
+        .input-wrapper input[type="email"].valid { border-color: var(--accent); }
+        .input-wrapper input[type="email"].invalid { border-color: var(--danger); }
+        .input-wrapper .field-icon {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            width: 1.05em; height: 1.05em; pointer-events: none; display: none;
+        }
+        .input-wrapper .field-icon.show { display: block; }
+        .input-wrapper .field-icon.ok { color: var(--accent); }
+        .input-wrapper .field-icon.err { color: var(--danger); }
+
+        .passcode-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
         .passcode-container {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
-            gap: 10px;
-            margin-top: 5px;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
         }
         .passcode-container input {
             width: 100%;
-            height: 52px;
+            height: 44px;
             text-align: center;
-            font-size: 1.4rem;
+            font-size: 1.15rem;
             font-weight: 700;
             border: 1.5px solid var(--border);
-            border-radius: 12px;
+            border-radius: 10px;
             background: #fafbfc;
             color: var(--primary);
             transition: all 0.15s ease;
@@ -161,74 +135,117 @@
             background: var(--card-bg);
             box-shadow: 0 0 0 4px rgba(26,58,92,0.06);
         }
-        .passcode-container input.filled {
-            background: #f0f4f8;
-            border-color: var(--border);
+        .passcode-container input.filled { background: #f0f4f8; border-color: var(--border); }
+        .passcode-container input.error { border-color: var(--danger); background: var(--danger-bg); animation: shake .3s; }
+        @keyframes shake {
+            25% { transform: translateX(-3px); } 75% { transform: translateX(3px); }
         }
+        .btn-toggle-eye {
+            flex-shrink: 0; width: 38px; height: 44px; border-radius: 10px;
+            border: 1.5px solid var(--border); background: #fafbfc; color: var(--muted);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .btn-toggle-eye:hover { color: var(--primary); border-color: var(--primary); }
+        .btn-toggle-eye .icon { width: 1.1em; height: 1.1em; }
+
         .message-box {
             border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 24px;
+            padding: 11px 14px;
+            margin-bottom: 18px;
             display: none;
             align-items: flex-start;
-            gap: 10px;
+            gap: 9px;
         }
         .message-box.visible { display: flex; }
-        .message-box.error {
-            background: #fdf2f2;
-            border: 1px solid #f8b4b4;
-        }
+        .message-box.error { background: var(--danger-bg); border: 1px solid #f0c4bd; }
         .message-box.error span { color: var(--danger); }
-        .message-box.error svg { fill: var(--danger); }
-        .message-box.success {
-            background: var(--accent-bg);
-            border: 1px solid var(--accent);
-        }
+        .message-box.error .icon { color: var(--danger); }
+        .message-box.success { background: var(--accent-bg); border: 1px solid #a9ddc9; }
         .message-box.success span { color: var(--accent); }
-        .message-box svg {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-            margin-top: 1px;
+        .message-box.success .icon { color: var(--accent); }
+        .message-box .icon { width: 1.1em; height: 1.1em; flex-shrink: 0; margin-top: 1px; }
+        .message-box span { font-size: 0.83rem; font-weight: 600; line-height: 1.4; }
+        .message-box .msg-sub { display: block; font-weight: 500; margin-top: 2px; color: var(--muted) !important; }
+
+        .lockout-note {
+            display: none; align-items: center; gap: 8px; background: var(--danger-bg);
+            border: 1px solid #f0c4bd; border-radius: 10px; padding: 10px 14px; margin-bottom: 18px;
+            font-size: 0.8rem; color: var(--danger); font-weight: 600;
         }
-        .message-box span {
-            font-size: 0.85rem;
-            font-weight: 500;
-            line-height: 1.4;
-        }
+        .lockout-note.visible { display: flex; }
+        .lockout-note .icon { width: 1.1em; height: 1.1em; flex-shrink: 0; }
+
         .submit-btn {
             width: 100%;
-            padding: 15px;
+            padding: 13px;
             border: none;
-            border-radius: 12px;
+            border-radius: 11px;
             background: var(--primary);
             color: white;
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 0.95rem;
+            font-family: inherit;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 8px;
         }
-        .submit-btn:hover:not(:disabled) {
-            background: var(--primary-light);
-            transform: translateY(-1px);
-        }
-        .submit-btn:disabled {
-            background: var(--muted);
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+        .submit-btn:hover:not(:disabled) { background: var(--primary-light); transform: translateY(-1px); }
+        .submit-btn:disabled { background: var(--muted); opacity: 0.55; cursor: not-allowed; transform: none; }
         .submit-btn.success-state { background: var(--accent) !important; }
+        .submit-btn .icon { width: 1.05em; height: 1.05em; }
+        .spinner {
+            width: 15px; height: 15px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+            animation: spin .7s linear infinite; flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         .footer-note {
             text-align: center;
-            margin-top: 25px;
+            margin-top: 20px;
             font-size: 0.78rem;
             color: var(--muted);
             border-top: 1px solid #eee;
-            padding-top: 15px;
+            padding-top: 14px;
+            line-height: 1.6;
         }
+        .footer-note a {
+            color: var(--primary); font-weight: 700; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .footer-note a:hover { text-decoration: underline; }
+        .footer-note .icon { width: 1em; height: 1em; }
+
+        /* ── ÉCRAN « CHOISISSEZ VOTRE ESPACE » (comptes multi-rôles) ── */
+        #screen-rolepick { display: none; }
+        #screen-rolepick.active { display: block; }
+        #screen-login.hidden { display: none; }
+        .space-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+        .space-btn {
+            display: flex; align-items: center; gap: 13px; width: 100%;
+            padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--border);
+            background: #fafbfc; cursor: pointer; text-align: left; font-family: inherit;
+            transition: all .2s;
+        }
+        .space-btn:hover { border-color: var(--primary); background: var(--primary-bg); }
+        .space-btn .sp-icon {
+            width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+            background: var(--primary-bg); color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .space-btn .sp-icon .icon { width: 1.2em; height: 1.2em; }
+        .space-btn .sp-label { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+        .space-btn .sp-sub { font-size: 0.76rem; color: var(--muted); margin-top: 1px; }
+        .space-btn .sp-chevron { margin-left: auto; color: var(--muted); flex-shrink: 0; }
+        .btn-signout-link {
+            display: block; width: 100%; text-align: center; background: none; border: none;
+            font-family: inherit; font-size: 0.8rem; font-weight: 700; color: var(--muted);
+            cursor: pointer; padding: 8px;
+        }
+        .btn-signout-link:hover { color: var(--danger); }
 
         /* ── PWA Install Banner ──────────────────────────── */
         #pwa-banner {
@@ -286,63 +303,95 @@
             padding: 5px 12px; border-radius: 6px;
             font-size: 0.8rem; font-weight: 700; cursor: pointer;
         }
+
+        @media (max-width: 360px) {
+            .login-container { padding: 24px 18px; }
+            .passcode-container { gap: 4px; }
+            .passcode-container input { height: 42px; font-size: 1.05rem; }
+        }
     </style>
 </head>
 <body>
 
     <div class="login-container">
-        <div class="header">
-            <h1>Poste de Santé de Diandioly</h1>
-            <p>Portail d'accès sécurisé</p>
-        </div>
 
-        <div class="role-selector">
-            <button type="button" class="role-btn active" id="btn-admin" onclick="selectRole('admin')">
-                🛡️ Admin
-            </button>
-            <button type="button" class="role-btn" id="btn-caissier" onclick="selectRole('caissier')">
-                🧾 Caisse
-            </button>
-            <button type="button" class="role-btn" id="btn-tresorier" onclick="selectRole('tresorier')">
-                💰 Trésorier
-            </button>
-        </div>
-
-        <div class="message-box" id="message-box">
-            <svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/></svg>
-            <span id="message-text">Message ici</span>
-        </div>
-
-        <form id="login-form" novalidate>
-            <div class="form-group">
-                <label for="email">Adresse Email</label>
-                <div class="input-wrapper">
-                    <input type="email" id="email" autocomplete="username" placeholder="exemple@sante.sn" required>
-                </div>
+        <!-- ══ ÉCRAN DE CONNEXION ══ -->
+        <div id="screen-login">
+            <div class="brand-logo">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+            </div>
+            <div class="header">
+                <h1>Poste de Santé de Diandioly</h1>
+                <p>Portail d'accès sécurisé</p>
             </div>
 
-            <div class="form-group">
-                <label>
-                    Code Secret (6 chiffres)
-                    <span class="forgot-link" onclick="handleResetPassword()">Code oublié ?</span>
-                </label>
-                <div class="passcode-container" id="passcode-fields">
-                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 1" required>
-                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 2" required>
-                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 3" required>
-                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 4" required>
-                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 5" required>
-                    <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 6" required>
-                </div>
+            <div class="message-box" id="message-box">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                <span id="message-text">Message ici</span>
             </div>
 
-            <button type="submit" class="submit-btn" id="submit-btn">Se Connecter</button>
-        </form>
+            <div class="lockout-note" id="lockout-note">
+                <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span id="lockout-text">Trop de tentatives. Réessayez dans 30 s.</span>
+            </div>
 
-        <div class="footer-note">
-            Besoin d'assistance ?
-            Contactez-nous au +221 77 350 05 95
+            <form id="login-form" novalidate>
+                <div class="form-group">
+                    <label for="email">Adresse e-mail</label>
+                    <div class="input-wrapper">
+                        <input type="email" id="email" autocomplete="username" placeholder="nom@exemple.sn" required>
+                        <svg class="icon field-icon ok" id="email-icon-ok" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+                        <svg class="icon field-icon err" id="email-icon-err" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <span>Code secret</span>
+                        <button type="button" class="forgot-link" onclick="handleResetPassword()">Code oublié ?</button>
+                    </label>
+                    <div class="passcode-row">
+                        <div class="passcode-container" id="passcode-fields">
+                            <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 1" required>
+                            <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 2" required>
+                            <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 3" required>
+                            <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 4" required>
+                            <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 5" required>
+                            <input type="password" class="digit" inputmode="numeric" maxlength="1" pattern="[0-9]*" autocomplete="off" aria-label="Chiffre 6" required>
+                        </div>
+                        <button type="button" class="btn-toggle-eye" id="btn-toggle-eye" aria-label="Afficher le code" title="Afficher le code">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submit-btn">
+                    <span id="submit-btn-label">Se connecter</span>
+                </button>
+            </form>
+
+            <div class="footer-note">
+                Besoin d'assistance ?<br>
+                <a href="tel:+221773500595">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
+                    +221 77 350 05 95
+                </a>
+            </div>
         </div>
+
+        <!-- ══ ÉCRAN « CHOISISSEZ VOTRE ESPACE » (uniquement si plusieurs rôles) ══ -->
+        <div id="screen-rolepick">
+            <div class="brand-logo">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+            </div>
+            <div class="header">
+                <h1>Choisissez votre espace</h1>
+                <p>Votre compte a accès à plusieurs espaces</p>
+            </div>
+            <div class="space-list" id="space-list"></div>
+            <button type="button" class="btn-signout-link" id="btn-signout">Se déconnecter</button>
+        </div>
+
     </div>
 
     <script type="module">
@@ -353,9 +402,10 @@
             onAuthStateChanged,
             sendPasswordResetEmail,
             setPersistence,
-            browserLocalPersistence
+            browserLocalPersistence,
+            signOut
         } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        
+
         // Imports spécifiques pour Realtime Database
         import {
             ref,
@@ -365,49 +415,91 @@
             get
         } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-        // 2. GESTION DES RÔLES
-        let currentRole = 'admin';
-
-        // Cible de redirection selon le rôle
+        // 2. RÔLES : le rôle n'est plus choisi par l'utilisateur avant la
+        // connexion — il est déterminé après authentification, à partir des
+        // droits réellement enregistrés pour ce compte dans la base
+        // (administration/auth_db). Un compte n'a normalement qu'un seul
+        // rôle ; s'il en possède plusieurs (rare, ex. gérant + trésorier),
+        // l'écran « Choisissez votre espace » s'affiche pour trancher.
         const ROLE_HOME = {
             admin:     'accueil/menu_admin.html',
             caissier:  'accueil/menu_caissier.html',
             tresorier: 'accueil/menu_tresorier.html',
         };
-
-        window.selectRole = function(role) {
-            currentRole = role;
-            const buttons = {
-                admin:     document.getElementById('btn-admin'),
-                caissier:  document.getElementById('btn-caissier'),
-                tresorier: document.getElementById('btn-tresorier'),
-            };
-
-            Object.values(buttons).forEach(btn => {
-                if (!btn) return;
-                btn.classList.remove('active');
-                btn.style.borderColor = 'var(--border)';
-                btn.style.background = '#fafbfc';
-                btn.style.color = 'var(--muted)';
-            });
-
-            const activeBtn = buttons[role];
-            if (activeBtn) { activeBtn.classList.add('active'); activeBtn.style.cssText = ''; }
+        const ROLE_LABEL = {
+            admin:     { label: 'Administration', sub: 'Tableau de bord, gestion complète' },
+            caissier:  { label: 'Caisse',          sub: 'Consultations et ventes' },
+            tresorier: { label: 'Trésorerie',      sub: 'Dépenses et bilan financier' },
         };
+        const ROLE_ICON = {
+            admin:     '<svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+            caissier:  '<svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>',
+            tresorier: '<svg class="icon" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>',
+        };
+
+        // Interroge la base et renvoie la liste des rôles distincts associés
+        // à cet email (normalement un seul).
+        async function rolesPourEmail(email) {
+            const snap = await get(query(ref(db, 'administration/auth_db'), orderByChild('email'), equalTo(email)));
+            const roles = new Set();
+            if (snap.exists()) snap.forEach(c => { const r = c.val().role; if (ROLE_HOME[r]) roles.add(r); });
+            return [...roles];
+        }
+
+        function memoriserRole(email, role) {
+            sessionStorage.setItem('userRole', role);
+            sessionStorage.setItem('userEmail', email);
+            localStorage.setItem('savedRole', role);
+            localStorage.setItem('savedEmail', email);
+        }
+
+        function allerVersEspace(role) {
+            window.location.href = ROLE_HOME[role] || 'accueil/menu_caissier.html';
+        }
+
+        // Affiche l'écran de choix d'espace pour un compte multi-rôles.
+        function afficherChoixEspace(email, roles) {
+            document.getElementById('screen-login').classList.add('hidden');
+            document.getElementById('screen-rolepick').classList.add('active');
+            document.getElementById('space-list').innerHTML = roles.map(r => `
+                <button type="button" class="space-btn" data-role="${r}">
+                    <div class="sp-icon">${ROLE_ICON[r] || ''}</div>
+                    <div>
+                        <div class="sp-label">${ROLE_LABEL[r]?.label || r}</div>
+                        <div class="sp-sub">${ROLE_LABEL[r]?.sub || ''}</div>
+                    </div>
+                    <svg class="icon sp-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+                </button>`).join('');
+            document.querySelectorAll('.space-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const role = btn.dataset.role;
+                    memoriserRole(email, role);
+                    allerVersEspace(role);
+                });
+            });
+        }
+        document.getElementById('btn-signout').addEventListener('click', async () => {
+            try { await signOut(auth); } catch (e) {}
+            window.location.reload();
+        });
 
         // 3. GESTION DU CODE SECRET (Saisie & Copier-Coller)
         const digits = document.querySelectorAll('.digit');
         const passcodeContainer = document.getElementById('passcode-fields');
 
+        function clearDigitErrors() { digits.forEach(d => d.classList.remove('error')); }
+
         digits.forEach((inp, i) => {
             inp.addEventListener('input', () => {
-                inp.value = inp.value.replace(/[^0-9]/g, ''); 
+                inp.value = inp.value.replace(/[^0-9]/g, '');
+                clearDigitErrors();
                 if (inp.value) {
                     inp.classList.add('filled');
                     if (i < 5) digits[i + 1].focus();
                 } else {
                     inp.classList.remove('filled');
                 }
+                majEtatBouton();
             });
 
             inp.addEventListener('keydown', (e) => {
@@ -415,158 +507,235 @@
                     digits[i - 1].focus();
                     digits[i - 1].value = '';
                     digits[i - 1].classList.remove('filled');
+                    majEtatBouton();
                 }
             });
+
+            // Ouvre systématiquement le clavier numérique au toucher.
+            inp.addEventListener('focus', () => inp.select());
         });
 
         passcodeContainer.addEventListener('paste', (e) => {
             e.preventDefault();
             const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
             if (pastedData) {
+                clearDigitErrors();
                 digits.forEach((input, i) => {
                     input.value = pastedData[i] || '';
-                    if (pastedData[i]) {
-                        input.classList.add('filled');
-                    } else {
-                        input.classList.remove('filled');
-                    }
+                    input.classList.toggle('filled', !!pastedData[i]);
                 });
                 const lastIndex = Math.min(pastedData.length, 5);
                 digits[lastIndex].focus();
+                majEtatBouton();
             }
         });
 
-        // 4. MESSAGES UTILISATEUR
+        // Afficher / masquer le code saisi.
+        let codeVisible = false;
+        document.getElementById('btn-toggle-eye').addEventListener('click', () => {
+            codeVisible = !codeVisible;
+            digits.forEach(d => d.type = codeVisible ? 'text' : 'password');
+            document.getElementById('btn-toggle-eye').innerHTML = codeVisible
+                ? '<svg class="icon" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>'
+                : '<svg class="icon" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+        });
+
+        // 4. VALIDATION DE L'EMAIL (retour visuel en direct)
+        const emailInput = document.getElementById('email');
+        const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        function majEtatEmail() {
+            const val = emailInput.value.trim();
+            const okIcon = document.getElementById('email-icon-ok');
+            const errIcon = document.getElementById('email-icon-err');
+            emailInput.classList.remove('valid', 'invalid');
+            okIcon.classList.remove('show'); errIcon.classList.remove('show');
+            if (!val) return;
+            if (RE_EMAIL.test(val)) { emailInput.classList.add('valid'); okIcon.classList.add('show'); }
+            else { emailInput.classList.add('invalid'); errIcon.classList.add('show'); }
+        }
+        emailInput.addEventListener('input', () => { majEtatEmail(); majEtatBouton(); });
+        emailInput.addEventListener('blur', majEtatEmail);
+
+        // 5. MESSAGES UTILISATEUR
         const msgBox = document.getElementById('message-box');
         const msgText = document.getElementById('message-text');
+        const ICON_ERR = '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>';
+        const ICON_OK  = '<svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>';
 
-        function showMessage(msg, type = 'error') {
-            msgText.textContent = msg;
+        function showMessage(msg, type = 'error', sub = '') {
+            msgBox.querySelector('.icon')?.remove();
+            msgBox.insertAdjacentHTML('afterbegin', type === 'success' ? ICON_OK : ICON_ERR);
+            msgText.innerHTML = esc(msg) + (sub ? `<span class="msg-sub">${esc(sub)}</span>` : '');
             msgBox.className = `message-box visible ${type}`;
         }
-        function hideMessage() {
-            msgBox.className = 'message-box';
+        function hideMessage() { msgBox.className = 'message-box'; }
+        function esc(s) { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
+
+        // 6. ÉTAT DU BOUTON « SE CONNECTER »
+        // Le bouton ne s'active qu'une fois l'email valide et les 6 chiffres
+        // saisis — cohérent avec la demande de retour visuel immédiat.
+        const submitBtn = document.getElementById('submit-btn');
+        let echecsConsecutifs = 0;
+        let lockoutActif = false;
+        function passcodeComplet() { return Array.from(digits).every(d => d.value.length === 1); }
+        function majEtatBouton() {
+            if (lockoutActif) return;
+            submitBtn.disabled = !(RE_EMAIL.test(emailInput.value.trim()) && passcodeComplet());
+        }
+        majEtatBouton();
+
+        // 7. LIMITATION CÔTÉ CLIENT APRÈS ÉCHECS RÉPÉTÉS
+        // Firebase Auth applique déjà sa propre protection anti-force-brute
+        // côté serveur (erreur "auth/too-many-requests"). On ajoute ici une
+        // friction supplémentaire côté client : au bout de 5 échecs
+        // consécutifs, un court temps d'attente est imposé avant de pouvoir
+        // retenter — ça n'a pas la valeur d'une vraie limitation serveur,
+        // mais ça décourage les essais automatisés basiques.
+        const SEUIL_LOCKOUT = 5;
+        const DUREE_LOCKOUT = 30; // secondes
+        function declencherLockout() {
+            lockoutActif = true;
+            submitBtn.disabled = true;
+            const note = document.getElementById('lockout-note');
+            const txt = document.getElementById('lockout-text');
+            note.classList.add('visible');
+            let reste = DUREE_LOCKOUT;
+            txt.textContent = `Trop de tentatives. Réessayez dans ${reste} s.`;
+            const t = setInterval(() => {
+                reste--;
+                if (reste <= 0) {
+                    clearInterval(t);
+                    lockoutActif = false;
+                    note.classList.remove('visible');
+                    echecsConsecutifs = 0;
+                    majEtatBouton();
+                } else {
+                    txt.textContent = `Trop de tentatives. Réessayez dans ${reste} s.`;
+                }
+            }, 1000);
         }
 
-        // 5. AUTO-CONNEXION : on garde la session ouverte entre deux visites.
+        // 8. AUTO-CONNEXION : on garde la session ouverte entre deux visites.
         // browserLocalPersistence conserve l'authentification Firebase même
         // après fermeture de l'app ; le rôle est mémorisé dans localStorage.
         // Résultat : après une première connexion réussie, l'utilisateur est
-        // redirigé automatiquement vers son menu au prochain lancement, sans
-        // ressaisir email + code (jusqu'à ce qu'il se déconnecte).
+        // redirigé automatiquement vers son espace au prochain lancement,
+        // sans ressaisir email + code (jusqu'à ce qu'il se déconnecte).
         setPersistence(auth, browserLocalPersistence).catch(() => {});
 
+        let dejaTraite = false;
         onAuthStateChanged(auth, async (user) => {
-            if (!user) return;
-            let role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole');
-            // Rôle mémorisé absent (ex. connexion faite sur une ancienne version) :
-            // on le récupère directement depuis la base pour toute session déjà
-            // ouverte → l'auto-connexion fonctionne sans dépendre du localStorage.
-            if (!ROLE_HOME[role]) {
-                try {
-                    const email = (user.email || '').toLowerCase();
-                    const snap = await get(query(ref(db, 'administration/auth_db'), orderByChild('email'), equalTo(email)));
-                    if (snap.exists()) snap.forEach(c => { role = c.val().role; });
-                } catch (e) { /* réseau/permissions : on reste sur l'écran de connexion */ }
-            }
-            if (!ROLE_HOME[role]) return;
-            // On mémorise et on réalimente sessionStorage pour les pages de menu.
-            localStorage.setItem('savedRole', role);
-            localStorage.setItem('savedEmail', user.email || '');
-            sessionStorage.setItem('userRole', role);
-            sessionStorage.setItem('userEmail', user.email || '');
-            window.location.href = ROLE_HOME[role];
+            if (!user || dejaTraite) return;
+            const roleMemorise = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole');
+            if (ROLE_HOME[roleMemorise]) { dejaTraite = true; allerVersEspace(roleMemorise); return; }
+            // Rôle non mémorisé (ex. connexion faite sur une ancienne version,
+            // ou nouvel appareil) : on le détermine depuis la base.
+            try {
+                const roles = await rolesPourEmail((user.email || '').toLowerCase());
+                if (roles.length === 1) {
+                    dejaTraite = true;
+                    memoriserRole(user.email, roles[0]);
+                    allerVersEspace(roles[0]);
+                } else if (roles.length > 1) {
+                    dejaTraite = true;
+                    afficherChoixEspace(user.email, roles);
+                }
+                // roles.length === 0 : compte authentifié mais non configuré
+                // dans administration/auth_db → on reste sur l'écran de
+                // connexion plutôt que de rediriger nulle part.
+            } catch (e) { /* réseau/permissions : on reste sur l'écran de connexion */ }
         });
 
-        // 6. MOT DE PASSE OUBLIÉ
+        // 9. MOT DE PASSE OUBLIÉ — envoie un lien de réinitialisation Firebase
+        // (jeton à usage unique) ; l'ancien code n'est jamais révélé.
         window.handleResetPassword = async function() {
             hideMessage();
-            const email = document.getElementById('email').value.trim();
+            const email = emailInput.value.trim();
             if (!email) {
-                showMessage("Saisissez d'abord votre adresse email pour réinitialiser le code.");
+                showMessage("Saisissez d'abord votre adresse e-mail pour recevoir le lien de réinitialisation.");
                 return;
             }
             try {
                 await sendPasswordResetEmail(auth, email);
-                showMessage("Un email de réinitialisation a été envoyé.", "success");
+                showMessage("Un e-mail de réinitialisation a été envoyé.", "success", "Suivez le lien reçu pour définir un nouveau code.");
             } catch (error) {
-                showMessage("Erreur lors de l'envoi de l'email de réinitialisation.");
+                showMessage("Impossible d'envoyer l'e-mail de réinitialisation.", "error", "Vérifiez que l'adresse est correcte.");
             }
         };
 
-        // 7. SOUMISSION DU FORMULAIRE (Auth + Realtime Database)
+        // 10. SOUMISSION DU FORMULAIRE (Auth + détermination du rôle)
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             hideMessage();
-            
-            const email = document.getElementById('email').value.trim().toLowerCase();
+            if (lockoutActif) return;
+
+            const email = emailInput.value.trim().toLowerCase();
             const passcode = Array.from(digits).map(d => d.value).join('');
 
-            if (!email) { showMessage('Veuillez saisir votre adresse email.'); return; }
+            if (!RE_EMAIL.test(email)) { showMessage('Adresse e-mail invalide.'); emailInput.classList.add('invalid'); return; }
             if (passcode.length < 6) { showMessage('Veuillez saisir les 6 chiffres de votre code secret.'); return; }
 
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true;
-            btn.textContent = 'Authentification…';
+            submitBtn.disabled = true;
+            submitBtn.classList.remove('success-state');
+            submitBtn.innerHTML = '<span class="spinner"></span><span>Connexion…</span>';
 
             try {
-                // ÉTAPE 1 : Authentification Firebase (Vérifie Email + Mot de passe)
+                // ÉTAPE 1 : Authentification Firebase (email + code secret).
                 await signInWithEmailAndPassword(auth, email, passcode);
 
-                // ÉTAPE 2 : Vérification du Rôle dans Realtime Database
-                const dbRef = ref(db, 'administration/auth_db');
-                const roleQuery = query(dbRef, orderByChild('email'), equalTo(email));
-                const snapshot = await get(roleQuery);
+                // ÉTAPE 2 : Détermination du/des rôle(s) réellement accordés
+                // à ce compte — l'utilisateur ne choisit plus son rôle lui-même.
+                const roles = await rolesPourEmail(email);
 
-                let dbRole = null;
-                
-                if (snapshot.exists()) {
-                    // Firebase retourne un objet contenant les correspondances, on boucle dessus
-                    snapshot.forEach((childSnapshot) => {
-                        dbRole = childSnapshot.val().role;
-                    });
+                if (!roles.length) {
+                    await signOut(auth);
+                    showMessage('Ce compte est authentifié mais ne possède aucun accès configuré.', 'error', "Contactez l'administration.");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<span id="submit-btn-label">Se connecter</span>';
+                    return;
                 }
 
-                // ÉTAPE 3 : Comparaison des rôles
-                if (dbRole !== currentRole) {
-                    await auth.signOut(); // Déconnexion immédiate
-                    showMessage(`Accès refusé. L'email n'a pas les droits pour le rôle : ${currentRole}.`);
-                    btn.disabled = false;
-                    btn.textContent = 'Se Connecter';
-                    return; 
+                echecsConsecutifs = 0;
+
+                if (roles.length > 1) {
+                    afficherChoixEspace(email, roles);
+                    return;
                 }
 
-                // ÉTAPE 4 : Succès et Redirection
-                sessionStorage.setItem('userRole', currentRole);
-                sessionStorage.setItem('userEmail', email);
-                // Mémorisation persistante pour l'auto-connexion des prochaines visites.
-                localStorage.setItem('savedRole', currentRole);
-                localStorage.setItem('savedEmail', email);
-                btn.classList.add('success-state');
-                btn.textContent = '✓ Connexion réussie';
-                
-                setTimeout(() => {
-                    window.location.href = ROLE_HOME[currentRole] || 'accueil/menu_caissier.html';
-                }, 900);
+                // ÉTAPE 3 : Succès et redirection automatique.
+                memoriserRole(email, roles[0]);
+                submitBtn.classList.add('success-state');
+                submitBtn.innerHTML = ICON_OK + '<span>Connexion réussie</span>';
+
+                setTimeout(() => allerVersEspace(roles[0]), 700);
 
             } catch (error) {
-                btn.disabled = false;
-                btn.textContent = 'Se Connecter';
+                clearDigitErrors();
+                digits.forEach(d => d.classList.add('error'));
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span id="submit-btn-label">Se connecter</span>';
+
                 switch (error.code) {
                     case 'auth/invalid-credential':
                     case 'auth/user-not-found':
                     case 'auth/wrong-password':
-                        showMessage('Email ou code secret incorrect.'); break;
+                        echecsConsecutifs++;
+                        showMessage('Code incorrect.', 'error', 'Le code saisi ne correspond pas à ce compte.');
+                        break;
                     case 'auth/invalid-email':
-                        showMessage('Adresse email invalide.'); break;
+                        showMessage('Adresse e-mail invalide.'); break;
                     case 'auth/too-many-requests':
-                        showMessage('Compte temporairement bloqué. Réessayez plus tard.'); break;
+                        showMessage('Compte temporairement bloqué par mesure de sécurité.', 'error', 'Réessayez plus tard ou réinitialisez votre code.');
+                        break;
                     case 'auth/network-request-failed':
                         showMessage('Vérifiez votre connexion Internet.'); break;
                     default:
                         showMessage('Une erreur inattendue est survenue.');
                         console.error(error);
                 }
+
+                if (echecsConsecutifs >= SEUIL_LOCKOUT) declencherLockout();
+                else majEtatBouton();
             }
         });
     </script>
