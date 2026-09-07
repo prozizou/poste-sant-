@@ -591,29 +591,52 @@
         // consécutifs, un court temps d'attente est imposé avant de pouvoir
         // retenter — ça n'a pas la valeur d'une vraie limitation serveur,
         // mais ça décourage les essais automatisés basiques.
+        // Le compte à rebours est mémorisé dans localStorage (et non une
+        // simple variable en mémoire) : redémarrer l'application ou recharger
+        // la page ne doit pas remettre le chronomètre à zéro.
         const SEUIL_LOCKOUT = 5;
         const DUREE_LOCKOUT = 30; // secondes
-        function declencherLockout() {
+        const CLE_LOCKOUT_JUSQUA = 'loginLockoutUntil';
+        const CLE_ECHECS = 'loginFailCount';
+
+        function demarrerCompteARebours(finTs) {
             lockoutActif = true;
             submitBtn.disabled = true;
             const note = document.getElementById('lockout-note');
             const txt = document.getElementById('lockout-text');
             note.classList.add('visible');
-            let reste = DUREE_LOCKOUT;
-            txt.textContent = `Trop de tentatives. Réessayez dans ${reste} s.`;
-            const t = setInterval(() => {
-                reste--;
+            const maj = () => {
+                const reste = Math.ceil((finTs - Date.now()) / 1000);
                 if (reste <= 0) {
                     clearInterval(t);
                     lockoutActif = false;
                     note.classList.remove('visible');
                     echecsConsecutifs = 0;
+                    try { localStorage.removeItem(CLE_LOCKOUT_JUSQUA); localStorage.removeItem(CLE_ECHECS); } catch (e) {}
                     majEtatBouton();
                 } else {
                     txt.textContent = `Trop de tentatives. Réessayez dans ${reste} s.`;
                 }
-            }, 1000);
+            };
+            maj();
+            const t = setInterval(maj, 500);
         }
+        function declencherLockout() {
+            const finTs = Date.now() + DUREE_LOCKOUT * 1000;
+            try { localStorage.setItem(CLE_LOCKOUT_JUSQUA, String(finTs)); localStorage.setItem(CLE_ECHECS, String(echecsConsecutifs)); } catch (e) {}
+            demarrerCompteARebours(finTs);
+        }
+        // Un verrou était peut-être déjà en cours avant la fermeture de l'app.
+        (function reprendreLockoutEnCours() {
+            let finTs = 0;
+            try { finTs = parseInt(localStorage.getItem(CLE_LOCKOUT_JUSQUA) || '0', 10); } catch (e) {}
+            if (finTs && finTs > Date.now()) {
+                echecsConsecutifs = SEUIL_LOCKOUT;
+                demarrerCompteARebours(finTs);
+            } else if (finTs) {
+                try { localStorage.removeItem(CLE_LOCKOUT_JUSQUA); localStorage.removeItem(CLE_ECHECS); } catch (e) {}
+            }
+        })();
 
         // 8. AUTO-CONNEXION : on garde la session ouverte entre deux visites.
         // browserLocalPersistence conserve l'authentification Firebase même
@@ -621,6 +644,12 @@
         // Résultat : après une première connexion réussie, l'utilisateur est
         // redirigé automatiquement vers son espace au prochain lancement,
         // sans ressaisir email + code (jusqu'à ce qu'il se déconnecte).
+        // On demande aussi au navigateur de ne pas évincer ce stockage sous
+        // pression mémoire (utile pour une PWA installée, gardée ouverte
+        // parfois plusieurs semaines sans relance) — best-effort, ignoré
+        // silencieusement si l'API n'est pas disponible (ex. Safari/iOS).
+        try { navigator.storage?.persist?.(); } catch (e) {}
+
         setPersistence(auth, browserLocalPersistence).catch(() => {});
 
         let dejaTraite = false;

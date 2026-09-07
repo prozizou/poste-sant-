@@ -219,6 +219,10 @@
             signOut(auth).then(() => { window.location.href = '../index.html'; });
         }
     };
+    // Une déconnexion faite sur une autre page/onglet doit se propager ici aussi.
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'savedRole' && !e.newValue) window.location.href = '../index.html';
+    });
 </script>
 </body>
 </html>

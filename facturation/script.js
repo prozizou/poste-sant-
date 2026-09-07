@@ -1,7 +1,7 @@
 import { db, auth } from '../firebase-config.js';
 import { ref, push, onValue, off, get, update, runTransaction }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { onAuthStateChanged }
+import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import * as printer from './escpos-printer.js';
 
@@ -9,12 +9,30 @@ import * as printer from './escpos-printer.js';
 // Admin ET caissier(ère) partagent cette page : l'admin peut notamment s'en
 // servir pour la saisie a posteriori (ex. week-end sans caissier). Seul le
 // trésorier n'a pas accès à la caisse.
+// Le rôle est cherché dans sessionStorage puis, à défaut, dans localStorage
+// (persistant entre deux lancements de l'app) — évite de traiter une
+// session Firebase pourtant valide comme non authentifiée après un
+// redémarrage de l'application (notamment via le raccourci PWA « Facturation »
+// qui ouvre directement cette page sans repasser par l'écran de connexion).
 onAuthStateChanged(auth, u => {
     if (!u) { window.location.href = '../index.html'; return; }
-    const role = sessionStorage.getItem('userRole');
+    const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+    if (role) sessionStorage.setItem('userRole', role);
     if (role === 'tresorier') { window.location.href = '../accueil/menu_tresorier.html'; return; }
     const back = document.querySelector('.back-btn');
     if (back) back.href = (role === 'admin') ? '../accueil/menu_admin.html' : '../accueil/menu_caissier.html';
+});
+
+window.deconnexion = () => {
+    if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
+        sessionStorage.clear();
+        localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
+        signOut(auth).then(() => { window.location.href = '../index.html'; });
+    }
+};
+// Une déconnexion faite sur une autre page/onglet doit se propager ici aussi.
+window.addEventListener('storage', (e) => {
+    if (e.key === 'savedRole' && !e.newValue) window.location.href = '../index.html';
 });
 
 // ── REFS FIREBASE ───────────────────────────────

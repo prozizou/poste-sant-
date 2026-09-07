@@ -79,6 +79,10 @@
         .conn-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7a8d; flex-shrink: 0; transition: background .2s; }
         .conn-badge.online .dot { background: #4ade9a; box-shadow: 0 0 0 3px rgba(74,222,154,.25); }
         .conn-badge .label { display: none; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .icon-btn { width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.14); border: 1.5px solid rgba(255,255,255,.28); color: #fff; cursor: pointer; transition: background .2s; }
+        .icon-btn:hover { background: rgba(255,255,255,.24); }
+        .icon-btn .icon { width: 1.05em; height: 1.05em; }
 
         .page { padding: 24px; max-width: 1400px; margin: 0 auto; }
 
@@ -447,7 +451,12 @@
             </div>
         </div>
     </div>
-    <div class="conn-badge" id="conn-badge"><span class="dot"></span><span class="label">Synchronisation…</span></div>
+    <div class="topbar-right">
+        <div class="conn-badge" id="conn-badge"><span class="dot"></span><span class="label">Synchronisation…</span></div>
+        <button type="button" class="icon-btn" onclick="deconnexion()" title="Déconnexion" aria-label="Déconnexion">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+    </div>
 </nav>
 
 <div class="page">
@@ -1146,20 +1155,42 @@
 ══════════════════════════════════════════ -->
 <script type="module">
 import { auth, db } from '../firebase-config.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { exporterPDF, fcfa } from '../planif_rapport/rapport-lib.js';
 
 // ── Auth guard ──────────────────────────────────────────────────
+// Le rôle est d'abord cherché dans sessionStorage (rapide, pour cette
+// session d'onglet), puis dans localStorage (persistant entre deux
+// lancements de l'app) — sans ce repli, arriver ici directement via un
+// raccourci PWA après redémarrage de l'app forçait à repasser par une
+// connexion complète alors que la session Firebase était toujours valide.
 onAuthStateChanged(auth, (user) => {
     if (!user) { window.location.href = '../index.html'; return; }
-    const role = sessionStorage.getItem('userRole');
+    const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+    if (role) sessionStorage.setItem('userRole', role);
     if (role !== 'admin') { window.location.href = '../accueil/menu_caissier.html'; return; }
     const badge = document.getElementById('conn-badge');
     badge.classList.add('online');
     badge.querySelector('.label').textContent = 'Connecté';
     // Pré-remplir agent
     document.getElementById('e-agent').value = (user.email || '').split('@')[0];
+});
+
+// ── Déconnexion ───────────────────────────────────────────────────
+// Accessible directement depuis cette page (pas besoin de retourner au
+// tableau de bord pour se déconnecter).
+window.deconnexion = () => {
+    if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
+        sessionStorage.clear();
+        localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
+        signOut(auth).then(() => { window.location.href = '../index.html'; });
+    }
+};
+// Une déconnexion faite sur une autre page/onglet doit se propager ici
+// aussi, sans attendre que l'utilisateur clique lui-même sur « Menu ».
+window.addEventListener('storage', (e) => {
+    if (e.key === 'savedRole' && !e.newValue) window.location.href = '../index.html';
 });
 
 // ── Init dates / heure ─────────────────────────────────────────
