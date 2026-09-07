@@ -247,6 +247,9 @@
         <button type="button" class="icon-btn" id="btn-open-export" title="Exporter le rapport" aria-label="Exporter le rapport">
             <svg class="icon" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M20 21H4a1 1 0 0 1-1-1v-4"/></svg>
         </button>
+        <button type="button" class="icon-btn" onclick="deconnexion()" title="Déconnexion" aria-label="Déconnexion">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
     </div>
 </nav>
 
@@ -502,17 +505,34 @@
 <script type="module">
 import { db, auth } from '../firebase-config.js';
 import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
     esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
     totalTickets, totalVentes, parPrestation, parMedicament, exporterPDF
 } from './rapport-lib.js';
 
+// Le rôle est cherché dans sessionStorage puis, à défaut, dans localStorage
+// (persistant entre deux lancements de l'app) — évite de traiter une
+// session Firebase pourtant valide comme non authentifiée après un
+// redémarrage de l'application.
 onAuthStateChanged(auth, user => {
     if (!user) { window.location.href = '../index.html'; return; }
-    if (sessionStorage.getItem('userRole') === 'caissier') {
+    const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+    if (role) sessionStorage.setItem('userRole', role);
+    if (role === 'caissier') {
         window.location.href = '../accueil/menu_caissier.html';
     }
+});
+
+window.deconnexion = () => {
+    if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
+        sessionStorage.clear();
+        localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
+        signOut(auth).then(() => { window.location.href = '../index.html'; });
+    }
+};
+window.addEventListener('storage', (e) => {
+    if (e.key === 'savedRole' && !e.newValue) window.location.href = '../index.html';
 });
 
 function toast(msg, type = 'ok') {
