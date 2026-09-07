@@ -7,235 +7,412 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* ══════════════════════════════════════════
+           VARIABLES — même design system que la page Stock
+        ══════════════════════════════════════════ */
         :root {
-            --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
-            --warning:#d68910;--purple:#7b5ea7;--purple-light:#9b7ec8;--danger:#c0392b;
-            --bg:#f0f4f8;--card-bg:#ffffff;
-            --text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
+            --primary:       #1a3a5c;
+            --primary-light: #2b5580;
+            --primary-bg:    #eaf0f6;
+            --purple:        #7b5ea7;
+            --purple-bg:     #f0ebf8;
+            --accent:        #0ea472;
+            --danger:        #c0392b;
+            --danger-bg:     #fdf1f0;
+            --warning:       #d68910;
+            --warning-bg:    #fef9ec;
+            --green-bg:      #e6f7f1;
+            --bg:            #f4f6f8;
+            --card-bg:       #ffffff;
+            --text:          #1e2a38;
+            --muted:         #6b7a8d;
+            --border:        #d8e0e8;
         }
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
         html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
         body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-        .topbar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(26,58,92,.18);position:sticky;top:0;z-index:100;}
-        .topbar-left{display:flex;align-items:center;gap:12px;}
-        .topbar-logo{width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;}
-        .topbar-left h1{font-size:1.05rem;font-weight:700;line-height:1.2;}
-        .topbar-left p{font-size:.72rem;opacity:.75;}
-        .topbar-right{display:flex;align-items:center;gap:16px;}
-        .role-badge{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);color:white;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;}
-        .user-badge{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:24px;padding:6px 14px 6px 8px;font-size:.83rem;}
-        .user-avatar{width:28px;height:28px;background:var(--warning);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;}
-        .btn-logout{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:white;padding:7px 16px;border-radius:8px;font-size:.82rem;font-family:inherit;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:6px;}
-        .btn-logout:hover{background:rgba(255,255,255,.25);}
-        .main{padding:32px;max-width:1100px;margin:0 auto;}
-        .welcome-bar{margin-bottom:28px;}
-        .welcome-bar h2{font-size:1.55rem;font-weight:800;color:var(--primary);}
-        .welcome-bar p{font-size:.9rem;color:var(--muted);margin-top:4px;}
-        .access-notice{background:#fef9ec;border:1.5px solid #f5d78a;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:block;line-height:1.5;font-size:.85rem;color:#7a5200;font-weight:500;}
-        .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px;}
-        .stat-card{background:var(--card-bg);border-radius:12px;padding:18px 20px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.03);display:flex;align-items:center;gap:14px;}
-        .stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
-        .stat-card:nth-child(1) .stat-icon{background:#e8f4fd;}
-        .stat-card:nth-child(2) .stat-icon{background:#e6f7f1;}
-        .stat-card:nth-child(3) .stat-icon{background:#fef5e7;}
-        .stat-card:nth-child(4) .stat-icon{background:#f0ebf8;}
-        .stat-label{font-size:.75rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px;}
-        .stat-value{font-size:1.35rem;font-weight:800;color:var(--primary);line-height:1;margin-top:2px;}
-        .section-title{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
-        .modules-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
-        .module-card{background:var(--card-bg);border-radius:14px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.04);border:1px solid var(--border);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
-        .module-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
-        .module-card.gold::before{background:var(--warning);}
-        .module-card.purple::before{background:var(--purple);}
-        .module-card.red::before{background:var(--danger);}
-        .module-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.08);}
-        .module-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
-        .module-emoji{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
-        .module-card.gold .module-emoji{background:#fef9ec;}
-        .module-card.purple .module-emoji{background:#f0ebf8;}
-        .module-card.red .module-emoji{background:#fdf1f0;}
-        .red-btn{background:var(--danger);color:white;}
-        .new-badge.red-badge{background:var(--danger);}
-        .module-title-group h3{font-size:1rem;font-weight:700;color:var(--primary);}
-        .module-sub{font-size:.78rem;color:var(--muted);margin-top:2px;}
-        .module-desc{font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:18px;}
-        .module-features{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;}
-        .feature-tag{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg);color:var(--muted);border:1px solid var(--border);}
-        .module-action{display:block;width:100%;padding:10px 16px;border-radius:8px;border:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;text-align:center;transition:opacity .2s,transform .15s;text-decoration:none;}
-        .module-action:hover{opacity:.88;transform:translateY(-1px);}
-        .gold-btn{background:var(--warning);color:white;}
-        .purple-btn{background:linear-gradient(135deg,var(--purple),var(--purple-light));color:white;}
-        .new-badge{position:absolute;top:16px;right:16px;background:var(--purple);color:white;font-size:.65rem;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.5px;}
-        @media(max-width:600px){
-            .main{padding:16px;}
-            .topbar{height:auto;min-height:60px;padding:10px 14px;flex-wrap:wrap;gap:8px 10px;}
-            .topbar-left h1{font-size:.98rem;line-height:1.15;}
-            .topbar-left p{font-size:.68rem;}
-            .topbar-right{width:100%;justify-content:space-between;gap:8px;}
-            .user-badge .user-email{display:none;}
-            .role-badge{font-size:.7rem;padding:4px 10px;}
-            .btn-logout{padding:6px 12px;font-size:.76rem;}
+        .icon{width:1em;height:1em;display:inline-block;vertical-align:-.15em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+        .icon.dots{fill:currentColor;stroke:none;}
+
+        /* ── TOPBAR (identique à la page Stock) ── */
+        .topbar{background:var(--primary);color:white;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 2px 10px rgba(26,58,92,.25);position:sticky;top:0;z-index:100;}
+        .topbar-left{display:flex;align-items:center;gap:10px;min-width:0;}
+        .topbar-logo{width:34px;height:34px;background:rgba(255,255,255,.15);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .topbar-logo .icon{width:1.15em;height:1.15em;}
+        .topbar-left h1{font-size:1rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .topbar-left p{font-size:.72rem;opacity:.78;}
+
+        /* ── MENU DÉROULANT (identique à la page Stock) ── */
+        .menu-wrap{position:relative;display:inline-flex;flex-shrink:0;}
+        .menu-btn{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);color:white;cursor:pointer;transition:background .2s;}
+        .menu-btn:hover,.menu-btn.open{background:rgba(255,255,255,.24);}
+        .menu-btn .icon{width:1.1em;height:1.1em;}
+        .dropdown-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:240px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(20,30,45,.18);padding:8px;z-index:200;display:none;color:var(--text);}
+        .dropdown-menu.open{display:block;}
+        .dropdown-user{display:flex;align-items:center;gap:10px;padding:6px 8px 10px;}
+        .user-avatar{width:34px;height:34px;background:var(--warning);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;}
+        .dropdown-user .email{font-size:.85rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .dropdown-user .role{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:1px;}
+        .dropdown-user .role .icon{width:.9em;height:.9em;}
+        .dropdown-divider{height:1px;background:var(--border);margin:4px 0;}
+        .dropdown-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 10px;border-radius:7px;border:none;background:none;font-family:inherit;font-size:.84rem;font-weight:600;color:var(--text);cursor:pointer;transition:background .15s;}
+        .dropdown-item .icon{width:1em;height:1em;flex-shrink:0;color:var(--muted);}
+        .dropdown-item:hover{background:var(--bg);}
+        .dropdown-item.danger{color:var(--danger);}
+        .dropdown-item.danger .icon{color:var(--danger);}
+
+        .main{padding:20px;max-width:760px;margin:0 auto;}
+
+        /* ── ACCUEIL ── */
+        .welcome-bar{margin-bottom:18px;}
+        .welcome-bar h2{font-size:1.25rem;font-weight:800;color:var(--primary);}
+        .welcome-bar p{font-size:.82rem;color:var(--muted);margin-top:2px;}
+
+        /* ── KPI ── */
+        .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+        .stat-card{background:var(--card-bg);border-radius:12px;padding:13px 15px;border:1px solid var(--border);box-shadow:0 2px 6px rgba(0,0,0,.03);display:flex;align-items:center;gap:12px;}
+        .stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--primary-bg);color:var(--primary);}
+        .stat-card.warn .stat-icon{background:var(--warning-bg);color:var(--warning);}
+        .stat-card.danger .stat-icon{background:var(--danger-bg);color:var(--danger);}
+        .stat-label{font-size:.68rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+        .stat-value{font-size:1.2rem;font-weight:800;color:var(--primary);line-height:1.15;margin-top:2px;}
+        .stat-card.warn .stat-value{color:var(--warning);}
+        .stat-card.danger .stat-value{color:var(--danger);}
+
+        /* ── ACCÈS RAPIDE ── */
+        .section-title{font-size:.76rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;}
+        .quick-actions{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;}
+        .quick-btn{flex:1;min-width:160px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 16px;background:var(--primary);color:white;border-radius:10px;font-family:inherit;font-size:.85rem;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:opacity .2s,transform .15s;}
+        .quick-btn:hover{opacity:.9;transform:translateY(-1px);}
+        .quick-btn .icon{width:1.05em;height:1.05em;}
+
+        /* ── MODULES (lignes compactes) ── */
+        .modules-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+        .module-row{position:relative;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:box-shadow .2s,border-color .2s;}
+        .module-row:hover{box-shadow:0 4px 14px rgba(20,30,45,.06);border-color:#c7d2dd;}
+        .module-row-link{position:absolute;inset:0;z-index:1;border-radius:inherit;}
+        .module-row-link:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+        .module-row-icon{width:42px;height:42px;border-radius:11px;background:var(--primary-bg);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .module-row-text{flex:1;min-width:0;}
+        .module-row-text h3{font-size:.92rem;font-weight:700;color:var(--text);}
+        .module-row-text .sub{font-size:.78rem;color:var(--muted);margin-top:1px;}
+        .module-row-alert{font-size:.74rem;color:var(--warning);font-weight:700;margin-top:5px;display:flex;align-items:center;gap:5px;}
+        .module-row-alert .icon{width:.95em;height:.95em;flex-shrink:0;}
+        .module-row-info{position:relative;z-index:2;width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .2s;}
+        .module-row-info:hover{border-color:var(--primary);color:var(--primary);}
+        .module-row-chevron{color:var(--muted);flex-shrink:0;}
+
+        /* ── MODALES (info module / à propos de l'accès) ── */
+        .modal-overlay{position:fixed;inset:0;background:rgba(15,23,35,.55);display:none;align-items:flex-end;justify-content:center;z-index:1000;}
+        .modal-overlay.visible{display:flex;}
+        .modal-box{background:var(--card-bg);color:var(--text);border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:85vh;overflow:auto;box-shadow:0 -10px 40px rgba(0,0,0,.25);}
+        .modal-head{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 4px;}
+        .modal-head-icon{width:40px;height:40px;border-radius:10px;background:var(--primary-bg);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .modal-head h3{font-size:1rem;font-weight:700;color:var(--primary);}
+        .modal-head p{font-size:.78rem;color:var(--muted);margin-top:1px;}
+        .modal-close{margin-left:auto;background:none;border:none;font-size:1.3rem;line-height:1;cursor:pointer;color:var(--muted);flex-shrink:0;}
+        .modal-body{padding:14px 20px 22px;}
+        .modal-body p{font-size:.88rem;color:var(--text);line-height:1.6;}
+        .modal-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+        .modal-tag{font-size:.72rem;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--bg);color:var(--muted);border:1px solid var(--border);}
+        .modal-open-link{display:inline-flex;align-items:center;gap:7px;margin-top:18px;padding:10px 18px;background:var(--primary);color:white;border-radius:9px;font-size:.85rem;font-weight:700;text-decoration:none;}
+
+        @media(min-width:600px){
+            .modal-overlay{align-items:center;}
+            .modal-box{border-radius:16px;}
         }
     </style>
 </head>
 <body>
 <nav class="topbar">
     <div class="topbar-left">
-        <div class="topbar-logo">🏥</div>
+        <div class="topbar-logo">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+        </div>
         <div>
             <h1>Poste de Santé de Diandioly</h1>
-            <p>Tableau de bord – Administration</p>
+            <p>Administration</p>
         </div>
     </div>
-    <div class="topbar-right">
-        <div class="role-badge">🛡️ Administration</div>
-        <div class="user-badge">
-            <div class="user-avatar" id="user-initials">?</div>
-            <span class="user-email" id="user-email-display">Chargement…</span>
+    <div class="menu-wrap">
+        <button class="menu-btn" id="user-menu-btn" onclick="toggleDropdown('user-menu', this)" aria-label="Menu utilisateur">
+            <svg class="icon dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+        </button>
+        <div class="dropdown-menu" id="user-menu">
+            <div class="dropdown-user">
+                <div class="user-avatar" id="user-initials">?</div>
+                <div style="min-width:0;">
+                    <div class="email" id="user-email-display">Chargement…</div>
+                    <div class="role">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                        Administrateur
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="dropdown-item" onclick="closeAllDropdowns(); openInfoModal('access')">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                À propos de cet accès
+            </button>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item danger" onclick="deconnexion()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                Déconnexion
+            </button>
         </div>
-        <button class="btn-logout" onclick="deconnexion()"><span>⎋</span> Déconnexion</button>
     </div>
 </nav>
+
 <main class="main">
     <div class="welcome-bar">
-        <h2>Bienvenue, <span id="greeting-name">—</span> 👋</h2>
+        <h2>Bonjour, <span id="greeting-name">—</span></h2>
         <p id="current-datetime">Chargement…</p>
-    </div>
-
-    <div class="access-notice">
-        🛡️ Connecté(e) en tant qu'<strong>Administrateur</strong> — Accès à tous les modules, y compris la Facturation pour une saisie a posteriori (ex. week-end sans caissier).
     </div>
 
     <div class="stats-row">
         <div class="stat-card">
-            <div class="stat-icon">🎟️</div>
+            <div class="stat-icon"><svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div>
             <div>
-                <div class="stat-label">Tickets du jour</div>
-                <div class="stat-value" id="stat-tickets-day">—</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">💊</div>
-            <div>
-                <div class="stat-label">Ventes méd.</div>
-                <div class="stat-value" id="stat-meds-day">—</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">💰</div>
-            <div>
-                <div class="stat-label">Recettes du jour</div>
+                <div class="stat-label">Recettes</div>
                 <div class="stat-value" id="stat-recettes-day">—</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon">📦</div>
+            <div class="stat-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
             <div>
-                <div class="stat-label">Références stock</div>
-                <div class="stat-value" id="stat-stock">—</div>
+                <div class="stat-label">Tickets</div>
+                <div class="stat-value" id="stat-tickets-day">—</div>
+            </div>
+        </div>
+        <div class="stat-card warn">
+            <div class="stat-icon"><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
+            <div>
+                <div class="stat-label">Stock faible</div>
+                <div class="stat-value" id="stat-faible">—</div>
+            </div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div>
+                <div class="stat-label">Péremption</div>
+                <div class="stat-value" id="stat-perempt">—</div>
             </div>
         </div>
     </div>
 
-    <div class="section-title">Modules disponibles</div>
-    <div class="modules-grid">
-        <!-- Module 1 -->
-        <div class="module-card">
-            <div class="new-badge">✨ NOUVEAU</div>
-            <div class="module-header">
-                <div class="module-emoji">🧾</div>
-                <div class="module-title-group">
-                    <h3>Facturation</h3>
-                    <div class="module-sub">Module 1 – Saisie a posteriori</div>
+    <div class="section-title">Accès rapide</div>
+    <div class="quick-actions">
+        <a class="quick-btn" href="../facturation/facturation.html">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Nouvelle vente
+        </a>
+        <a class="quick-btn" href="../approvisionnement/stock.html#entree">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Entrée stock
+        </a>
+    </div>
+
+    <div class="section-title">Modules</div>
+    <div class="modules-list">
+
+        <!-- Module 1 — Facturation -->
+        <div class="module-row">
+            <a class="module-row-link" href="../facturation/facturation.html" aria-label="Ouvrir Facturation"></a>
+            <div class="module-row-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
+            </div>
+            <div class="module-row-text">
+                <h3>Facturation</h3>
+                <div class="sub">Tickets et ventes de médicaments</div>
+            </div>
+            <button type="button" class="module-row-info" onclick="openInfoModal('facturation')" aria-label="En savoir plus">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </button>
+            <svg class="icon module-row-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+
+        <!-- Module 2 — Planification & Rapports -->
+        <div class="module-row">
+            <a class="module-row-link" href="../planif_rapport/rapports.html" aria-label="Ouvrir Planification & Rapports"></a>
+            <div class="module-row-icon">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+            </div>
+            <div class="module-row-text">
+                <h3>Planification &amp; Rapports</h3>
+                <div class="sub">Statistiques et agenda</div>
+            </div>
+            <button type="button" class="module-row-info" onclick="openInfoModal('rapports')" aria-label="En savoir plus">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </button>
+            <svg class="icon module-row-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+
+        <!-- Module 3 — Approvisionnement -->
+        <div class="module-row">
+            <a class="module-row-link" href="../approvisionnement/stock.html" aria-label="Ouvrir Approvisionnement"></a>
+            <div class="module-row-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            </div>
+            <div class="module-row-text">
+                <h3>Approvisionnement</h3>
+                <div class="sub" id="approv-sub">Stock et réapprovisionnement</div>
+                <div class="module-row-alert" id="approv-alert" hidden>
+                    <svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    <span id="approv-alert-text"></span>
                 </div>
             </div>
-            <p class="module-desc">Géré au quotidien par le/la <strong>caissier(ère)</strong>. Accès administrateur pour enregistrer les tickets et ventes de médicaments d'un jour où la caisse n'a pas pu être tenue (ex. samedi/dimanche géré par la dépositaire) : une date antérieure peut être choisie, le numéro d'attente et les statistiques suivent alors cette date-là.</p>
-            <div class="module-features">
-                <span class="feature-tag">👤 Caissier(ère)</span>
-                <span class="feature-tag">Date antérieure</span>
-                <span class="feature-tag">Tickets &amp; médicaments</span>
-                <span class="feature-tag">Traçabilité</span>
-            </div>
-            <a class="module-action gold-btn" href="../facturation/facturation.html">Saisir des données →</a>
+            <button type="button" class="module-row-info" onclick="openInfoModal('approvisionnement')" aria-label="En savoir plus">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </button>
+            <svg class="icon module-row-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
         </div>
-        <!-- Module 2 -->
-        <div class="module-card gold">
-            <div class="module-header">
-                <div class="module-emoji">📊</div>
-                <div class="module-title-group">
-                    <h3>Planification & Rapports</h3>
-                    <div class="module-sub">Module 2 – Statistiques & Agenda</div>
-                </div>
+
+        <!-- Module 4 — Dépenses & Bilan -->
+        <div class="module-row">
+            <a class="module-row-link" href="../planif_rapport/depenses.html" aria-label="Ouvrir Dépenses & Bilan"></a>
+            <div class="module-row-icon">
+                <svg class="icon" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
             </div>
-            <p class="module-desc">Statistiques complètes des tickets et ventes de médicaments (journalier, hebdomadaire, mensuel, trimestriel, annuel). Agenda et rapports district.</p>
-            <div class="module-features">
-                <span class="feature-tag">Tickets vendus</span>
-                <span class="feature-tag">Ventes médicaments</span>
-                <span class="feature-tag">Rapports district</span>
-                <span class="feature-tag">Agenda</span>
+            <div class="module-row-text">
+                <h3>Dépenses &amp; Bilan</h3>
+                <div class="sub">Comptabilité du poste</div>
             </div>
-            <a class="module-action gold-btn" href="../planif_rapport/rapports.html">Générer un Rapport →</a>
+            <button type="button" class="module-row-info" onclick="openInfoModal('depenses')" aria-label="En savoir plus">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </button>
+            <svg class="icon module-row-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
         </div>
-        <!-- Module 3 -->
-        <div class="module-card purple">
-            <div class="new-badge">✨ NOUVEAU</div>
-            <div class="module-header">
-                <div class="module-emoji">📦</div>
-                <div class="module-title-group">
-                    <h3>Approvisionnement</h3>
-                    <div class="module-sub">Module 3 – Stock Pharmacie</div>
-                </div>
+
+        <!-- Module 5 — Retours & Annulations -->
+        <div class="module-row">
+            <a class="module-row-link" href="../annulation/annulation.html" aria-label="Ouvrir Retours & Annulations"></a>
+            <div class="module-row-icon">
+                <svg class="icon" viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
             </div>
-            <p class="module-desc">Gestion complète du stock de la pharmacie : enregistrement des entrées, suivi des dates de péremption, prix unitaires, par boîte et par bouteille. Réapprovisionnement et inventaire en temps réel.</p>
-            <div class="module-features">
-                <span class="feature-tag">Entrées stock</span>
-                <span class="feature-tag">Dates péremption</span>
-                <span class="feature-tag">Prix détaillés</span>
-                <span class="feature-tag">Inventaire live</span>
-                <span class="feature-tag">Réapprovisionnement</span>
+            <div class="module-row-text">
+                <h3>Retours &amp; Annulations</h3>
+                <div class="sub">Corrections de caisse</div>
             </div>
-            <a class="module-action purple-btn" href="../approvisionnement/stock.html">Gérer le Stock →</a>
+            <button type="button" class="module-row-info" onclick="openInfoModal('annulation')" aria-label="En savoir plus">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </button>
+            <svg class="icon module-row-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
         </div>
-        <!-- Module 4 -->
-        <div class="module-card">
-            <div class="new-badge">✨ NOUVEAU</div>
-            <div class="module-header">
-                <div class="module-emoji">📉</div>
-                <div class="module-title-group">
-                    <h3>Dépenses &amp; Bilan</h3>
-                    <div class="module-sub">Module 4 – Comptabilité du poste</div>
-                </div>
-            </div>
-            <p class="module-desc">Géré au quotidien par le <strong>trésorier</strong>. Accès administrateur en supervision : journal des dépenses, répartition par catégorie, solde net (recettes − charges) et export du bilan en PDF.</p>
-            <div class="module-features">
-                <span class="feature-tag">👤 Trésorier</span>
-                <span class="feature-tag">Journal des dépenses</span>
-                <span class="feature-tag">Solde net</span>
-                <span class="feature-tag">Export PDF</span>
-            </div>
-            <a class="module-action gold-btn" href="../planif_rapport/depenses.html">Ouvrir le Bilan (supervision) →</a>
-        </div>
-        <!-- Module 5 -->
-        <div class="module-card red">
-            <div class="new-badge red-badge">✨ NOUVEAU</div>
-            <div class="module-header">
-                <div class="module-emoji">↩️</div>
-                <div class="module-title-group">
-                    <h3>Retours & Annulations</h3>
-                    <div class="module-sub">Module 5 – Corrections de caisse</div>
-                </div>
-            </div>
-            <p class="module-desc">Annuler un ticket de consultation ou une vente de médicaments enregistrés par erreur (ou suite au désistement d'un client), avec retour automatique des médicaments en stock. Ces annulations n'affectent jamais le bilan.</p>
-            <div class="module-features">
-                <span class="feature-tag">Annulation ticket</span>
-                <span class="feature-tag">Retour en stock</span>
-                <span class="feature-tag">Motif tracé</span>
-                <span class="feature-tag">Bilan préservé</span>
-            </div>
-            <a class="module-action red-btn" href="../annulation/annulation.html">Gérer les Retours →</a>
-        </div>
+
     </div>
 </main>
+
+<!-- ══ MODALE : info module / accès ══ -->
+<div class="modal-overlay" id="info-modal" role="dialog" aria-modal="true">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="modal-head-icon" id="info-modal-icon"></div>
+            <div>
+                <h3 id="info-modal-title">—</h3>
+                <p id="info-modal-sub"></p>
+            </div>
+            <button class="modal-close" onclick="closeInfoModal()" aria-label="Fermer">✕</button>
+        </div>
+        <div class="modal-body">
+            <p id="info-modal-desc"></p>
+            <div class="modal-tags" id="info-modal-tags"></div>
+            <a class="modal-open-link" id="info-modal-link" href="#">
+                <span>Ouvrir le module</span>
+                <svg class="icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Menus déroulants (kebab) ────────────────────────────────────
+window.toggleDropdown = function (id, btn) {
+    const menu = document.getElementById(id);
+    const wasOpen = menu.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) { menu.classList.add('open'); btn?.classList.add('open'); }
+};
+window.closeAllDropdowns = function () {
+    document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.menu-btn.open').forEach(b => b.classList.remove('open'));
+};
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.menu-wrap')) closeAllDropdowns();
+});
+
+// ── Modale d'information (descriptions détaillées, à la demande) ──
+const MODULE_INFO = {
+    access: {
+        icon: '<svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+        title: 'Accès administrateur',
+        sub: 'Votre rôle sur ce poste',
+        desc: "Connecté(e) en tant qu'Administrateur — accès à tous les modules, y compris la Facturation pour une saisie a posteriori (ex. week-end sans caissier) : une date antérieure peut être choisie, le numéro d'attente et les statistiques suivent alors cette date-là.",
+        tags: [],
+        href: null,
+    },
+    facturation: {
+        icon: '<svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',
+        title: 'Facturation',
+        sub: 'Module 1 — Saisie a posteriori',
+        desc: "Géré au quotidien par le/la caissier(ère). Accès administrateur pour enregistrer les tickets et ventes de médicaments d'un jour où la caisse n'a pas pu être tenue (ex. samedi/dimanche géré par la dépositaire) : une date antérieure peut être choisie, le numéro d'attente et les statistiques suivent alors cette date-là.",
+        tags: ['Caissier(ère)', 'Date antérieure', 'Tickets & médicaments', 'Traçabilité'],
+        href: '../facturation/facturation.html',
+    },
+    rapports: {
+        icon: '<svg class="icon" viewBox="0 0 24 24"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>',
+        title: 'Planification & Rapports',
+        sub: 'Module 2 — Statistiques & Agenda',
+        desc: 'Statistiques complètes des tickets et ventes de médicaments (journalier, hebdomadaire, mensuel, trimestriel, annuel). Agenda et rapports district.',
+        tags: ['Tickets vendus', 'Ventes médicaments', 'Rapports district', 'Agenda'],
+        href: '../planif_rapport/rapports.html',
+    },
+    approvisionnement: {
+        icon: '<svg class="icon" viewBox="0 0 24 24"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+        title: 'Approvisionnement',
+        sub: 'Module 3 — Stock Pharmacie',
+        desc: 'Gestion complète du stock de la pharmacie : enregistrement des entrées, suivi des dates de péremption, prix unitaires, par boîte et par bouteille. Réapprovisionnement et inventaire en temps réel.',
+        tags: ['Entrées stock', 'Dates péremption', 'Prix détaillés', 'Inventaire live', 'Réapprovisionnement'],
+        href: '../approvisionnement/stock.html',
+    },
+    depenses: {
+        icon: '<svg class="icon" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>',
+        title: 'Dépenses & Bilan',
+        sub: 'Module 4 — Comptabilité du poste',
+        desc: 'Géré au quotidien par le trésorier. Accès administrateur en supervision : journal des dépenses, répartition par catégorie, solde net (recettes − charges) et export du bilan en PDF.',
+        tags: ['Trésorier', 'Journal des dépenses', 'Solde net', 'Export PDF'],
+        href: '../planif_rapport/depenses.html',
+    },
+    annulation: {
+        icon: '<svg class="icon" viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>',
+        title: 'Retours & Annulations',
+        sub: 'Module 5 — Corrections de caisse',
+        desc: "Annuler un ticket de consultation ou une vente de médicaments enregistrés par erreur (ou suite au désistement d'un client), avec retour automatique des médicaments en stock. Ces annulations n'affectent jamais le bilan.",
+        tags: ['Annulation ticket', 'Retour en stock', 'Motif tracé', 'Bilan préservé'],
+        href: '../annulation/annulation.html',
+    },
+};
+
+window.openInfoModal = function (key) {
+    const m = MODULE_INFO[key];
+    if (!m) return;
+    document.getElementById('info-modal-icon').innerHTML = m.icon;
+    document.getElementById('info-modal-title').textContent = m.title;
+    document.getElementById('info-modal-sub').textContent = m.sub || '';
+    document.getElementById('info-modal-desc').textContent = m.desc;
+    document.getElementById('info-modal-tags').innerHTML =
+        m.tags.map(t => `<span class="modal-tag">${t}</span>`).join('');
+    const link = document.getElementById('info-modal-link');
+    if (m.href) { link.href = m.href; link.style.display = 'inline-flex'; }
+    else { link.style.display = 'none'; }
+    document.getElementById('info-modal').classList.add('visible');
+};
+window.closeInfoModal = function () {
+    document.getElementById('info-modal').classList.remove('visible');
+};
+document.getElementById('info-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'info-modal') closeInfoModal();
+});
+</script>
+
 <script type="module">
     import { auth, db } from '../firebase-config.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -254,8 +431,9 @@
     });
 
     function updateClock() {
-        const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' };
-        document.getElementById('current-datetime').textContent = new Date().toLocaleDateString('fr-FR', opts);
+        const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+        const d = new Date().toLocaleDateString('fr-FR', opts);
+        document.getElementById('current-datetime').textContent = d.charAt(0).toUpperCase() + d.slice(1);
     }
     updateClock(); setInterval(updateClock, 60000);
 
@@ -264,6 +442,11 @@
         return d.getDate()===n.getDate() && d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear();
     }
     function fmt(n) { return Number(n).toLocaleString('fr-FR'); }
+    function diffJours(dateStr) {
+        if (!dateStr) return Infinity;
+        const d = new Date(dateStr), auj = new Date(); auj.setHours(0,0,0,0);
+        return Math.floor((d - auj) / 86400000);
+    }
 
     let _ticketTotal = 0, _medTotal = 0;
     function updateRecettes() {
@@ -292,12 +475,36 @@
             if (d.annule) return; // vente annulée/retournée : exclue du bilan
             if (isToday(ts)) totalMed += (d.total || 0);
         });
-        document.getElementById('stat-meds-day').textContent = fmt(totalMed) + ' F';
         _medTotal = totalMed; updateRecettes();
     });
 
+    // ── Stock : références, stock faible, péremptions proches ──────
     onValue(stockRef, (snap) => {
-        document.getElementById('stat-stock').textContent = snap.numChildren() || 0;
+        let total = 0, faible = 0, perempt = 0;
+        snap.forEach(c => {
+            const m = c.val();
+            total++;
+            const qte = m.quantite || 0;
+            if (qte > 0 && qte <= (m.seuil_alerte || 10)) faible++;
+            if (diffJours(m.date_peremption) <= 90) perempt++;
+        });
+        document.getElementById('stat-faible').textContent   = faible;
+        document.getElementById('stat-perempt').textContent  = perempt;
+
+        const sub   = document.getElementById('approv-sub');
+        const alert = document.getElementById('approv-alert');
+        const alertText = document.getElementById('approv-alert-text');
+        if (faible > 0 || perempt > 0) {
+            const parts = [];
+            if (faible)  parts.push(`${faible} stock${faible>1?'s':''} faible${faible>1?'s':''}`);
+            if (perempt) parts.push(`${perempt} expiration${perempt>1?'s':''} proche${perempt>1?'s':''}`);
+            alertText.textContent = parts.join(' · ');
+            alert.hidden = false;
+            sub.textContent = `${total} référence${total>1?'s':''}`;
+        } else {
+            alert.hidden = true;
+            sub.textContent = `${total} référence${total>1?'s':''} · Stock et réapprovisionnement`;
+        }
     });
 
     window.deconnexion = () => {
