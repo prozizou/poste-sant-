@@ -80,6 +80,48 @@
         .kpi-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
         .kpi-val{font-size:1.22rem;font-weight:800;color:var(--primary);margin-top:3px;line-height:1.15;}
         .kpi-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
+        .kpi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+        .kpi-top .kpi-icon{margin-bottom:0;}
+        .kpi-delta{font-size:.68rem;font-weight:800;display:inline-flex;align-items:center;gap:2px;padding:3px 7px;border-radius:10px;white-space:nowrap;}
+        .kpi-delta .icon{width:.8em;height:.8em;}
+        .kpi-delta.up{background:var(--accent-bg);color:var(--accent-dark);}
+        .kpi-delta.down{background:var(--danger-bg);color:var(--danger);}
+
+        /* ── SÉLECTEUR DE PLAGE (graphique d'évolution) ── */
+        .evo-range-seg{display:flex;background:var(--bg);border-radius:20px;padding:3px;gap:2px;overflow-x:auto;margin-bottom:14px;}
+        .evo-range-btn{padding:6px 13px;border:none;border-radius:17px;background:transparent;font-family:inherit;font-size:.78rem;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s;}
+        .evo-range-btn:hover{color:var(--primary);}
+        .evo-range-btn.active{background:var(--primary);color:#fff;}
+        .evo-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+        .evo-legend-item{display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-family:inherit;font-size:.78rem;font-weight:700;color:var(--muted);cursor:pointer;padding:2px;opacity:.45;transition:opacity .15s;}
+        .evo-legend-item.active{opacity:1;color:var(--text);}
+        .evo-legend-item .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+        .chart-tooltip strong{display:block;margin-bottom:3px;font-weight:800;}
+        .tt-row{display:flex;align-items:center;gap:6px;white-space:nowrap;font-weight:600;}
+        .tt-row .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+        /* ── ÉTAT DU STOCK (KPI compacts) ── */
+        .stock-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:4px;}
+        .stock-kpi{display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px;padding:14px 8px;border-radius:12px;background:var(--bg);}
+        .stock-kpi .icon{width:1.3em;height:1.3em;}
+        .stock-kpi.warn{color:var(--gold-dark);}
+        .stock-kpi.warn .icon{color:var(--gold);}
+        .stock-kpi.danger .icon,.stock-kpi.danger .sk-val{color:var(--danger);}
+        .stock-kpi.info .icon{color:var(--chart-blue);}
+        .stock-kpi.accent .icon{color:var(--accent-dark);}
+        .sk-val{font-size:1.1rem;font-weight:800;color:var(--primary);}
+        .sk-lbl{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+        @media(max-width:600px){.stock-kpi-row{grid-template-columns:repeat(2,1fr);}}
+
+        /* ── INSIGHTS AUTOMATIQUES ── */
+        .insight-card{display:flex;gap:12px;padding:14px;border-radius:10px;background:var(--bg);}
+        .insight-card+.insight-card{margin-top:10px;}
+        .insight-card .ins-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--primary-bg);color:var(--primary);}
+        .insight-card.warn .ins-icon{background:var(--gold-bg);color:var(--gold-dark);}
+        .insight-card.danger .ins-icon{background:var(--danger-bg);color:var(--danger);}
+        .insight-card.ok .ins-icon{background:var(--accent-bg);color:var(--accent-dark);}
+        .insight-card .ins-title{font-size:.86rem;font-weight:800;color:var(--primary);margin-bottom:3px;}
+        .insight-card .ins-text{font-size:.83rem;color:var(--text);line-height:1.5;}
 
         /* ── PANELS ── */
         .panel{background:var(--card-bg);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.03);margin-bottom:20px;overflow:hidden;}
@@ -301,32 +343,66 @@
 
         <div class="kpi-grid">
             <div class="kpi-card green">
-                <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div>
-                <div class="kpi-label">Recettes</div>
+                <div class="kpi-top">
+                    <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div>
+                    <span class="kpi-delta" id="kd-recettes" hidden></span>
+                </div>
+                <div class="kpi-label">Recettes totales</div>
                 <div class="kpi-val" id="r-recettes">—</div>
             </div>
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-icon" style="background:var(--danger-bg);color:var(--danger);"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></div>
+                    <span class="kpi-delta" id="kd-depenses" hidden></span>
+                </div>
+                <div class="kpi-label">Dépenses</div>
+                <div class="kpi-val" id="r-depenses">—</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-icon" style="background:var(--chart-blue-bg);color:var(--chart-blue);"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div>
+                    <span class="kpi-delta" id="kd-solde" hidden></span>
+                </div>
+                <div class="kpi-label">Solde net</div>
+                <div class="kpi-val" id="r-solde">—</div>
+            </div>
             <div class="kpi-card blue">
-                <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
-                <div class="kpi-label">Tickets</div>
+                <div class="kpi-top">
+                    <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
+                    <span class="kpi-delta" id="kd-tickets" hidden></span>
+                </div>
+                <div class="kpi-label">Consultations</div>
                 <div class="kpi-val" id="r-tickets">—</div>
             </div>
             <div class="kpi-card purple">
-                <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
-                <div class="kpi-label">Pharmacie</div>
+                <div class="kpi-top">
+                    <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+                    <span class="kpi-delta" id="kd-pharmacie" hidden></span>
+                </div>
+                <div class="kpi-label">Ventes médicaments</div>
                 <div class="kpi-val" id="r-pharmacie">—</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-                <div class="kpi-label">Patients</div>
-                <div class="kpi-val" id="r-patients">—</div>
+                <div class="kpi-top">
+                    <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
+                </div>
+                <div class="kpi-label">Ticket moyen</div>
+                <div class="kpi-val" id="r-panier">—</div>
             </div>
         </div>
 
         <div class="panel">
             <div class="panel-head">
-                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>Évolution des recettes</h2><p id="chart-sub">—</p></div>
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>Évolution financière</h2><p>Recettes, dépenses et solde dans le temps</p></div>
             </div>
             <div class="panel-body">
+                <div class="evo-range-seg" id="evo-range-seg">
+                    <button class="evo-range-btn" data-r="7j">7 j</button>
+                    <button class="evo-range-btn active" data-r="30j">30 j</button>
+                    <button class="evo-range-btn" data-r="3m">3 mois</button>
+                    <button class="evo-range-btn" data-r="6m">6 mois</button>
+                    <button class="evo-range-btn" data-r="1a">1 an</button>
+                </div>
                 <div id="evo-chart-host"></div>
             </div>
         </div>
@@ -340,7 +416,7 @@
 
         <div class="panel">
             <div class="panel-head">
-                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>Activité</h2></div>
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>Activité médicale</h2></div>
             </div>
             <div class="panel-body">
                 <div class="subtabs">
@@ -359,14 +435,70 @@
 
         <div class="panel">
             <div class="panel-head">
-                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/><circle cx="12" cy="8" r="7"/></svg>Top médicaments</h2></div>
-                <button type="button" class="panel-link" onclick="switchView('analyse')">
-                    Voir le rapport détaillé
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/></svg>Pharmacie &amp; stock</h2><p>État actuel de l'inventaire</p></div>
+            </div>
+            <div class="panel-body">
+                <div class="stock-kpi-row">
+                    <div class="stock-kpi warn">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                        <div><div class="sk-val" id="sk-faible">—</div><div class="sk-lbl">Stock faible</div></div>
+                    </div>
+                    <div class="stock-kpi danger">
+                        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+                        <div><div class="sk-val" id="sk-rupture">—</div><div class="sk-lbl">Ruptures</div></div>
+                    </div>
+                    <div class="stock-kpi info">
+                        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        <div><div class="sk-val" id="sk-perempt">—</div><div class="sk-lbl">Péremption &lt; 90j</div></div>
+                    </div>
+                    <div class="stock-kpi accent">
+                        <svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                        <div><div class="sk-val" id="sk-valeur">—</div><div class="sk-lbl">Valeur du stock</div></div>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="panel-head" style="padding:0 0 12px;border:none;"><h2 style="font-size:.85rem;"><svg class="icon" viewBox="0 0 24 24"><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/><circle cx="12" cy="8" r="7"/></svg>Top médicaments</h2></div>
+                <div id="top-meds-resume" class="rank-list"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Caisse &amp; contrôle</h2><p id="caisse-periode">—</p></div>
+                <button type="button" class="panel-link" onclick="window.location.href='../annulation/annulation.html'">
+                    Voir le détail
                     <svg class="icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
                 </button>
             </div>
             <div class="panel-body">
-                <div id="top-meds-resume" class="rank-list"></div>
+                <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:0;">
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <div class="kpi-icon" style="background:var(--danger-bg);color:var(--danger);"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>
+                            <span class="kpi-delta" id="kd-annulations" hidden></span>
+                        </div>
+                        <div class="kpi-label">Annulations &amp; retours</div>
+                        <div class="kpi-val" id="r-annulations">—</div>
+                        <div class="kpi-sub" id="r-annulations-sub">—</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <div class="kpi-icon" style="background:var(--danger-bg);color:var(--danger);"><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></div>
+                        </div>
+                        <div class="kpi-label">Valeur retournée</div>
+                        <div class="kpi-val" id="r-valeur-retournee">—</div>
+                        <div class="kpi-sub">Taux d'annulation : <span id="r-taux-annulation">—</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>Insights automatiques</h2><p>Générés à partir des données de la période</p></div>
+            </div>
+            <div class="panel-body">
+                <div id="insights-list"></div>
             </div>
         </div>
 
@@ -507,8 +639,8 @@ import { db, auth } from '../firebase-config.js';
 import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
-    esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
-    totalTickets, totalVentes, parPrestation, parMedicament, exporterPDF
+    esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode, bornes,
+    totalTickets, totalVentes, totalDepenses, parPrestation, parMedicament, exporterPDF
 } from './rapport-lib.js';
 
 // Le rôle est cherché dans sessionStorage puis, à défaut, dans localStorage
@@ -535,6 +667,9 @@ window.addEventListener('storage', (e) => {
     if (e.key === 'savedRole' && !e.newValue) window.location.href = '../index.html';
 });
 
+const ICON_UP   = '<svg class="icon" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
+const ICON_DOWN = '<svg class="icon" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>';
+
 function toast(msg, type = 'ok') {
     const el = document.getElementById('toast');
     el.textContent = (type === 'ok' ? '✓ ' : '✗ ') + msg;
@@ -545,10 +680,12 @@ function toast(msg, type = 'ok') {
 // ── FIREBASE ────────────────────────────────────
 const ticketRef = ref(db, 'ticket_dbase');
 const medRef    = ref(db, 'vente_medicaments');
+const depRef    = ref(db, 'db_depenses');
+const stockRef  = ref(db, 'db_pharmacie_stock');
 
-let allTickets = [], allVentes = [];
+let allTickets = [], allVentes = [], allDepenses = [], allStock = [];
 let periode = 'jour';
-let loadedT = false, loadedM = false;
+let loadedT = false, loadedM = false, loadedD = false, loadedS = false;
 
 // ── PLAGE DE DATES PERSONNALISÉE ────────────────
 let customDebut = null, customFin = null, customLabel = '';
@@ -559,7 +696,7 @@ let activiteType = 'tk';
 let statSelect = 'recettes';
 
 function checkLoaded() {
-    if (loadedT && loadedM) document.getElementById('conn-badge').classList.add('online');
+    if (loadedT && loadedM && loadedD && loadedS) document.getElementById('conn-badge').classList.add('online');
 }
 
 onValue(ticketRef, snap => {
@@ -573,6 +710,16 @@ onValue(medRef, snap => {
     snap.forEach(c => { allVentes.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }); });
     allVentes.sort((a, b) => b._ts - a._ts);
     loadedM = true; render(); checkLoaded();
+});
+onValue(depRef, snap => {
+    allDepenses = [];
+    snap.forEach(c => { allDepenses.push({ _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() }); });
+    loadedD = true; render(); checkLoaded();
+});
+onValue(stockRef, snap => {
+    allStock = [];
+    snap.forEach(c => { allStock.push({ _key: c.key, ...c.val() }); });
+    loadedS = true; render(); checkLoaded();
 });
 
 // ── VUES : Résumé / Analyse détaillée ───────────
@@ -669,23 +816,68 @@ let currentMdPeriode = [];
 function render() {
     const tk = filtre(allTickets);
     const md = filtre(allVentes);
+    const dep = periode === 'personnalise'
+        ? allDepenses.filter(x => customDebut != null && x._ts >= customDebut && x._ts <= customFin)
+        : allDepenses.filter(x => dansPeriode(x._ts, periode));
     const rTk = totalTickets(tk), rMd = totalVentes(md);
+    const recettes = rTk + rMd;
+    const depenses = totalDepenses(dep);
+    const solde = recettes - depenses;
+    const nbOps = tk.length + md.length;
+    const panierMoyen = nbOps ? Math.round(recettes / nbOps) : 0;
     const nbPatients = new Set(tk.map(t => (t.name || `${t.prenom || ''} ${t.nom || ''}`).trim().toLowerCase()).filter(Boolean)).size;
 
     document.getElementById('periode-range-txt').textContent = libelleDetailCourant();
     document.getElementById('tk-periode').textContent = libelleDetailCourant();
     document.getElementById('md-periode').textContent = libelleDetailCourant();
-    document.getElementById('chart-sub').textContent = libelleCourant();
+    document.getElementById('caisse-periode').textContent = libelleDetailCourant();
 
-    // ── KPI ──
-    document.getElementById('r-recettes').textContent = fcfa(rTk + rMd);
+    // ── KPI principaux ──
+    document.getElementById('r-recettes').textContent = fcfa(recettes);
+    document.getElementById('r-depenses').textContent = fcfa(depenses);
+    document.getElementById('r-solde').textContent = (solde < 0 ? '– ' : '') + fcfa(Math.abs(solde));
     document.getElementById('r-tickets').textContent = fmt(tk.length);
     document.getElementById('r-pharmacie').textContent = fcfa(rMd);
-    document.getElementById('r-patients').textContent = fmt(nbPatients);
+    document.getElementById('r-panier').textContent = fcfa(panierMoyen);
+
+    // ── Comparaison avec la période précédente équivalente ──
+    const prec = statsPeriodePrecedente();
+    renderDelta('kd-recettes', prec?.recettes, recettes);
+    renderDelta('kd-depenses', prec?.depenses, depenses, true);
+    renderDelta('kd-solde', prec?.solde, solde);
+    renderDelta('kd-tickets', prec?.nbTickets, tk.length);
+    renderDelta('kd-pharmacie', prec?.recettesMd, rMd);
+
+    // ── Caisse & contrôle (annulations/retours de la période) ──
+    const tkBrut = periode === 'personnalise'
+        ? allTickets.filter(x => customDebut != null && x._ts >= customDebut && x._ts <= customFin)
+        : allTickets.filter(x => dansPeriode(x._ts, periode));
+    const mdBrut = periode === 'personnalise'
+        ? allVentes.filter(x => customDebut != null && x._ts >= customDebut && x._ts <= customFin)
+        : allVentes.filter(x => dansPeriode(x._ts, periode));
+    const tkAnnules = tkBrut.filter(x => x.annule);
+    const mdAnnules = mdBrut.filter(x => x.annule);
+    const nbAnnules = tkAnnules.length + mdAnnules.length;
+    const valeurRetournee = tkAnnules.reduce((s, x) => s + Number(x.prix || 0), 0)
+        + mdAnnules.reduce((s, x) => s + Number(x.total || 0), 0);
+    const nbOpsBrut = tkBrut.length + mdBrut.length;
+    const tauxAnnulation = nbOpsBrut ? (nbAnnules / nbOpsBrut * 100) : 0;
+    document.getElementById('r-annulations').textContent = fmt(nbAnnules);
+    document.getElementById('r-annulations-sub').textContent = `${tkAnnules.length} consultation(s) · ${mdAnnules.length} vente(s)`;
+    document.getElementById('r-valeur-retournee').textContent = fcfa(valeurRetournee);
+    document.getElementById('r-taux-annulation').textContent = tauxAnnulation.toFixed(1) + ' %';
+    renderDelta('kd-annulations', prec?.nbAnnules, nbAnnules, true);
+
+    // ── État du stock (indépendant de la période) ──
+    const stock = statsStock();
+    document.getElementById('sk-faible').textContent = fmt(stock.faible);
+    document.getElementById('sk-rupture').textContent = fmt(stock.rupture);
+    document.getElementById('sk-perempt').textContent = fmt(stock.perempt);
+    document.getElementById('sk-valeur').textContent = fcfa(stock.valeur);
 
     currentMdPeriode = md;
 
-    renderEvoChart(tk, md);
+    renderEvoChartMulti();
     renderRepartition(rTk, rMd);
     renderActivite(tk, md);
     renderTopMedsResume(md);
@@ -698,6 +890,156 @@ function render() {
         ({ nom: p.nom, val: p.montant, sub: `${p.qte} u.` })), 'purple', { clickable: true });
 
     renderStatsComparees();
+    renderInsights({ recettes, depenses, solde, tauxAnnulation }, prec, stock, tk);
+}
+
+// ── COMPARAISON AVEC LA PÉRIODE PRÉCÉDENTE ÉQUIVALENTE ──
+// Renvoie [début, fin[ de la période précédente de même durée que la
+// période active (ex. le mois dernier pour « Ce mois »). Pas de
+// comparaison pertinente pour une plage personnalisée arbitraire.
+function bornesPeriodePrecedente() {
+    const n = new Date();
+    switch (periode) {
+        case 'jour': {
+            const fin = new Date(n); fin.setHours(0, 0, 0, 0);
+            return [fin.getTime() - 86400000, fin.getTime()];
+        }
+        case 'j7': {
+            const debutActuel = new Date(n); debutActuel.setHours(0, 0, 0, 0); debutActuel.setDate(debutActuel.getDate() - 6);
+            return [debutActuel.getTime() - 7 * 86400000, debutActuel.getTime()];
+        }
+        case 'mois': {
+            const debutMois = new Date(n.getFullYear(), n.getMonth(), 1).getTime();
+            const debutPrec = new Date(n.getFullYear(), n.getMonth() - 1, 1).getTime();
+            return [debutPrec, debutMois];
+        }
+        case 'annee': {
+            const debutAn = new Date(n.getFullYear(), 0, 1).getTime();
+            const debutPrecAn = new Date(n.getFullYear() - 1, 0, 1).getTime();
+            return [debutPrecAn, debutAn];
+        }
+        default: return null; // 'personnalise' : pas de repère de comparaison automatique
+    }
+}
+function statsPeriodePrecedente() {
+    const b = bornesPeriodePrecedente();
+    if (!b) return null;
+    const [debut, fin] = b;
+    const dans = x => x._ts >= debut && x._ts < fin;
+    const tkBrut = allTickets.filter(dans), mdBrut = allVentes.filter(dans);
+    const tk = tkBrut.filter(x => !x.annule), md = mdBrut.filter(x => !x.annule);
+    const dep = allDepenses.filter(dans);
+    const recettes = totalTickets(tk) + totalVentes(md);
+    const depenses = totalDepenses(dep);
+    const nbAnnules = tkBrut.filter(x => x.annule).length + mdBrut.filter(x => x.annule).length;
+    return {
+        recettes, depenses, solde: recettes - depenses,
+        nbTickets: tk.length, recettesMd: totalVentes(md), nbAnnules,
+    };
+}
+// inverse=true : une hausse est défavorable (dépenses, annulations) et une
+// baisse favorable — l'inverse du sens naturel (recettes, solde, activité).
+function renderDelta(id, prevVal, curVal, inverse = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (prevVal == null || prevVal <= 0) { el.hidden = true; return; }
+    const pct = Math.round((curVal - prevVal) / prevVal * 100);
+    if (pct === 0) { el.hidden = true; return; }
+    const hausse = pct > 0;
+    const favorable = inverse ? !hausse : hausse;
+    el.hidden = false;
+    el.className = 'kpi-delta ' + (favorable ? 'up' : 'down');
+    el.innerHTML = (hausse ? ICON_UP : ICON_DOWN) + `<span>${hausse ? '+' : ''}${pct}%</span>`;
+    el.title = 'Par rapport à la période précédente équivalente';
+}
+
+// ── ÉTAT DU STOCK ────────────────────────────────
+function diffJoursPeremption(dateStr) {
+    if (!dateStr) return Infinity;
+    const d = new Date(dateStr), auj = new Date(); auj.setHours(0, 0, 0, 0);
+    return Math.floor((d - auj) / 86400000);
+}
+function statsStock() {
+    let valeur = 0, faible = 0, rupture = 0, perempt = 0;
+    allStock.forEach(m => {
+        const q = Number(m.quantite || 0);
+        valeur += Number(m.prix_unitaire || 0) * q;
+        if (q <= 0) rupture++;
+        else if (q <= Number(m.seuil_alerte || 10)) faible++;
+        if (diffJoursPeremption(m.date_peremption) <= 90) perempt++;
+    });
+    return { valeur, faible, rupture, perempt, total: allStock.length };
+}
+
+// ── INSIGHTS AUTOMATIQUES ────────────────────────
+// Transforme les chiffres de la période en observations lisibles — la
+// même donnée qu'affichent déjà les KPI, mais formulée en phrase plutôt
+// qu'en simple nombre.
+const ICON_INSIGHT_OK   = '<svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_INSIGHT_WARN = '<svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+const ICON_INSIGHT_INFO = '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+const JOURS_SEMAINE = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
+function jourLePlusActif(tk) {
+    if (tk.length < 2) return null;
+    const counts = new Array(7).fill(0);
+    tk.forEach(t => counts[new Date(t._ts).getDay()]++);
+    let maxI = 0; counts.forEach((c, i) => { if (c > counts[maxI]) maxI = i; });
+    if (counts[maxI] === 0) return null;
+    // N'a de sens que si l'activité n'est pas concentrée sur un seul jour
+    // observé (ex. période "Aujourd'hui").
+    const joursDistincts = new Set(tk.map(t => new Date(t._ts).toDateString())).size;
+    if (joursDistincts < 2) return null;
+    return JOURS_SEMAINE[maxI];
+}
+
+function renderInsights(cour, prec, stock, tk) {
+    const host = document.getElementById('insights-list');
+    const items = [];
+
+    if (prec) {
+        const pctRec = prec.recettes > 0 ? Math.round((cour.recettes - prec.recettes) / prec.recettes * 100) : null;
+        const pctDep = prec.depenses > 0 ? Math.round((cour.depenses - prec.depenses) / prec.depenses * 100) : null;
+        if (pctRec != null || pctDep != null) {
+            const parts = [];
+            if (pctRec != null) parts.push(`les recettes ont ${pctRec >= 0 ? 'progressé' : 'reculé'} de ${Math.abs(pctRec)} %`);
+            if (pctDep != null) parts.push(`les dépenses ont ${pctDep >= 0 ? 'augmenté' : 'diminué'} de ${Math.abs(pctDep)} %`);
+            items.push({
+                type: (pctRec == null || pctRec >= 0) ? 'ok' : 'warn',
+                titre: 'Performance financière',
+                texte: parts.join(' tandis que ') + ' par rapport à la période précédente.',
+            });
+        }
+    }
+
+    if (stock.faible > 0 || stock.rupture > 0) {
+        const parts = [];
+        if (stock.faible > 0) parts.push(`${stock.faible} médicament${stock.faible > 1 ? 's' : ''} sous leur seuil minimal`);
+        if (stock.rupture > 0) parts.push(`${stock.rupture} actuellement en rupture`);
+        items.push({ type: 'danger', titre: 'Stock à surveiller', texte: parts.join(' et ') + '.' });
+    } else if (stock.total > 0) {
+        items.push({ type: 'ok', titre: 'Stock sous contrôle', texte: "Aucun médicament n'est actuellement en stock faible ni en rupture." });
+    }
+
+    const jour = jourLePlusActif(tk);
+    if (jour) {
+        items.push({ type: '', titre: 'Activité', texte: `Le ${jour} est le jour enregistrant le plus grand nombre de consultations sur la période sélectionnée.` });
+    }
+
+    if (cour.tauxAnnulation > 5) {
+        items.push({ type: 'warn', titre: "Taux d'annulation élevé", texte: `${cour.tauxAnnulation.toFixed(1)} % des opérations ont été annulées sur cette période — à surveiller.` });
+    }
+
+    if (!items.length) {
+        host.innerHTML = `<div class="empty-state">${esc(msgVide("Pas assez de données sur cette période pour générer une analyse."))}</div>`;
+        return;
+    }
+    const iconFor = t => t === 'ok' ? ICON_INSIGHT_OK : (t === 'warn' || t === 'danger') ? ICON_INSIGHT_WARN : ICON_INSIGHT_INFO;
+    host.innerHTML = items.map(it => `
+        <div class="insight-card ${it.type}">
+            <div class="ins-icon">${iconFor(it.type)}</div>
+            <div><div class="ins-title">${esc(it.titre)}</div><div class="ins-text">${esc(it.texte)}</div></div>
+        </div>`).join('');
 }
 
 function msgVide(defaut) {
@@ -707,117 +1049,126 @@ function msgVide(defaut) {
     return defaut;
 }
 
-// ── GRAPHIQUE : ÉVOLUTION DES RECETTES ──────────
-// Regroupe recettes (tickets + médicaments) par heure / jour / mois selon
-// la granularité la plus lisible pour la période active.
-function bucketsRecettes(tk, md) {
-    const items = [
-        ...tk.filter(x => !x.annule).map(t => ({ ts: t._ts, val: Number(t.prix || 0) })),
-        ...md.filter(x => !x.annule).map(v => ({ ts: v._ts, val: Number(v.total || 0) })),
-    ];
+// ── GRAPHIQUE : ÉVOLUTION FINANCIÈRE (Recettes / Dépenses / Solde) ──
+// Plage indépendante du filtre de période principal — pilotée par son
+// propre sélecteur (7j / 30j / 3 mois / 6 mois / 1 an), comme demandé pour
+// pouvoir suivre une tendance sans perdre le contexte du reste du tableau
+// de bord.
+const EVO_RANGES = {
+    '7j':  { jours: 7,   granularite: 'jour' },
+    '30j': { jours: 30,  granularite: 'jour' },
+    '3m':  { jours: 91,  granularite: 'semaine' },
+    '6m':  { jours: 183, granularite: 'mois', nMois: 6 },
+    '1a':  { jours: 366, granularite: 'mois', nMois: 12 },
+};
+const MOIS_ABBR = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+const EVO_SERIES = [
+    { key: 'recettes', label: 'Recettes', color: 'var(--accent)' },
+    { key: 'depenses', label: 'Dépenses', color: 'var(--danger)' },
+    { key: 'solde',    label: 'Solde',    color: 'var(--chart-blue)' },
+];
+let evoRange = '30j';
+let evoVisibles = { recettes: true, depenses: true, solde: true };
+
+document.getElementById('evo-range-seg').addEventListener('click', e => {
+    const btn = e.target.closest('.evo-range-btn');
+    if (!btn) return;
+    evoRange = btn.dataset.r;
+    document.querySelectorAll('.evo-range-btn').forEach(b => b.classList.toggle('active', b === btn));
+    renderEvoChartMulti();
+});
+
+function construireBucketsEvo(rangeKey) {
+    const cfg = EVO_RANGES[rangeKey];
     const now = new Date();
-    const JOURS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
-    const MOIS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-
-    function build(starts, labelFn) {
-        const values = new Array(starts.length).fill(0);
-        items.forEach(it => {
-            for (let i = starts.length - 1; i >= 0; i--) {
-                if (it.ts >= starts[i]) { values[i] += it.val; return; }
-            }
-        });
-        return { labels: starts.map(labelFn), values };
+    if (cfg.granularite === 'jour') {
+        const base = new Date(now); base.setHours(0, 0, 0, 0); base.setDate(base.getDate() - (cfg.jours - 1));
+        const starts = Array.from({ length: cfg.jours }, (_, i) => { const d = new Date(base); d.setDate(base.getDate() + i); return d.getTime(); });
+        return { starts, labelFn: ts => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) };
     }
-
-    if (periode === 'jour') {
-        const base = new Date(now); base.setHours(0, 0, 0, 0);
-        const starts = Array.from({ length: 24 }, (_, h) => base.getTime() + h * 3600000);
-        return build(starts, ts => new Date(ts).getHours() + 'h');
+    if (cfg.granularite === 'semaine') {
+        const nSemaines = Math.ceil(cfg.jours / 7);
+        const base = new Date(now); base.setHours(0, 0, 0, 0); base.setDate(base.getDate() - (nSemaines - 1) * 7);
+        const starts = Array.from({ length: nSemaines }, (_, i) => { const d = new Date(base); d.setDate(base.getDate() + i * 7); return d.getTime(); });
+        return { starts, labelFn: ts => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) };
     }
-    if (periode === 'j7') {
-        const base = new Date(now); base.setHours(0, 0, 0, 0); base.setDate(base.getDate() - 6);
-        const starts = Array.from({ length: 7 }, (_, i) => { const d = new Date(base); d.setDate(base.getDate() + i); return d.getTime(); });
-        return build(starts, ts => JOURS[new Date(ts).getDay()]);
-    }
-    if (periode === 'annee') {
-        const jan = new Date(now.getFullYear(), 0, 1);
-        const nMois = now.getMonth() + 1;
-        const starts = Array.from({ length: nMois }, (_, m) => new Date(now.getFullYear(), m, 1).getTime());
-        return build(starts, ts => MOIS[new Date(ts).getMonth()]);
-    }
-    if (periode === 'mois') {
-        const base = new Date(now.getFullYear(), now.getMonth(), 1);
-        const nJours = now.getDate();
-        const starts = Array.from({ length: nJours }, (_, i) => { const d = new Date(base); d.setDate(1 + i); return d.getTime(); });
-        return build(starts, ts => String(new Date(ts).getDate()));
-    }
-    // personnalise
-    if (periode === 'personnalise' && customDebut != null) {
-        const spanDays = Math.max(1, Math.round((customFin - customDebut) / 86400000) + 1);
-        if (spanDays <= 31) {
-            const starts = Array.from({ length: spanDays }, (_, i) => customDebut + i * 86400000);
-            return build(starts, ts => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
-        }
-        const nSemaines = Math.min(26, Math.ceil(spanDays / 7));
-        const starts = Array.from({ length: nSemaines }, (_, i) => customDebut + i * 7 * 86400000);
-        return build(starts, ts => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
-    }
-    return { labels: [], values: [] };
+    // mois
+    const base = new Date(now.getFullYear(), now.getMonth() - (cfg.nMois - 1), 1);
+    const starts = Array.from({ length: cfg.nMois }, (_, i) => new Date(base.getFullYear(), base.getMonth() + i, 1).getTime());
+    return { starts, labelFn: ts => MOIS_ABBR[new Date(ts).getMonth()] };
 }
 
-function renderEvoChart(tk, md) {
+function agregerBucketsEvo(starts) {
+    const n = starts.length;
+    const recettes = new Array(n).fill(0), depenses = new Array(n).fill(0);
+    function idxFor(ts) {
+        for (let i = n - 1; i >= 0; i--) if (ts >= starts[i]) return i;
+        return -1;
+    }
+    allTickets.forEach(t => { if (t.annule) return; const i = idxFor(t._ts); if (i >= 0) recettes[i] += Number(t.prix || 0); });
+    allVentes.forEach(v => { if (v.annule) return; const i = idxFor(v._ts); if (i >= 0) recettes[i] += Number(v.total || 0); });
+    allDepenses.forEach(d => { const i = idxFor(d._ts); if (i >= 0) depenses[i] += Number(d.montant || 0); });
+    const solde = recettes.map((r, i) => r - depenses[i]);
+    return { recettes, depenses, solde };
+}
+
+function renderEvoChartMulti() {
     const host = document.getElementById('evo-chart-host');
-    const { labels, values } = bucketsRecettes(tk, md);
-    const total = values.reduce((s, v) => s + v, 0);
-    if (!labels.length || total <= 0) {
+    const { starts, labelFn } = construireBucketsEvo(evoRange);
+    const { recettes, depenses, solde } = agregerBucketsEvo(starts);
+    const labels = starts.map(labelFn);
+    const n = starts.length;
+    const hasData = [...recettes, ...depenses].some(v => v !== 0);
+    if (!hasData) {
         host.innerHTML = `<div class="empty-state">
             <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-            <p>${esc(msgVide('Aucune donnée pour cette période.'))}</p>
+            <p>Aucune donnée sur cette plage.</p>
         </div>`;
         return;
     }
 
-    const W = 640, H = 190, padTop = 26, padBottom = 24, padX = 6;
-    const max = Math.max(...values, 1);
-    const n = values.length;
+    const W = 640, H = 200, padTop = 18, padBottom = 24, padX = 6;
+    const valeurs = { recettes, depenses, solde };
+    const max = Math.max(1, ...recettes, ...depenses, ...solde);
+    const min = Math.min(0, ...solde);
+    const amplitude = (max - min) || 1;
     const stepX = n > 1 ? (W - padX * 2) / (n - 1) : 0;
-    const scaleY = v => H - padBottom - (v / max) * (H - padTop - padBottom);
-    const pts = values.map((v, i) => [padX + i * stepX, scaleY(v)]);
-    const d = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-    const area = d + ` L${pts[n - 1][0].toFixed(1)},${H - padBottom} L${pts[0][0].toFixed(1)},${H - padBottom} Z`;
+    const xAt = i => padX + i * stepX;
+    const scaleY = v => padTop + (max - v) / amplitude * (H - padTop - padBottom);
+    const zeroY = scaleY(0);
 
-    let maxIdx = 0; values.forEach((v, i) => { if (v > values[maxIdx]) maxIdx = i; });
-    const lastIdx = n - 1;
+    function chemin(vals) {
+        return vals.map((v, i) => (i === 0 ? 'M' : 'L') + xAt(i).toFixed(1) + ',' + scaleY(v).toFixed(1)).join(' ');
+    }
 
-    // Étiquettes d'axe X éparses : 6 maximum, pour rester lisible sur mobile.
     const tickEvery = Math.max(1, Math.ceil(n / 6));
-    const axisLabels = labels.map((lab, i) => (i % tickEvery === 0 || i === n - 1) ? `<text class="lc-axis-t" x="${pts[i][0].toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(lab)}</text>` : '').join('');
+    const axisLabels = labels.map((lab, i) => (i % tickEvery === 0 || i === n - 1) ? `<text class="lc-axis-t" x="${xAt(i).toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(lab)}</text>` : '').join('');
 
-    const peakLabel = maxIdx !== lastIdx
-        ? `<text class="lc-label" x="${pts[maxIdx][0].toFixed(1)}" y="${(scaleY(values[maxIdx]) - 10).toFixed(1)}" text-anchor="middle">${esc(fmt(values[maxIdx]))}</text>`
-        : '';
-    const lastLabel = `<text class="lc-label" x="${pts[lastIdx][0].toFixed(1)}" y="${(scaleY(values[lastIdx]) - 10).toFixed(1)}" text-anchor="${lastIdx === n - 1 ? 'end' : 'middle'}">${esc(fmt(values[lastIdx]))}</text>`;
+    const linesHtml = EVO_SERIES.map(s => `<path class="evo-line" data-serie="${s.key}" d="${chemin(valeurs[s.key])}" style="fill:none;stroke:${s.color};stroke-width:2;display:${evoVisibles[s.key] ? 'block' : 'none'}"></path>`).join('');
+    const legendHtml = EVO_SERIES.map(s => `<button type="button" class="evo-legend-item${evoVisibles[s.key] ? ' active' : ''}" data-serie="${s.key}"><span class="dot" style="background:${s.color}"></span>${s.label}</button>`).join('');
 
     host.innerHTML = `
+      <div class="evo-legend" id="evo-legend">${legendHtml}</div>
       <div class="chart-wrap" id="evo-chart-wrap">
         <svg class="line-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="evo-svg">
-          <path class="lc-area" d="${area}"></path>
-          <path class="lc-line" d="${d}"></path>
-          <circle class="lc-dot" cx="${pts[maxIdx][0].toFixed(1)}" cy="${scaleY(values[maxIdx]).toFixed(1)}" r="4"></circle>
-          <circle class="lc-dot" cx="${pts[lastIdx][0].toFixed(1)}" cy="${scaleY(values[lastIdx]).toFixed(1)}" r="4"></circle>
-          ${peakLabel}
-          ${lastLabel}
+          ${min < 0 ? `<line x1="${padX}" y1="${zeroY.toFixed(1)}" x2="${W - padX}" y2="${zeroY.toFixed(1)}" stroke="var(--border)" stroke-dasharray="3,3"></line>` : ''}
+          ${linesHtml}
           <g class="lc-axis">${axisLabels}</g>
           <line class="lc-hover-line" id="evo-hover-line" x1="0" y1="${padTop}" x2="0" y2="${H - padBottom}" style="display:none"></line>
-          <circle class="lc-hover-dot" id="evo-hover-dot" r="4.5" style="display:none"></circle>
         </svg>
         <div class="chart-tooltip" id="evo-tooltip"></div>
       </div>`;
 
-    // ── Survol : curseur + infobulle (trace la valeur la plus proche du doigt/pointeur) ──
+    document.getElementById('evo-legend').addEventListener('click', e => {
+        const btn = e.target.closest('.evo-legend-item');
+        if (!btn) return;
+        evoVisibles[btn.dataset.serie] = !evoVisibles[btn.dataset.serie];
+        renderEvoChartMulti();
+    });
+
+    // ── Survol : curseur + infobulle multi-séries ──
     const svg = document.getElementById('evo-svg');
     const hoverLine = document.getElementById('evo-hover-line');
-    const hoverDot = document.getElementById('evo-hover-dot');
     const tooltip = document.getElementById('evo-tooltip');
     const wrap = document.getElementById('evo-chart-wrap');
 
@@ -826,20 +1177,18 @@ function renderEvoChart(tk, md) {
         const relX = ((clientX - rect.left) / rect.width) * W;
         let idx = n > 1 ? Math.round((relX - padX) / stepX) : 0;
         idx = Math.max(0, Math.min(n - 1, idx));
-        const [px, py] = pts[idx];
+        const px = xAt(idx);
         hoverLine.setAttribute('x1', px); hoverLine.setAttribute('x2', px);
         hoverLine.style.display = 'block';
-        hoverDot.setAttribute('cx', px); hoverDot.setAttribute('cy', py);
-        hoverDot.style.display = 'block';
-        const pctX = (px / W) * 100, pctY = (py / H) * 100;
-        tooltip.style.left = pctX + '%'; tooltip.style.top = pctY + '%';
-        tooltip.textContent = `${labels[idx]} · ${fcfa(values[idx])}`;
+        const pctX = Math.min(88, Math.max(12, (px / W) * 100));
+        tooltip.style.left = pctX + '%'; tooltip.style.top = '10%';
+        const visibles = EVO_SERIES.filter(s => evoVisibles[s.key]);
+        tooltip.innerHTML = `<strong>${esc(labels[idx])}</strong>` + visibles.map(s =>
+            `<div class="tt-row"><span class="dot" style="background:${s.color}"></span>${s.label} : ${fcfa(valeurs[s.key][idx])}</div>`
+        ).join('');
         tooltip.classList.add('show');
     }
-    function clear() {
-        hoverLine.style.display = 'none'; hoverDot.style.display = 'none';
-        tooltip.classList.remove('show');
-    }
+    function clear() { hoverLine.style.display = 'none'; tooltip.classList.remove('show'); }
     wrap.addEventListener('pointermove', e => moveTo(e.clientX));
     wrap.addEventListener('pointerleave', clear);
     wrap.addEventListener('pointerdown', e => moveTo(e.clientX));
@@ -1076,20 +1425,24 @@ document.getElementById('export-modal').addEventListener('click', e => {
 document.getElementById('btn-pdf').addEventListener('click', () => {
     const expPeriode = document.querySelector('input[name="exp-periode"]:checked').value;
 
-    let tkSrc, mdSrc, periodeLabelExport, courtExport;
+    let tkSrc, mdSrc, depSrc, periodeLabelExport, courtExport;
     if (expPeriode === 'personnalise') {
         // Reprend exactement la période actuellement affichée à l'écran.
         tkSrc = filtre(allTickets); mdSrc = filtre(allVentes);
+        depSrc = customDebut != null ? allDepenses.filter(x => x._ts >= customDebut && x._ts <= customFin) : [];
         periodeLabelExport = libelleDetailCourant(); courtExport = courtCourant();
     } else {
         tkSrc = allTickets.filter(x => !x.annule && dansPeriode(x._ts, expPeriode));
         mdSrc = allVentes.filter(x => !x.annule && dansPeriode(x._ts, expPeriode));
+        depSrc = allDepenses.filter(x => dansPeriode(x._ts, expPeriode));
         periodeLabelExport = libellePeriode(expPeriode); courtExport = PERIODES[expPeriode].court;
     }
 
     const tk = trier(tkSrc, 'tk', sortTk);
     const md = trier(mdSrc, 'md', sortMd);
     const rTk = totalTickets(tk), rMd = totalVentes(md);
+    const depensesExport = totalDepenses(depSrc);
+    const soldeExport = (rTk + rMd) - depensesExport;
     const unites = md.reduce((s, v) => s + (v.medicaments || []).reduce((n, l) => n + Number(l.qte || 0), 0), 0);
 
     const incTk  = document.getElementById('exp-inc-tk').checked;
@@ -1191,9 +1544,12 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
             { label: 'Recettes consultations', valeur: fcfa(rTk) },
             { label: 'Recettes pharmacie', valeur: fcfa(rMd) },
             { label: 'Recettes totales', valeur: fcfa(rTk + rMd), type: 'positif' },
+            { label: 'Dépenses', valeur: fcfa(depensesExport), type: 'negatif' },
+            { label: 'Solde net', valeur: (soldeExport < 0 ? '– ' : '') + fcfa(Math.abs(soldeExport)),
+              type: soldeExport < 0 ? 'negatif' : 'positif' },
         ],
         sections,
-        note: "Les montants correspondent aux sommes effectivement encaissées, avant déduction des dépenses du poste (voir le bilan financier).",
+        note: "Le solde net correspond aux recettes encaissées diminuées des dépenses enregistrées sur la même période.",
     });
     document.getElementById('export-modal').classList.remove('visible');
 });
