@@ -10,35 +10,48 @@
     <link rel="stylesheet" href="rapport-print.css">
     <style>
         :root{
-            --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
+            --primary:#1a3a5c;--primary-light:#2b5580;--primary-bg:#eaf0f6;--accent:#0ea472;--accent-dark:#0b7d54;
+            --chart-blue:#2a78d6;--chart-blue-bg:#e9f1fb;
             --gold:#d68910;--gold-dark:#b87309;--gold-bg:#fef9ec;
             --danger:#c0392b;--danger-bg:#fdf1f0;
             --purple:#7b5ea7;--purple-bg:#f0ebf8;
             --blue-bg:#e8f0f8;--accent-bg:#e6f7f1;
-            --bg:#f0f4f8;--card-bg:#ffffff;--text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
+            --bg:#f4f6f8;--card-bg:#ffffff;--text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
         }
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
         html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
         body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+        .icon{width:1em;height:1em;display:inline-block;vertical-align:-.15em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+        .icon.dots{fill:currentColor;stroke:none;}
 
-        .topbar{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 2px 10px rgba(26,58,92,.18);position:sticky;top:0;z-index:100;}
-        .topbar-left{display:flex;align-items:center;gap:12px;}
-        .topbar-right{display:flex;align-items:center;gap:10px;}
-        .back-btn{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:white;padding:7px 14px;border-radius:8px;font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;transition:background .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
-        .back-btn:hover{background:rgba(255,255,255,.22);}
-        .topbar h1{font-size:1.05rem;font-weight:700;}
-        .topbar p{font-size:.72rem;opacity:.75;}
-        .conn-badge{background:rgba(14,164,114,.2);border:1px solid rgba(14,164,114,.4);color:#7dffd0;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;white-space:nowrap;}
+        /* ── TOPBAR ── */
+        .topbar{background:var(--primary);color:white;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 2px 10px rgba(26,58,92,.25);position:sticky;top:0;z-index:200;}
+        .topbar-left{display:flex;align-items:center;gap:10px;min-width:0;}
+        .back-btn{background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);color:white;padding:7px 10px;border-radius:8px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;transition:background .2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;}
+        .back-btn:hover{background:rgba(255,255,255,.24);}
+        .back-btn .icon{width:1.05em;height:1.05em;}
+        .topbar-title{min-width:0;}
+        .topbar-title h1{font-size:.98rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .topbar-title p{font-size:.72rem;opacity:.78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+        .conn-badge{font-size:.85rem;line-height:1;font-weight:700;color:#6b7a8d;flex-shrink:0;transition:color .2s;}
+        .conn-badge.online{color:#7dffd0;}
+        .icon-btn{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);color:white;cursor:pointer;transition:background .2s;text-decoration:none;}
+        .icon-btn:hover{background:rgba(255,255,255,.24);}
+        .icon-btn .icon{width:1.1em;height:1.1em;}
 
-        .page{padding:24px;max-width:1400px;margin:0 auto;}
+        .page{padding:20px;max-width:1300px;margin:0 auto;}
 
-        .period-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
-        .period-btn{padding:8px 18px;border:1.5px solid var(--border);border-radius:20px;background:var(--card-bg);font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;}
+        /* ── FILTRE DE PÉRIODE — unique, gouverne tout le tableau de bord ── */
+        .period-tabs{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+        .period-btn{padding:8px 16px;border:1.5px solid var(--border);border-radius:20px;background:var(--card-bg);font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+        .period-btn .icon{width:.95em;height:.95em;}
         .period-btn:hover{border-color:var(--primary);color:var(--primary);}
         .period-btn.active{background:var(--primary);color:white;border-color:var(--primary);}
+        .periode-range{font-size:.82rem;color:var(--muted);font-weight:600;margin:10px 0 18px;padding-left:2px;display:flex;align-items:center;gap:6px;}
+        .periode-range .icon{width:1em;height:1em;}
 
-        /* ── PLAGE DE DATES PERSONNALISÉE ── */
-        .custom-range-bar{display:none;align-items:flex-end;gap:12px;flex-wrap:wrap;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;}
+        .custom-range-bar{display:none;align-items:flex-end;gap:12px;flex-wrap:wrap;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
         .custom-range-bar.visible{display:flex;}
         .custom-range-bar .fg{display:flex;flex-direction:column;gap:4px;}
         .custom-range-bar label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
@@ -48,39 +61,105 @@
         .btn-apply-range:hover{background:var(--primary-light);}
         .custom-range-hint{font-size:.72rem;color:var(--muted);flex-basis:100%;}
 
+        /* ── ONGLETS DE VUE : Résumé / Analyse détaillée ── */
+        .view-tabs{display:flex;gap:4px;background:var(--card-bg);padding:4px;border-radius:12px;border:1px solid var(--border);margin-bottom:20px;width:fit-content;max-width:100%;}
+        .view-btn{padding:9px 18px;border:none;border-radius:9px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted);display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}
+        .view-btn .icon{width:1.05em;height:1.05em;}
+        .view-btn.active{background:var(--primary);color:white;box-shadow:0 2px 8px rgba(26,58,92,.25);}
+        .view-block{display:none;}
+        .view-block.active{display:block;}
+
+        /* ── KPI ── */
+        .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;}
+        .kpi-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.03);}
+        .kpi-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:var(--primary-bg);color:var(--primary);margin-bottom:8px;}
+        .kpi-icon .icon{width:1.05em;height:1.05em;}
+        .kpi-card.blue .kpi-icon{background:var(--chart-blue-bg);color:var(--chart-blue);}
+        .kpi-card.purple .kpi-icon{background:var(--purple-bg);color:var(--purple);}
+        .kpi-card.green .kpi-icon{background:var(--accent-bg);color:var(--accent-dark);}
+        .kpi-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+        .kpi-val{font-size:1.22rem;font-weight:800;color:var(--primary);margin-top:3px;line-height:1.15;}
+        .kpi-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
+
+        /* ── PANELS ── */
+        .panel{background:var(--card-bg);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.03);margin-bottom:20px;overflow:hidden;}
+        .panel-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+        .panel-head h2{font-size:.92rem;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:8px;}
+        .panel-head h2 .icon{width:1.05em;height:1.05em;color:var(--muted);}
+        .panel-head p{font-size:.76rem;color:var(--muted);margin-top:2px;}
+        .panel-body{padding:20px;}
+        .panel-link{font-size:.78rem;font-weight:700;color:var(--primary);background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;}
+        .panel-link .icon{width:.95em;height:.95em;}
+        .panel-link:hover{text-decoration:underline;}
+
+        /* ── ÉTAT VIDE ── */
+        .empty-state{text-align:center;color:var(--muted);font-size:.86rem;padding:28px 20px;}
+        .empty-state .icon{width:1.8rem;height:1.8rem;color:var(--border);display:block;margin:0 auto 10px;}
+
+        /* ── GRAPHIQUE : ÉVOLUTION DES RECETTES ── */
+        .chart-wrap{position:relative;}
+        .line-chart{width:100%;height:auto;display:block;overflow:visible;}
+        .line-chart .lc-area{fill:var(--accent);opacity:.1;}
+        .line-chart .lc-line{fill:none;stroke:var(--accent);stroke-width:2;}
+        .line-chart .lc-dot{fill:var(--accent);stroke:var(--card-bg);stroke-width:2;}
+        .line-chart .lc-axis text{font-size:8px;fill:var(--muted);font-family:inherit;}
+        .line-chart .lc-label{font-size:9px;font-weight:800;fill:var(--primary);font-family:inherit;}
+        .line-chart .lc-hover-line{stroke:var(--border);stroke-width:1;}
+        .line-chart .lc-hover-dot{fill:var(--accent);stroke:var(--card-bg);stroke-width:2;}
+        .chart-tooltip{position:absolute;pointer-events:none;background:var(--primary);color:#fff;font-size:.72rem;font-weight:700;padding:5px 9px;border-radius:7px;white-space:nowrap;transform:translate(-50%,-130%);opacity:0;transition:opacity .1s;z-index:5;}
+        .chart-tooltip.show{opacity:1;}
+
+        /* ── RÉPARTITION (barre empilée 2 segments) ── */
+        .split-bar{display:flex;gap:2px;height:14px;border-radius:7px;overflow:hidden;background:var(--bg);margin-bottom:14px;}
+        .split-seg{height:100%;transition:width .3s;}
+        .split-legend{display:flex;flex-direction:column;gap:10px;}
+        .split-item{display:flex;align-items:center;gap:9px;font-size:.86rem;}
+        .split-item .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+        .split-item .sl-nom{flex:1;color:var(--text);font-weight:600;}
+        .split-item .sl-val{font-weight:800;color:var(--primary);}
+        .split-item .sl-pct{color:var(--muted);font-weight:700;font-size:.78rem;margin-left:6px;min-width:38px;text-align:right;}
+
+        /* ── ACTIVITÉ (sous-onglets) ── */
+        .subtabs{display:flex;gap:6px;margin-bottom:14px;}
+        .subtab-btn{appearance:none;-webkit-appearance:none;flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;background:#fafbfc;font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:background .18s,border-color .18s,color .18s;display:flex;align-items:center;justify-content:center;gap:6px;outline:none;}
+        .subtab-btn .icon{width:1em;height:1em;}
+        .subtab-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+        .subtab-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+        .activite-rows{display:flex;flex-direction:column;}
+        .act-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;font-size:.88rem;}
+        .act-row+.act-row{border-top:1px dashed var(--border);}
+        .act-row .al{color:var(--muted);}
+        .act-row .av{font-weight:800;color:var(--primary);}
+
+        /* ── STATISTIQUES COMPARÉES (carte consolidée) ── */
+        .stat-select-row{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+        .stat-select-row label{font-size:.78rem;font-weight:700;color:var(--muted);}
+        .stat-select{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.85rem;font-weight:700;color:var(--primary);background:#fafbfc;cursor:pointer;}
+        .stat-select:focus{outline:none;border-color:var(--primary);}
+        .stat-compare-rows{display:flex;flex-direction:column;}
+        .sc-row{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;font-size:.9rem;}
+        .sc-row+.sc-row{border-top:1px dashed var(--border);}
+        .sc-row .sc-lbl{color:var(--text);font-weight:600;}
+        .sc-row .sc-val{font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;}
+
+        /* ── TOP MÉDICAMENTS / CLASSEMENTS ── */
+        .rank-list{display:flex;flex-direction:column;gap:10px;}
+        .rank-row{display:flex;align-items:center;gap:10px;font-size:.83rem;}
+        .rank-row .rk-nom{flex:0 0 40%;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .rank-bar{flex:1;height:10px;background:#eef2f6;border-radius:5px;overflow:hidden;}
+        .rank-bar span{display:block;height:100%;border-radius:5px;background:var(--accent);}
+        .rank-bar.purple span{background:var(--purple);}
+        .rank-row .rk-val{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+        .rk-sub{color:var(--muted);font-weight:600;font-size:.74rem;}
+        .rank-row--clickable{cursor:pointer;border-radius:8px;padding:4px 6px;margin:-4px -6px;transition:background .15s;}
+        .rank-row--clickable:hover,.rank-row--clickable:focus-visible{background:var(--purple-bg);}
+        .rank-row--clickable:focus-visible{outline:2px solid var(--purple);outline-offset:1px;}
+
         /* ── TRI DES TABLEAUX ── */
         .sort-control{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
         .sort-control label{font-size:.72rem;font-weight:700;color:var(--muted);white-space:nowrap;}
         .sort-control select{padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.78rem;color:var(--text);background:#fafbfc;cursor:pointer;}
         .sort-control select:focus{outline:none;border-color:var(--primary);}
-
-        .panel{background:var(--card-bg);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.03);margin-bottom:24px;overflow:hidden;}
-        .panel-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-        .panel-head h2{font-size:1rem;font-weight:700;color:var(--primary);}
-        .panel-head p{font-size:.78rem;color:var(--muted);margin-top:2px;}
-        .panel-body{padding:22px;}
-
-        .stats-bloc-title{font-size:.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:0 0 12px 0;display:flex;align-items:center;gap:8px;}
-        .stats-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
-        .stat-box{background:#fafbfc;border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;transition:transform .2s;}
-        .stat-box:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,.05);}
-        .stat-period{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-        .stat-val{font-size:1.5rem;font-weight:800;color:var(--primary);line-height:1.1;margin-bottom:2px;}
-        .stat-sub{font-size:.72rem;color:var(--muted);}
-        .stat-box.green .stat-val{color:var(--accent);}
-        .stat-box.purple .stat-val{color:var(--purple);}
-        .stat-box.gold .stat-val{color:var(--gold-dark);}
-
-        .total-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;}
-        .total-card{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;border-radius:12px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-        .total-card.green{background:linear-gradient(135deg,var(--accent),#0b8a5f);}
-        .total-card.purple{background:linear-gradient(135deg,var(--purple),#5f4483);}
-        .total-card .tc-label{font-size:.74rem;font-weight:700;opacity:.82;text-transform:uppercase;letter-spacing:.5px;}
-        .total-card .tc-sub{font-size:.72rem;opacity:.7;margin-top:2px;}
-        .total-card .tc-val{font-size:1.6rem;font-weight:800;line-height:1.15;margin-top:6px;}
-        .total-card .tc-icon{font-size:1.9rem;opacity:.45;}
-
-        .main-grid{display:block;}
 
         /* ── TABLEAUX DÉTAILLÉS ── */
         .tbl-wrap{overflow-x:auto;max-height:440px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;}
@@ -93,91 +172,56 @@
         .ref-tag{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.74rem;color:var(--muted);}
         .pill{display:inline-block;font-size:.68rem;font-weight:800;padding:3px 9px;border-radius:12px;background:var(--blue-bg);color:var(--primary);white-space:nowrap;}
         .med-lignes{font-size:.78rem;color:var(--muted);line-height:1.5;}
-
-        /* ── CLASSEMENTS ── */
-        .rank-list{display:flex;flex-direction:column;gap:9px;}
-        .rank-row{display:flex;align-items:center;gap:10px;font-size:.82rem;}
-        .rank-row .rk-nom{flex:0 0 42%;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-        .rank-bar{flex:1;height:8px;background:#eef2f6;border-radius:5px;overflow:hidden;}
-        .rank-bar span{display:block;height:100%;border-radius:5px;background:var(--accent);}
-        .rank-bar.purple span{background:var(--purple);}
-        .rank-row .rk-val{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
-        .rk-sub{color:var(--muted);font-weight:600;font-size:.74rem;}
-        .rank-row--clickable{cursor:pointer;border-radius:8px;padding:4px 6px;margin:-4px -6px;transition:background .15s;}
-        .rank-row--clickable:hover,.rank-row--clickable:focus-visible{background:var(--purple-bg);}
-        .rank-row--clickable:focus-visible{outline:2px solid var(--purple);outline-offset:1px;}
+        .divider{height:1px;background:var(--border);margin:18px 0;}
 
         /* ── DIALOG « DÉTAIL D'UN MÉDICAMENT » ── */
         dialog.med-dialog{border:none;border-radius:14px;padding:0;width:min(640px,92vw);max-height:85vh;box-shadow:0 20px 60px rgba(0,0,0,.28);}
         dialog.med-dialog::backdrop{background:rgba(15,23,32,.55);}
-        .med-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:linear-gradient(135deg,var(--purple),#5f4483);color:#fff;}
+        .med-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:var(--purple);color:#fff;}
         .med-dialog-head h3{font-size:1rem;font-weight:800;}
         .med-dialog-close{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:.9rem;line-height:1;flex:0 0 auto;}
         .med-dialog-close:hover{background:rgba(255,255,255,.28);}
         .med-dialog-body{padding:18px 20px 20px;max-height:calc(85vh - 62px);overflow-y:auto;}
         .med-dialog-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
-        .med-dialog-stats .stat-box{padding:12px 10px;}
+        .med-dialog-stats .stat-box{padding:12px 10px;background:#fafbfc;border:1px solid var(--border);border-radius:10px;text-align:center;}
+        .med-dialog-stats .stat-period{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+        .med-dialog-stats .stat-val{font-size:1.3rem;font-weight:800;color:var(--primary);line-height:1.1;margin-bottom:2px;}
+        .med-dialog-stats .stat-val.purple{color:var(--purple);}
+        .med-dialog-stats .stat-val.gold{color:var(--gold-dark);}
+        .med-dialog-stats .stat-sub{font-size:.72rem;color:var(--muted);}
         @media(max-width:520px){.med-dialog-stats{grid-template-columns:1fr;}}
 
-        .export-actions{display:flex;flex-direction:column;gap:8px;background:var(--gold-bg);padding:18px;border-radius:10px;border:1px dashed var(--gold);}
-        .export-title{font-size:.88rem;font-weight:700;color:var(--gold-dark);display:flex;align-items:center;gap:8px;}
-        .export-hint{font-size:.76rem;color:var(--muted);line-height:1.55;}
-        .btn-export{width:100%;padding:11px;border:none;border-radius:8px;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s,transform .15s;background:var(--primary);color:white;margin-top:4px;}
+        /* ── MODALE EXPORT PDF ── */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,32,.55);z-index:500;align-items:center;justify-content:center;padding:16px;}
+        .modal-overlay.visible{display:flex;}
+        .modal-box{background:var(--card-bg);border-radius:16px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+        .modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 20px;border-bottom:1px solid var(--border);}
+        .modal-head h3{font-size:1rem;color:var(--primary);font-weight:800;display:flex;align-items:center;gap:8px;}
+        .modal-head h3 .icon{width:1.1em;height:1.1em;}
+        .modal-close{background:none;border:none;font-size:1.3rem;line-height:1;cursor:pointer;color:var(--muted);flex-shrink:0;}
+        .modal-body{padding:18px 20px;}
+        .modal-sect-title{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:0 0 10px;}
+        .radio-row{display:flex;align-items:center;gap:9px;padding:9px 4px;font-size:.88rem;cursor:pointer;}
+        .radio-row input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
+        .check-row{display:flex;align-items:center;gap:9px;padding:8px 4px;font-size:.86rem;cursor:pointer;}
+        .check-row input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;}
+        .modal-foot{padding:14px 20px;border-top:1px solid var(--border);}
+        .btn-export{width:100%;padding:12px;border:none;border-radius:9px;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s,transform .15s;background:var(--primary);color:white;}
         .btn-export:hover{opacity:.92;transform:translateY(-1px);}
+        .btn-export.slim{margin-top:4px;}
+        .btn-export .icon{width:1.05em;height:1.05em;}
 
-        /* ── AGENDA ── */
-        .agenda-list{display:flex;flex-direction:column;gap:12px;max-height:52vh;overflow-y:auto;padding-right:4px;}
-        .agenda-card{display:flex;align-items:stretch;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:transform .2s,box-shadow .2s;}
-        .agenda-card:hover{transform:translateX(4px);box-shadow:0 4px 12px rgba(0,0,0,.05);}
-        .agenda-date-box{background:var(--gold-bg);padding:12px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--border);min-width:74px;}
-        .agenda-day{font-size:1.45rem;font-weight:800;color:var(--gold-dark);line-height:1;}
-        .agenda-month{font-size:.7rem;font-weight:700;color:var(--gold-dark);text-transform:uppercase;margin-top:4px;}
-        .agenda-content{padding:12px 14px;flex:1;min-width:0;}
-        .agenda-patient{font-weight:700;color:var(--primary);font-size:.88rem;margin-bottom:3px;}
-        .agenda-motif{font-size:.8rem;color:var(--text);}
-        .badge-status{font-size:.62rem;font-weight:800;padding:3px 7px;border-radius:12px;text-transform:uppercase;margin-top:7px;display:inline-block;}
-        .status-soon{background:var(--danger-bg);color:var(--danger);}
-        .status-later{background:var(--accent-bg);color:#0a7a55;}
-        .status-honore{background:#e8f0e8;color:#2d7a2d;}
-        .agenda-actions{display:flex;flex-direction:column;gap:4px;justify-content:center;padding:8px 10px;border-left:1px solid var(--border);}
-        .btn-mini{border:none;border-radius:6px;padding:5px 10px;font-size:.73rem;cursor:pointer;font-family:inherit;font-weight:700;white-space:nowrap;}
-        .btn-ok{background:var(--accent);color:#fff;}
-        .btn-rm{background:var(--danger-bg);color:var(--danger);border:1px solid #f5c6c3;}
-
-        .form-group{margin-bottom:14px;}
-        .form-group label{display:block;font-size:.75rem;font-weight:700;color:var(--primary);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
-        .form-control{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;color:var(--text);background:#fafbfc;}
-        .form-control:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(214,137,16,.12);background:#fff;}
-        .btn-primary{width:100%;padding:12px;border:none;border-radius:8px;font-family:inherit;font-size:.92rem;font-weight:700;background:var(--gold);color:white;cursor:pointer;transition:all .2s;margin-top:8px;}
-        .btn-primary:hover{background:var(--gold-dark);}
-        .btn-primary:disabled{opacity:.6;cursor:progress;}
-
-        .empty-state{text-align:center;color:var(--muted);font-size:.88rem;padding:32px 20px;}
-        .divider{height:1px;background:var(--border);margin:18px 0;}
         .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--primary);color:#fff;padding:12px 22px;border-radius:10px;font-size:.86rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:transform .28s;z-index:500;}
         .toast.show{transform:translateX(-50%) translateY(0);}
         .toast.err{background:var(--danger);}
         ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
 
-        /* ── KPI SECONDAIRES & PLAGE DE DATES ── */
-        .periode-range{font-size:.82rem;color:var(--muted);font-weight:600;margin:-6px 0 18px;padding-left:2px;}
-        .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
-        .kpi-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.03);}
-        .kpi-label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
-        .kpi-val{font-size:1.18rem;font-weight:800;color:var(--primary);margin-top:5px;line-height:1.1;}
-        .kpi-sub{font-size:.68rem;color:var(--muted);margin-top:2px;}
-
-        @media(max-width:900px){.stats-grid-5{grid-template-columns:repeat(3,1fr);}}
+        @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
         @media(max-width:600px){
-            .stats-grid-5{grid-template-columns:repeat(2,1fr);}
-            .page{padding:14px;}
+            .page{padding:12px;}
             .period-btn{padding:6px 12px;font-size:.76rem;}
-            .topbar{height:auto;min-height:56px;padding:10px 14px;flex-wrap:wrap;gap:8px;}
-            .topbar-left{min-width:0;flex:1 1 auto;}
-            .topbar-left>div{min-width:0;}
-            .topbar h1{font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-            .topbar p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-            .topbar-right{width:100%;justify-content:space-between;gap:8px;}
+            .period-btn .label-full{display:none;}
+            .topbar{padding:0 12px;}
             .tbl-wrap table.data{min-width:600px;}
         }
     </style>
@@ -186,28 +230,35 @@
 
 <nav class="topbar">
     <div class="topbar-left">
-        <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
-        <div>
+        <a href="../accueil/menu_admin.html" class="back-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            <span class="label-full">Menu</span>
+        </a>
+        <div class="topbar-title">
             <h1>Rapports d'activité</h1>
-            <p>Consultations · Pharmacie · Analyse des recettes</p>
+            <p>Vue financière &amp; activité</p>
         </div>
     </div>
     <div class="topbar-right">
-        <a href="depenses.html" class="back-btn">📉 Dépenses &amp; Bilan</a>
-        <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+        <div class="conn-badge" id="conn-badge">●</div>
+        <a href="depenses.html" class="icon-btn" title="Dépenses &amp; Bilan" aria-label="Dépenses et Bilan">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+        </a>
+        <button type="button" class="icon-btn" id="btn-open-export" title="Exporter le rapport" aria-label="Exporter le rapport">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M20 21H4a1 1 0 0 1-1-1v-4"/></svg>
+        </button>
     </div>
 </nav>
 
 <div class="page">
 
+    <!-- ══ FILTRE DE PÉRIODE UNIQUE — pilote tout le tableau de bord ══ -->
     <div class="period-tabs" id="period-tabs">
-        <button class="period-btn active" data-p="jour">📅 Journalier</button>
-        <button class="period-btn" data-p="semaine">📅 Hebdomadaire</button>
-        <button class="period-btn" data-p="mois">📅 Mensuel</button>
-        <button class="period-btn" data-p="trimestre">📅 Trimestriel</button>
-        <button class="period-btn" data-p="annee">📅 Annuel</button>
-        <button class="period-btn" data-p="tout">📅 Tout</button>
-        <button class="period-btn" data-p="personnalise">🗓️ Date / Plage…</button>
+        <button class="period-btn active" data-p="jour"><svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg><span class="label-full">Aujourd'hui</span></button>
+        <button class="period-btn" data-p="j7"><svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg><span class="label-full">7 jours</span></button>
+        <button class="period-btn" data-p="mois"><svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg><span class="label-full">Mois</span></button>
+        <button class="period-btn" data-p="annee"><svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg><span class="label-full">Année</span></button>
+        <button class="period-btn" data-p="personnalise"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="label-full">Personnalisé</span></button>
     </div>
 
     <div class="custom-range-bar" id="custom-range-bar">
@@ -223,163 +274,186 @@
         <span class="custom-range-hint">Laissez « Au » vide (ou identique à « Du ») pour consulter une seule date.</span>
     </div>
 
-    <!-- SYNTHÈSE DE LA PÉRIODE -->
-    <div class="total-row">
-        <div class="total-card">
-            <div>
-                <div class="tc-label">Consultations</div>
-                <div class="tc-sub" id="lbl-periode">Aujourd'hui</div>
-                <div class="tc-val" id="k-tickets">—</div>
-            </div>
-            <div class="tc-icon">🎟️</div>
-        </div>
-        <div class="total-card purple">
-            <div>
-                <div class="tc-label">Ventes pharmacie</div>
-                <div class="tc-sub" id="k-med-sub">—</div>
-                <div class="tc-val" id="k-med">—</div>
-            </div>
-            <div class="tc-icon">💊</div>
-        </div>
-        <div class="total-card green">
-            <div>
-                <div class="tc-label">Recettes totales</div>
-                <div class="tc-sub" id="k-recettes-sub">Tickets + Médicaments</div>
-                <div class="tc-val" id="k-recettes">—</div>
-            </div>
-            <div class="tc-icon">💰</div>
-        </div>
+    <div class="periode-range" id="periode-range">
+        <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M16 2v4"/></svg>
+        <span id="periode-range-txt">—</span>
     </div>
 
-    <div class="periode-range" id="periode-range">—</div>
-
-    <div class="kpi-row">
-        <div class="kpi-card">
-            <div class="kpi-label">Unités délivrées</div>
-            <div class="kpi-val" id="kpi-unites">—</div>
-            <div class="kpi-sub">Médicaments (pharmacie)</div>
-        </div>
+    <!-- ══ RÉSUMÉ / ANALYSE DÉTAILLÉE ══ -->
+    <div class="view-tabs">
+        <button type="button" class="view-btn active" id="vbtn-resume" onclick="switchView('resume')">
+            <svg class="icon" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+            Résumé
+        </button>
+        <button type="button" class="view-btn" id="vbtn-analyse" onclick="switchView('analyse')">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+            Analyse détaillée
+        </button>
     </div>
 
-    <div class="main-grid">
+    <!-- ══════════════════════════════════════════
+         VUE : RÉSUMÉ
+    ══════════════════════════════════════════ -->
+    <div class="view-block active" id="view-resume">
 
-        <!-- ══════════ COLONNE GAUCHE ══════════ -->
-        <div>
-
-            <div class="panel">
-                <div class="panel-head" style="border-left:4px solid var(--primary);">
-                    <div>
-                        <h2>🎟️ Détail des ventes de tickets</h2>
-                        <p id="tk-periode">—</p>
-                    </div>
-                    <div class="sort-control">
-                        <label for="sort-tk">Trier par</label>
-                        <select id="sort-tk">
-                            <option value="ts_desc">Date (récent → ancien)</option>
-                            <option value="ts_asc">Date (ancien → récent)</option>
-                            <option value="nom_asc">Patient (A → Z)</option>
-                            <option value="nom_desc">Patient (Z → A)</option>
-                            <option value="montant_desc">Montant (décroissant)</option>
-                            <option value="montant_asc">Montant (croissant)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <div class="tbl-wrap"><div id="tk-table"></div></div>
-                    <div class="divider"></div>
-                    <div class="stats-bloc-title">🏷️ Répartition par prestation</div>
-                    <div id="prestation-rank" class="rank-list"></div>
-                </div>
+        <div class="kpi-grid">
+            <div class="kpi-card green">
+                <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div>
+                <div class="kpi-label">Recettes</div>
+                <div class="kpi-val" id="r-recettes">—</div>
             </div>
-
-            <div class="panel">
-                <div class="panel-head" style="border-left:4px solid var(--purple);">
-                    <div>
-                        <h2>💊 Détail des ventes de médicaments</h2>
-                        <p id="md-periode">—</p>
-                    </div>
-                    <div class="sort-control">
-                        <label for="sort-md">Trier par</label>
-                        <select id="sort-md">
-                            <option value="ts_desc">Date (récent → ancien)</option>
-                            <option value="ts_asc">Date (ancien → récent)</option>
-                            <option value="nom_asc">Patient (A → Z)</option>
-                            <option value="nom_desc">Patient (Z → A)</option>
-                            <option value="montant_desc">Montant (décroissant)</option>
-                            <option value="montant_asc">Montant (croissant)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <div class="tbl-wrap"><div id="md-table"></div></div>
-                    <div class="divider"></div>
-                    <div class="stats-bloc-title">🥇 Médicaments les plus vendus</div>
-                    <div id="med-rank" class="rank-list"></div>
-                </div>
+            <div class="kpi-card blue">
+                <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
+                <div class="kpi-label">Tickets</div>
+                <div class="kpi-val" id="r-tickets">—</div>
             </div>
-
-            <div class="panel">
-                <div class="panel-head" style="border-left:4px solid var(--accent);">
-                    <div>
-                        <h2>📈 Statistiques comparées</h2>
-                        <p>Toutes périodes, indépendamment du filtre ci-dessus</p>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <div class="stats-bloc-title">📊 Tickets vendus</div>
-                    <div class="stats-grid-5">
-                        <div class="stat-box"><div class="stat-period">Journalier</div><div class="stat-val" id="tk-jour">—</div><div class="stat-sub">tickets</div></div>
-                        <div class="stat-box"><div class="stat-period">Hebdo.</div><div class="stat-val" id="tk-semaine">—</div><div class="stat-sub">tickets</div></div>
-                        <div class="stat-box"><div class="stat-period">Mensuel</div><div class="stat-val" id="tk-mois">—</div><div class="stat-sub">tickets</div></div>
-                        <div class="stat-box"><div class="stat-period">Trimestriel</div><div class="stat-val" id="tk-trim">—</div><div class="stat-sub">tickets</div></div>
-                        <div class="stat-box"><div class="stat-period">Annuel</div><div class="stat-val" id="tk-annee">—</div><div class="stat-sub">tickets</div></div>
-                    </div>
-
-                    <div class="stats-bloc-title">💰 Somme encaissée — consultations</div>
-                    <div class="stats-grid-5">
-                        <div class="stat-box green"><div class="stat-period">Journalier</div><div class="stat-val" id="ts-jour">—</div><div class="stat-sub">FCFA</div></div>
-                        <div class="stat-box green"><div class="stat-period">Hebdo.</div><div class="stat-val" id="ts-semaine">—</div><div class="stat-sub">FCFA</div></div>
-                        <div class="stat-box green"><div class="stat-period">Mensuel</div><div class="stat-val" id="ts-mois">—</div><div class="stat-sub">FCFA</div></div>
-                        <div class="stat-box green"><div class="stat-period">Trimestriel</div><div class="stat-val" id="ts-trim">—</div><div class="stat-sub">FCFA</div></div>
-                        <div class="stat-box green"><div class="stat-period">Annuel</div><div class="stat-val" id="ts-annee">—</div><div class="stat-sub">FCFA</div></div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="stats-bloc-title">💊 Ventes de médicaments — nombre</div>
-                    <div class="stats-grid-5">
-                        <div class="stat-box purple"><div class="stat-period">Journalier</div><div class="stat-val" id="mn-jour">—</div><div class="stat-sub">ventes</div></div>
-                        <div class="stat-box purple"><div class="stat-period">Hebdo.</div><div class="stat-val" id="mn-semaine">—</div><div class="stat-sub">ventes</div></div>
-                        <div class="stat-box purple"><div class="stat-period">Mensuel</div><div class="stat-val" id="mn-mois">—</div><div class="stat-sub">ventes</div></div>
-                        <div class="stat-box purple"><div class="stat-period">Trimestriel</div><div class="stat-val" id="mn-trim">—</div><div class="stat-sub">ventes</div></div>
-                        <div class="stat-box purple"><div class="stat-period">Annuel</div><div class="stat-val" id="mn-annee">—</div><div class="stat-sub">ventes</div></div>
-                    </div>
-
-                    <div class="stats-bloc-title">💰 Ventes de médicaments — montants</div>
-                    <div class="stats-grid-5">
-                        <div class="stat-box gold"><div class="stat-period">Journalier</div><div class="stat-val" id="ms-jour">—</div><div class="stat-sub">FCFA</div></div>
-                        <div class="stat-box gold"><div class="stat-period">Hebdo.</div><div class="stat-val" id="ms-semaine">—</div><div class="stat-sub">FCFA</div></div>
-                        <div class="stat-box gold"><div class="stat-period">Mensuel</div><div class="stat-val" id="ms-mois">—</div><div class="stat-sub">FCFA</div></div>
-                        <div class="stat-box gold"><div class="stat-period">Trimestriel</div><div class="stat-val" id="ms-trim">—</div><div class="stat-sub">FCFA</div></div>
-                        <div class="stat-box gold"><div class="stat-period">Annuel</div><div class="stat-val" id="ms-annee">—</div><div class="stat-sub">FCFA</div></div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="export-actions">
-                        <div class="export-title"><span>📥</span> Exporter le rapport</div>
-                        <p class="export-hint">
-                            Génère une feuille A4 complète pour la période sélectionnée : synthèse,
-                            détail des consultations, détail des ventes de médicaments et classements.
-                            Dans la boîte d'impression, choisissez <strong>« Enregistrer au format PDF »</strong>.
-                        </p>
-                        <button class="btn-export" id="btn-pdf">📄 Générer le rapport PDF</button>
-                    </div>
-                </div>
+            <div class="kpi-card purple">
+                <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+                <div class="kpi-label">Pharmacie</div>
+                <div class="kpi-val" id="r-pharmacie">—</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                <div class="kpi-label">Patients</div>
+                <div class="kpi-val" id="r-patients">—</div>
             </div>
         </div>
 
+        <div class="panel">
+            <div class="panel-head">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>Évolution des recettes</h2><p id="chart-sub">—</p></div>
+            </div>
+            <div class="panel-body">
+                <div id="evo-chart-host"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>Répartition des recettes</h2></div>
+            </div>
+            <div class="panel-body" id="repartition-host"></div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>Activité</h2></div>
+            </div>
+            <div class="panel-body">
+                <div class="subtabs">
+                    <button type="button" class="subtab-btn active" id="actbtn-tk" onclick="switchActivite('tk')">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
+                        Consultations
+                    </button>
+                    <button type="button" class="subtab-btn" id="actbtn-md" onclick="switchActivite('md')">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/></svg>
+                        Médicaments
+                    </button>
+                </div>
+                <div class="activite-rows" id="activite-rows"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/><circle cx="12" cy="8" r="7"/></svg>Top médicaments</h2></div>
+                <button type="button" class="panel-link" onclick="switchView('analyse')">
+                    Voir le rapport détaillé
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
+            <div class="panel-body">
+                <div id="top-meds-resume" class="rank-list"></div>
+            </div>
+        </div>
+
+        <button type="button" class="btn-export slim" id="btn-export-bottom">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M20 21H4a1 1 0 0 1-1-1v-4"/></svg>
+            Exporter le rapport PDF
+        </button>
     </div>
+
+    <!-- ══════════════════════════════════════════
+         VUE : ANALYSE DÉTAILLÉE
+    ══════════════════════════════════════════ -->
+    <div class="view-block" id="view-analyse">
+
+        <div class="panel">
+            <div class="panel-head" style="border-left:4px solid var(--chart-blue);">
+                <div>
+                    <h2><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>Détail des ventes de tickets</h2>
+                    <p id="tk-periode">—</p>
+                </div>
+                <div class="sort-control">
+                    <label for="sort-tk">Trier par</label>
+                    <select id="sort-tk">
+                        <option value="ts_desc">Date (récent → ancien)</option>
+                        <option value="ts_asc">Date (ancien → récent)</option>
+                        <option value="nom_asc">Patient (A → Z)</option>
+                        <option value="nom_desc">Patient (Z → A)</option>
+                        <option value="montant_desc">Montant (décroissant)</option>
+                        <option value="montant_asc">Montant (croissant)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="tbl-wrap"><div id="tk-table"></div></div>
+                <div class="divider"></div>
+                <div class="panel-head" style="padding:0 0 12px;border:none;"><h2 style="font-size:.85rem;"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Répartition par prestation</h2></div>
+                <div id="prestation-rank" class="rank-list"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head" style="border-left:4px solid var(--purple);">
+                <div>
+                    <h2><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/></svg>Détail des ventes de médicaments</h2>
+                    <p id="md-periode">—</p>
+                </div>
+                <div class="sort-control">
+                    <label for="sort-md">Trier par</label>
+                    <select id="sort-md">
+                        <option value="ts_desc">Date (récent → ancien)</option>
+                        <option value="ts_asc">Date (ancien → récent)</option>
+                        <option value="nom_asc">Patient (A → Z)</option>
+                        <option value="nom_desc">Patient (Z → A)</option>
+                        <option value="montant_desc">Montant (décroissant)</option>
+                        <option value="montant_asc">Montant (croissant)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="tbl-wrap"><div id="md-table"></div></div>
+                <div class="divider"></div>
+                <div class="panel-head" style="padding:0 0 12px;border:none;"><h2 style="font-size:.85rem;"><svg class="icon" viewBox="0 0 24 24"><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/><circle cx="12" cy="8" r="7"/></svg>Médicaments les plus vendus</h2></div>
+                <div id="med-rank" class="rank-list"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head" style="border-left:4px solid var(--accent);">
+                <div>
+                    <h2><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Statistiques</h2>
+                    <p>Toutes périodes, indépendamment du filtre ci-dessus</p>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="stat-select-row">
+                    <label for="stat-select">Indicateur</label>
+                    <select class="stat-select" id="stat-select">
+                        <option value="recettes">Recettes</option>
+                        <option value="tickets">Tickets</option>
+                        <option value="consultations">Consultations (FCFA)</option>
+                        <option value="ventes_nb">Ventes médicaments (nombre)</option>
+                        <option value="ventes_fcfa">Ventes médicaments (FCFA)</option>
+                    </select>
+                </div>
+                <div class="stat-compare-rows" id="stat-compare-rows"></div>
+            </div>
+        </div>
+
+    </div>
+
 </div>
 
 <dialog class="med-dialog" id="med-detail-dialog">
@@ -392,6 +466,36 @@
         <div class="tbl-wrap"><div id="med-dialog-table"></div></div>
     </div>
 </dialog>
+
+<!-- ══ MODALE EXPORT PDF ══ -->
+<div class="modal-overlay" id="export-modal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3><svg class="icon" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M20 21H4a1 1 0 0 1-1-1v-4"/></svg>Exporter le rapport</h3>
+            <button type="button" class="modal-close" id="export-modal-close" aria-label="Fermer">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-sect-title">Période</p>
+            <label class="radio-row"><input type="radio" name="exp-periode" value="jour" checked><span>Aujourd'hui</span></label>
+            <label class="radio-row"><input type="radio" name="exp-periode" value="semaine"><span>Cette semaine</span></label>
+            <label class="radio-row"><input type="radio" name="exp-periode" value="mois"><span>Ce mois</span></label>
+            <label class="radio-row"><input type="radio" name="exp-periode" value="personnalise"><span>Période affichée à l'écran</span></label>
+
+            <div class="divider"></div>
+
+            <p class="modal-sect-title">Inclure</p>
+            <label class="check-row"><input type="checkbox" id="exp-inc-tk" checked><span>Détail des consultations</span></label>
+            <label class="check-row"><input type="checkbox" id="exp-inc-md" checked><span>Détail des ventes de médicaments</span></label>
+            <label class="check-row"><input type="checkbox" id="exp-inc-top" checked><span>Top médicaments</span></label>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn-export" id="btn-pdf">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+                Générer le PDF
+            </button>
+        </div>
+    </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -427,21 +531,19 @@ let periode = 'jour';
 let loadedT = false, loadedM = false;
 
 // ── PLAGE DE DATES PERSONNALISÉE ────────────────
-// customDebut/customFin : bornes en millisecondes (journée complète, du
-// début 00:00:00 à la fin 23:59:59.999) ; customLabel : libellé affiché.
 let customDebut = null, customFin = null, customLabel = '';
 
-// ── TRI DES TABLEAUX (indépendant l'un de l'autre) ──
+// ── TRI DES TABLEAUX ─────────────────────────────
 let sortTk = 'ts_desc', sortMd = 'ts_desc';
+let activiteType = 'tk';
+let statSelect = 'recettes';
 
 function checkLoaded() {
-    if (loadedT && loadedM) document.getElementById('conn-badge').innerHTML = '● En direct';
+    if (loadedT && loadedM) document.getElementById('conn-badge').classList.add('online');
 }
 
 onValue(ticketRef, snap => {
     allTickets = [];
-    // Accolades obligatoires : sans elles, push() renvoie une valeur truthy
-    // qui interrompt snap.forEach() après le 1er élément (bug Firebase).
     snap.forEach(c => { allTickets.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }); });
     allTickets.sort((a, b) => b._ts - a._ts);
     loadedT = true; render(); checkLoaded();
@@ -453,7 +555,15 @@ onValue(medRef, snap => {
     loadedM = true; render(); checkLoaded();
 });
 
-// ── PÉRIODE ─────────────────────────────────────
+// ── VUES : Résumé / Analyse détaillée ───────────
+window.switchView = function (v) {
+    document.getElementById('view-resume').classList.toggle('active', v === 'resume');
+    document.getElementById('view-analyse').classList.toggle('active', v === 'analyse');
+    document.getElementById('vbtn-resume').classList.toggle('active', v === 'resume');
+    document.getElementById('vbtn-analyse').classList.toggle('active', v === 'analyse');
+};
+
+// ── PÉRIODE (filtre unique) ─────────────────────
 document.getElementById('period-tabs').addEventListener('click', e => {
     const btn = e.target.closest('.period-btn');
     if (!btn) return;
@@ -463,8 +573,6 @@ document.getElementById('period-tabs').addEventListener('click', e => {
     render();
 });
 
-// ── PLAGE DE DATES PERSONNALISÉE ─────────────────
-// Convertit « AAAA-MM-JJ » (valeur d'un <input type=date>) en date lisible.
 function formatISOtoFR(iso) {
     const [y, m, d] = iso.split('-');
     return `${d}/${m}/${y}`;
@@ -474,16 +582,16 @@ function appliquerPlagePersonnalisee() {
     const dEl = document.getElementById('date-debut');
     const fEl = document.getElementById('date-fin');
     let dStr = dEl.value;
-    let fStr = fEl.value || dStr; // « Au » vide → date unique
+    let fStr = fEl.value || dStr;
     if (!dStr) { toast('Choisissez au moins une date de début.', 'err'); return; }
     if (!fStr) fStr = dStr;
-    if (fStr < dStr) { [dStr, fStr] = [fStr, dStr]; } // bornes inversées : on les remet dans l'ordre
+    if (fStr < dStr) { [dStr, fStr] = [fStr, dStr]; }
     dEl.value = dStr; fEl.value = fStr;
 
     const [ya, ma, da] = dStr.split('-').map(Number);
-    const [yb, mb, db] = fStr.split('-').map(Number);
+    const [yb, mb, dbb] = fStr.split('-').map(Number);
     customDebut = new Date(ya, ma - 1, da, 0, 0, 0, 0).getTime();
-    customFin   = new Date(yb, mb - 1, db, 23, 59, 59, 999).getTime();
+    customFin   = new Date(yb, mb - 1, dbb, 23, 59, 59, 999).getTime();
     customLabel = (dStr === fStr) ? `Le ${formatISOtoFR(dStr)}` : `Du ${formatISOtoFR(dStr)} au ${formatISOtoFR(fStr)}`;
 
     periode = 'personnalise';
@@ -498,8 +606,6 @@ document.getElementById('btn-apply-range').addEventListener('click', appliquerPl
     });
 });
 
-// Libellés affichés selon la période active — gèrent aussi le mode
-// « personnalise », absent de l'objet PERIODES partagé avec depenses.html.
 function libelleCourant() {
     if (periode === 'personnalise') return customLabel || 'Choisissez une plage de dates ci-dessus';
     return PERIODES[periode].label;
@@ -512,8 +618,6 @@ function courtCourant() {
     return periode === 'personnalise' ? 'Plage personnalisée' : PERIODES[periode].court;
 }
 
-// Un ticket/vente annulé (retour à la pharmacie, erreur de caisse…) est
-// exclu du rapport : il ne doit apparaître dans aucune statistique du bilan.
 const filtre = list => list.filter(x => {
     if (!x.annule) {
         if (periode === 'personnalise') return customDebut != null && x._ts >= customDebut && x._ts <= customFin;
@@ -522,9 +626,6 @@ const filtre = list => list.filter(x => {
     return false;
 });
 
-// ── TRI DES TABLEAUX ─────────────────────────────
-// « kind » distingue le nom du champ patient (t.name côté tickets,
-// v.patient_nom côté ventes) et le montant (t.prix / v.total).
 function trier(list, kind, sortKey) {
     const [champ, sens] = sortKey.split('_');
     const getNom = kind === 'tk'
@@ -542,28 +643,32 @@ function trier(list, kind, sortKey) {
 document.getElementById('sort-tk').addEventListener('change', e => { sortTk = e.target.value; render(); });
 document.getElementById('sort-md').addEventListener('change', e => { sortMd = e.target.value; render(); });
 
-// ── RENDU ───────────────────────────────────────
+// ── RENDU PRINCIPAL ──────────────────────────────
+let currentMdPeriode = [];
+
 function render() {
     const tk = filtre(allTickets);
     const md = filtre(allVentes);
     const rTk = totalTickets(tk), rMd = totalVentes(md);
+    const nbPatients = new Set(tk.map(t => (t.name || `${t.prenom || ''} ${t.nom || ''}`).trim().toLowerCase()).filter(Boolean)).size;
 
-    document.getElementById('lbl-periode').textContent = libelleCourant();
-    document.getElementById('k-tickets').textContent = `${tk.length} · ${fcfa(rTk)}`;
-    document.getElementById('k-med-sub').textContent = `${md.length} vente(s)`;
-    document.getElementById('k-med').textContent = fcfa(rMd);
-    document.getElementById('k-recettes').textContent = fcfa(rTk + rMd);
-    document.getElementById('k-recettes-sub').textContent = libelleCourant();
+    document.getElementById('periode-range-txt').textContent = libelleDetailCourant();
     document.getElementById('tk-periode').textContent = libelleDetailCourant();
     document.getElementById('md-periode').textContent = libelleDetailCourant();
-    document.getElementById('periode-range').textContent = '📅 ' + libelleDetailCourant();
+    document.getElementById('chart-sub').textContent = libelleCourant();
 
-    // ── KPI secondaires ──
-    const unites = md.reduce((s, v) => s + (v.medicaments || []).reduce((n, l) => n + Number(l.qte || 0), 0), 0);
-    document.getElementById('kpi-unites').textContent = fmt(unites);
+    // ── KPI ──
+    document.getElementById('r-recettes').textContent = fcfa(rTk + rMd);
+    document.getElementById('r-tickets').textContent = fmt(tk.length);
+    document.getElementById('r-pharmacie').textContent = fcfa(rMd);
+    document.getElementById('r-patients').textContent = fmt(nbPatients);
 
-    // Conservée pour le dialog de détail par médicament (clic sur le classement).
     currentMdPeriode = md;
+
+    renderEvoChart(tk, md);
+    renderRepartition(rTk, rMd);
+    renderActivite(tk, md);
+    renderTopMedsResume(md);
 
     renderTicketsTable(trier(tk, 'tk', sortTk), rTk);
     renderVentesTable(trier(md, 'md', sortMd), rMd);
@@ -575,8 +680,6 @@ function render() {
     renderStatsComparees();
 }
 
-// Message affiché quand un tableau est vide — distingue le cas « pas de
-// données sur la période » du cas « aucune plage de dates choisie ».
 function msgVide(defaut) {
     if (periode === 'personnalise' && customDebut == null) {
         return 'Choisissez une plage de dates ci-dessus, puis cliquez sur « Appliquer ».';
@@ -584,6 +687,203 @@ function msgVide(defaut) {
     return defaut;
 }
 
+// ── GRAPHIQUE : ÉVOLUTION DES RECETTES ──────────
+// Regroupe recettes (tickets + médicaments) par heure / jour / mois selon
+// la granularité la plus lisible pour la période active.
+function bucketsRecettes(tk, md) {
+    const items = [
+        ...tk.filter(x => !x.annule).map(t => ({ ts: t._ts, val: Number(t.prix || 0) })),
+        ...md.filter(x => !x.annule).map(v => ({ ts: v._ts, val: Number(v.total || 0) })),
+    ];
+    const now = new Date();
+    const JOURS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+    const MOIS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+    function build(starts, labelFn) {
+        const values = new Array(starts.length).fill(0);
+        items.forEach(it => {
+            for (let i = starts.length - 1; i >= 0; i--) {
+                if (it.ts >= starts[i]) { values[i] += it.val; return; }
+            }
+        });
+        return { labels: starts.map(labelFn), values };
+    }
+
+    if (periode === 'jour') {
+        const base = new Date(now); base.setHours(0, 0, 0, 0);
+        const starts = Array.from({ length: 24 }, (_, h) => base.getTime() + h * 3600000);
+        return build(starts, ts => new Date(ts).getHours() + 'h');
+    }
+    if (periode === 'j7') {
+        const base = new Date(now); base.setHours(0, 0, 0, 0); base.setDate(base.getDate() - 6);
+        const starts = Array.from({ length: 7 }, (_, i) => { const d = new Date(base); d.setDate(base.getDate() + i); return d.getTime(); });
+        return build(starts, ts => JOURS[new Date(ts).getDay()]);
+    }
+    if (periode === 'annee') {
+        const jan = new Date(now.getFullYear(), 0, 1);
+        const nMois = now.getMonth() + 1;
+        const starts = Array.from({ length: nMois }, (_, m) => new Date(now.getFullYear(), m, 1).getTime());
+        return build(starts, ts => MOIS[new Date(ts).getMonth()]);
+    }
+    if (periode === 'mois') {
+        const base = new Date(now.getFullYear(), now.getMonth(), 1);
+        const nJours = now.getDate();
+        const starts = Array.from({ length: nJours }, (_, i) => { const d = new Date(base); d.setDate(1 + i); return d.getTime(); });
+        return build(starts, ts => String(new Date(ts).getDate()));
+    }
+    // personnalise
+    if (periode === 'personnalise' && customDebut != null) {
+        const spanDays = Math.max(1, Math.round((customFin - customDebut) / 86400000) + 1);
+        if (spanDays <= 31) {
+            const starts = Array.from({ length: spanDays }, (_, i) => customDebut + i * 86400000);
+            return build(starts, ts => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+        }
+        const nSemaines = Math.min(26, Math.ceil(spanDays / 7));
+        const starts = Array.from({ length: nSemaines }, (_, i) => customDebut + i * 7 * 86400000);
+        return build(starts, ts => new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+    }
+    return { labels: [], values: [] };
+}
+
+function renderEvoChart(tk, md) {
+    const host = document.getElementById('evo-chart-host');
+    const { labels, values } = bucketsRecettes(tk, md);
+    const total = values.reduce((s, v) => s + v, 0);
+    if (!labels.length || total <= 0) {
+        host.innerHTML = `<div class="empty-state">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            <p>${esc(msgVide('Aucune donnée pour cette période.'))}</p>
+        </div>`;
+        return;
+    }
+
+    const W = 640, H = 190, padTop = 26, padBottom = 24, padX = 6;
+    const max = Math.max(...values, 1);
+    const n = values.length;
+    const stepX = n > 1 ? (W - padX * 2) / (n - 1) : 0;
+    const scaleY = v => H - padBottom - (v / max) * (H - padTop - padBottom);
+    const pts = values.map((v, i) => [padX + i * stepX, scaleY(v)]);
+    const d = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    const area = d + ` L${pts[n - 1][0].toFixed(1)},${H - padBottom} L${pts[0][0].toFixed(1)},${H - padBottom} Z`;
+
+    let maxIdx = 0; values.forEach((v, i) => { if (v > values[maxIdx]) maxIdx = i; });
+    const lastIdx = n - 1;
+
+    // Étiquettes d'axe X éparses : 6 maximum, pour rester lisible sur mobile.
+    const tickEvery = Math.max(1, Math.ceil(n / 6));
+    const axisLabels = labels.map((lab, i) => (i % tickEvery === 0 || i === n - 1) ? `<text class="lc-axis-t" x="${pts[i][0].toFixed(1)}" y="${H - 6}" text-anchor="middle">${esc(lab)}</text>` : '').join('');
+
+    const peakLabel = maxIdx !== lastIdx
+        ? `<text class="lc-label" x="${pts[maxIdx][0].toFixed(1)}" y="${(scaleY(values[maxIdx]) - 10).toFixed(1)}" text-anchor="middle">${esc(fmt(values[maxIdx]))}</text>`
+        : '';
+    const lastLabel = `<text class="lc-label" x="${pts[lastIdx][0].toFixed(1)}" y="${(scaleY(values[lastIdx]) - 10).toFixed(1)}" text-anchor="${lastIdx === n - 1 ? 'end' : 'middle'}">${esc(fmt(values[lastIdx]))}</text>`;
+
+    host.innerHTML = `
+      <div class="chart-wrap" id="evo-chart-wrap">
+        <svg class="line-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="evo-svg">
+          <path class="lc-area" d="${area}"></path>
+          <path class="lc-line" d="${d}"></path>
+          <circle class="lc-dot" cx="${pts[maxIdx][0].toFixed(1)}" cy="${scaleY(values[maxIdx]).toFixed(1)}" r="4"></circle>
+          <circle class="lc-dot" cx="${pts[lastIdx][0].toFixed(1)}" cy="${scaleY(values[lastIdx]).toFixed(1)}" r="4"></circle>
+          ${peakLabel}
+          ${lastLabel}
+          <g class="lc-axis">${axisLabels}</g>
+          <line class="lc-hover-line" id="evo-hover-line" x1="0" y1="${padTop}" x2="0" y2="${H - padBottom}" style="display:none"></line>
+          <circle class="lc-hover-dot" id="evo-hover-dot" r="4.5" style="display:none"></circle>
+        </svg>
+        <div class="chart-tooltip" id="evo-tooltip"></div>
+      </div>`;
+
+    // ── Survol : curseur + infobulle (trace la valeur la plus proche du doigt/pointeur) ──
+    const svg = document.getElementById('evo-svg');
+    const hoverLine = document.getElementById('evo-hover-line');
+    const hoverDot = document.getElementById('evo-hover-dot');
+    const tooltip = document.getElementById('evo-tooltip');
+    const wrap = document.getElementById('evo-chart-wrap');
+
+    function moveTo(clientX) {
+        const rect = svg.getBoundingClientRect();
+        const relX = ((clientX - rect.left) / rect.width) * W;
+        let idx = n > 1 ? Math.round((relX - padX) / stepX) : 0;
+        idx = Math.max(0, Math.min(n - 1, idx));
+        const [px, py] = pts[idx];
+        hoverLine.setAttribute('x1', px); hoverLine.setAttribute('x2', px);
+        hoverLine.style.display = 'block';
+        hoverDot.setAttribute('cx', px); hoverDot.setAttribute('cy', py);
+        hoverDot.style.display = 'block';
+        const pctX = (px / W) * 100, pctY = (py / H) * 100;
+        tooltip.style.left = pctX + '%'; tooltip.style.top = pctY + '%';
+        tooltip.textContent = `${labels[idx]} · ${fcfa(values[idx])}`;
+        tooltip.classList.add('show');
+    }
+    function clear() {
+        hoverLine.style.display = 'none'; hoverDot.style.display = 'none';
+        tooltip.classList.remove('show');
+    }
+    wrap.addEventListener('pointermove', e => moveTo(e.clientX));
+    wrap.addEventListener('pointerleave', clear);
+    wrap.addEventListener('pointerdown', e => moveTo(e.clientX));
+}
+
+// ── RÉPARTITION DES RECETTES (Consultations vs Pharmacie) ──
+function renderRepartition(rTk, rMd) {
+    const host = document.getElementById('repartition-host');
+    const total = rTk + rMd;
+    if (total <= 0) {
+        host.innerHTML = `<div class="empty-state">
+            <svg class="icon" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+            <p>${esc(msgVide('Aucune donnée pour cette période.'))}</p>
+        </div>`;
+        return;
+    }
+    const pTk = Math.round(rTk / total * 100);
+    const pMd = 100 - pTk;
+    host.innerHTML = `
+        <div class="split-bar">
+            <div class="split-seg" style="width:${pTk}%;background:var(--chart-blue);"></div>
+            <div class="split-seg" style="width:${pMd}%;background:var(--accent);"></div>
+        </div>
+        <div class="split-legend">
+            <div class="split-item"><span class="dot" style="background:var(--chart-blue);"></span><span class="sl-nom">Consultations</span><span class="sl-val">${esc(fcfa(rTk))}</span><span class="sl-pct">${pTk}%</span></div>
+            <div class="split-item"><span class="dot" style="background:var(--accent);"></span><span class="sl-nom">Pharmacie</span><span class="sl-val">${esc(fcfa(rMd))}</span><span class="sl-pct">${pMd}%</span></div>
+        </div>`;
+}
+
+// ── ACTIVITÉ (sous-onglets Consultations / Médicaments) ──
+let lastTk = [], lastMd = [];
+window.switchActivite = function (t) {
+    activiteType = t;
+    document.getElementById('actbtn-tk').classList.toggle('active', t === 'tk');
+    document.getElementById('actbtn-md').classList.toggle('active', t === 'md');
+    renderActivite(lastTk, lastMd);
+};
+function renderActivite(tk, md) {
+    lastTk = tk; lastMd = md;
+    const host = document.getElementById('activite-rows');
+    if (activiteType === 'tk') {
+        const total = totalTickets(tk);
+        const panier = tk.length ? Math.round(total / tk.length) : 0;
+        host.innerHTML = `
+            <div class="act-row"><span class="al">Tickets</span><span class="av">${esc(fmt(tk.length))}</span></div>
+            <div class="act-row"><span class="al">Montant</span><span class="av">${esc(fcfa(total))}</span></div>
+            <div class="act-row"><span class="al">Panier moyen</span><span class="av">${esc(fcfa(panier))}</span></div>`;
+    } else {
+        const total = totalVentes(md);
+        const panier = md.length ? Math.round(total / md.length) : 0;
+        host.innerHTML = `
+            <div class="act-row"><span class="al">Ventes</span><span class="av">${esc(fmt(md.length))}</span></div>
+            <div class="act-row"><span class="al">Montant</span><span class="av">${esc(fcfa(total))}</span></div>
+            <div class="act-row"><span class="al">Panier moyen</span><span class="av">${esc(fcfa(panier))}</span></div>`;
+    }
+}
+
+// ── TOP MÉDICAMENTS (résumé, top 5) ──
+function renderTopMedsResume(md) {
+    const items = parMedicament(md).slice(0, 5).map(p => ({ nom: p.nom, val: p.qte, sub: esc(fcfa(p.montant)) }));
+    renderRank('top-meds-resume', items, 'purple');
+}
+
+// ── TABLEAUX DÉTAILLÉS (Analyse détaillée) ──
 function renderTicketsTable(tk, total) {
     const c = document.getElementById('tk-table');
     if (!tk.length) { c.innerHTML = `<div class="empty-state">${msgVide('Aucune consultation sur cette période.')}</div>`; return; }
@@ -645,11 +945,6 @@ function renderRank(id, items, variante, opts = {}) {
 }
 
 // ── DIALOG « DÉTAIL D'UN MÉDICAMENT » ────────────
-// Ouvert au clic sur un élément du classement « Médicaments les plus
-// vendus » : liste chaque vente contenant ce médicament sur la période
-// actuellement affichée (currentMdPeriode, tenu à jour par render()).
-let currentMdPeriode = [];
-
 function openMedDialog(nom) {
     const lignes = [];
     let qteTotal = 0, montantTotal = 0;
@@ -669,11 +964,11 @@ function openMedDialog(nom) {
     }
     lignes.sort((a, b) => b.ts - a.ts);
 
-    document.getElementById('med-dialog-title').textContent = '💊 ' + nom;
+    document.getElementById('med-dialog-title').textContent = nom;
     document.getElementById('med-dialog-stats').innerHTML = `
-        <div class="stat-box purple"><div class="stat-period">Ventes</div><div class="stat-val">${esc(fmt(lignes.length))}</div><div class="stat-sub">ligne(s)</div></div>
-        <div class="stat-box purple"><div class="stat-period">Unités</div><div class="stat-val">${esc(fmt(qteTotal))}</div><div class="stat-sub">délivrées</div></div>
-        <div class="stat-box gold"><div class="stat-period">Chiffre d'affaires</div><div class="stat-val">${esc(fcfa(montantTotal))}</div><div class="stat-sub">${esc(libelleDetailCourant())}</div></div>
+        <div class="stat-box"><div class="stat-period">Ventes</div><div class="stat-val purple">${esc(fmt(lignes.length))}</div><div class="stat-sub">ligne(s)</div></div>
+        <div class="stat-box"><div class="stat-period">Unités</div><div class="stat-val purple">${esc(fmt(qteTotal))}</div><div class="stat-sub">délivrées</div></div>
+        <div class="stat-box"><div class="stat-period">Chiffre d'affaires</div><div class="stat-val gold">${esc(fcfa(montantTotal))}</div><div class="stat-sub">${esc(libelleDetailCourant())}</div></div>
     `;
 
     const c = document.getElementById('med-dialog-table');
@@ -702,51 +997,172 @@ function openMedDialog(nom) {
     else dlg.setAttribute('open', '');
 }
 
-document.getElementById('med-rank').addEventListener('click', e => {
-    const row = e.target.closest('.rank-row[data-nom]');
-    if (row) openMedDialog(row.dataset.nom);
-});
-document.getElementById('med-rank').addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const row = e.target.closest('.rank-row[data-nom]');
-    if (row) { e.preventDefault(); openMedDialog(row.dataset.nom); }
+['med-rank', 'top-meds-resume'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('click', e => {
+        const row = e.target.closest('.rank-row[data-nom]');
+        if (row) openMedDialog(row.dataset.nom);
+    });
+    el.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const row = e.target.closest('.rank-row[data-nom]');
+        if (row) { e.preventDefault(); openMedDialog(row.dataset.nom); }
+    });
 });
 document.getElementById('med-dialog-close').addEventListener('click', () => {
     document.getElementById('med-detail-dialog').close();
 });
 document.getElementById('med-detail-dialog').addEventListener('click', e => {
-    // Clic sur le fond (::backdrop) : la cible du clic est le <dialog> lui-même.
     if (e.target === e.currentTarget) e.currentTarget.close();
 });
 
-// Blocs « toutes périodes » : volontairement indépendants du filtre courant.
+// ── STATISTIQUES (carte consolidée, un seul indicateur à la fois) ──
+const STAT_DEFS = {
+    recettes:      { fn: (tk, md) => totalTickets(tk) + totalVentes(md), fmt: fcfa },
+    tickets:       { fn: (tk)     => tk.length,                          fmt: fmt },
+    consultations: { fn: (tk)     => totalTickets(tk),                   fmt: fcfa },
+    ventes_nb:     { fn: (_, md)  => md.length,                          fmt: fmt },
+    ventes_fcfa:   { fn: (_, md)  => totalVentes(md),                    fmt: fcfa },
+};
+document.getElementById('stat-select').addEventListener('change', e => {
+    statSelect = e.target.value; renderStatsComparees();
+});
 function renderStatsComparees() {
     const P = ['jour', 'semaine', 'mois', 'trimestre', 'annee'];
-    const ids = ['jour', 'semaine', 'mois', 'trim', 'annee'];
-    P.forEach((p, i) => {
+    const LABELS = ["Aujourd'hui", 'Cette semaine', 'Ce mois', 'Ce trimestre', 'Cette année'];
+    const def = STAT_DEFS[statSelect];
+    const rows = P.map((p, i) => {
         const tk = allTickets.filter(x => dansPeriode(x._ts, p) && !x.annule);
         const md = allVentes.filter(x => dansPeriode(x._ts, p) && !x.annule);
-        document.getElementById('tk-' + ids[i]).textContent = tk.length;
-        document.getElementById('ts-' + ids[i]).textContent = fmt(totalTickets(tk));
-        document.getElementById('mn-' + ids[i]).textContent = md.length;
-        document.getElementById('ms-' + ids[i]).textContent = fmt(totalVentes(md));
-    });
+        return `<div class="sc-row"><span class="sc-lbl">${esc(LABELS[i])}</span><span class="sc-val">${esc(def.fmt(def.fn(tk, md)))}</span></div>`;
+    }).join('');
+    document.getElementById('stat-compare-rows').innerHTML = rows;
 }
 
-// ── EXPORT PDF ──────────────────────────────────
+// ── MODALE EXPORT PDF ────────────────────────────
+document.getElementById('btn-open-export').addEventListener('click', () => {
+    document.getElementById('export-modal').classList.add('visible');
+});
+document.getElementById('btn-export-bottom').addEventListener('click', () => {
+    document.getElementById('export-modal').classList.add('visible');
+});
+document.getElementById('export-modal-close').addEventListener('click', () => {
+    document.getElementById('export-modal').classList.remove('visible');
+});
+document.getElementById('export-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove('visible');
+});
+
 document.getElementById('btn-pdf').addEventListener('click', () => {
-    // Le tri à l'écran (choisi dans chaque panneau) est repris dans le PDF,
-    // pour que le document exporté corresponde à ce que l'utilisateur voit.
-    const tk = trier(filtre(allTickets), 'tk', sortTk);
-    const md = trier(filtre(allVentes), 'md', sortMd);
+    const expPeriode = document.querySelector('input[name="exp-periode"]:checked').value;
+
+    let tkSrc, mdSrc, periodeLabelExport, courtExport;
+    if (expPeriode === 'personnalise') {
+        // Reprend exactement la période actuellement affichée à l'écran.
+        tkSrc = filtre(allTickets); mdSrc = filtre(allVentes);
+        periodeLabelExport = libelleDetailCourant(); courtExport = courtCourant();
+    } else {
+        tkSrc = allTickets.filter(x => !x.annule && dansPeriode(x._ts, expPeriode));
+        mdSrc = allVentes.filter(x => !x.annule && dansPeriode(x._ts, expPeriode));
+        periodeLabelExport = libellePeriode(expPeriode); courtExport = PERIODES[expPeriode].court;
+    }
+
+    const tk = trier(tkSrc, 'tk', sortTk);
+    const md = trier(mdSrc, 'md', sortMd);
     const rTk = totalTickets(tk), rMd = totalVentes(md);
     const unites = md.reduce((s, v) => s + (v.medicaments || []).reduce((n, l) => n + Number(l.qte || 0), 0), 0);
 
+    const incTk  = document.getElementById('exp-inc-tk').checked;
+    const incMd  = document.getElementById('exp-inc-md').checked;
+    const incTop = document.getElementById('exp-inc-top').checked;
+
+    const sections = [];
+    if (incTk) {
+        sections.push({
+            titre: 'Détail des ventes de tickets de consultation',
+            cols: [
+                { t: 'Réf.', k: 'ref', w: '11%' },
+                { t: 'Date & heure', k: 'date', w: '15%' },
+                { t: 'Patient', k: 'patient', w: '24%' },
+                { t: 'Âge', k: 'age', num: true, w: '7%' },
+                { t: 'Prestation', k: 'presta', w: '25%' },
+                { t: 'N°', k: 'att', num: true, w: '6%' },
+                { t: 'Montant', k: 'montant', num: true, w: '12%' },
+            ],
+            rows: tk.map(t => ({
+                ref: 'TK-' + t._key.substring(0, 6).toUpperCase(),
+                date: dateHeure(t._ts),
+                patient: t.name || `${t.prenom || ''} ${t.nom || ''}`.trim(),
+                age: t.age ?? '—',
+                presta: t.choix || 'Non précisé',
+                att: t.num_attente ?? '—',
+                montant: fcfa(t.prix),
+            })),
+            totalLabel: `TOTAL — ${tk.length} consultation(s)`,
+            totalValue: fcfa(rTk),
+            vide: 'Aucune consultation sur cette période.',
+        });
+        sections.push({
+            titre: 'Répartition par prestation',
+            cols: [
+                { t: 'Prestation', k: 'nom', w: '55%' },
+                { t: 'Tickets', k: 'nb', num: true, w: '15%' },
+                { t: 'Montant', k: 'montant', num: true, w: '18%' },
+                { t: 'Part', k: 'part', num: true, w: '12%' },
+            ],
+            rows: parPrestation(tk).map(p => ({
+                nom: p.nom, nb: p.nb, montant: fcfa(p.montant),
+                part: (rTk ? Math.round(p.montant / rTk * 100) : 0) + ' %',
+            })),
+            totalLabel: 'TOTAL', totalValue: fcfa(rTk),
+            vide: 'Aucune prestation à présenter.',
+        });
+    }
+    if (incMd) {
+        sections.push({
+            titre: 'Détail des ventes de médicaments',
+            cols: [
+                { t: 'Réf.', k: 'ref', w: '12%' },
+                { t: 'Date & heure', k: 'date', w: '16%' },
+                { t: 'Patient', k: 'patient', w: '22%' },
+                { t: 'Médicaments délivrés', k: 'detail', w: '36%' },
+                { t: 'Montant', k: 'montant', num: true, w: '14%' },
+            ],
+            rows: md.map(v => ({
+                ref: 'MED-' + v._key.substring(0, 6).toUpperCase(),
+                date: dateHeure(v._ts),
+                patient: v.patient_nom || '(non identifié)',
+                detail: (v.medicaments || []).map(l => `${l.qte} × ${l.nom}`).join(' ; ') || '—',
+                montant: fcfa(v.total),
+            })),
+            totalLabel: `TOTAL — ${md.length} vente(s)`,
+            totalValue: fcfa(rMd),
+            vide: 'Aucune vente de médicament sur cette période.',
+        });
+    }
+    if (incTop) {
+        sections.push({
+            titre: 'Médicaments les plus vendus',
+            cols: [
+                { t: 'Médicament', k: 'nom', w: '52%' },
+                { t: 'Unités', k: 'qte', num: true, w: '15%' },
+                { t: "Chiffre d'affaires", k: 'montant', num: true, w: '20%' },
+                { t: 'Part', k: 'part', num: true, w: '13%' },
+            ],
+            rows: parMedicament(md).map(p => ({
+                nom: p.nom, qte: p.qte, montant: fcfa(p.montant),
+                part: (rMd ? Math.round(p.montant / rMd * 100) : 0) + ' %',
+            })),
+            totalLabel: 'TOTAL', totalValue: fcfa(rMd),
+            vide: 'Aucun médicament vendu sur cette période.',
+        });
+    }
+
     exporterPDF({
         titre: "Rapport d'activité — Consultations et pharmacie",
-        periodeLabel: libelleDetailCourant(),
+        periodeLabel: periodeLabelExport,
         meta: [
-            { k: 'Période', v: courtCourant() },
+            { k: 'Période', v: courtExport },
             { k: 'Consultations', v: String(tk.length) },
             { k: 'Ventes pharmacie', v: String(md.length) },
             { k: 'Unités délivrées', v: String(unites) },
@@ -756,84 +1172,10 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
             { label: 'Recettes pharmacie', valeur: fcfa(rMd) },
             { label: 'Recettes totales', valeur: fcfa(rTk + rMd), type: 'positif' },
         ],
-        sections: [
-            {
-                titre: 'Détail des ventes de tickets de consultation',
-                cols: [
-                    { t: 'Réf.', k: 'ref', w: '11%' },
-                    { t: 'Date & heure', k: 'date', w: '15%' },
-                    { t: 'Patient', k: 'patient', w: '24%' },
-                    { t: 'Âge', k: 'age', num: true, w: '7%' },
-                    { t: 'Prestation', k: 'presta', w: '25%' },
-                    { t: 'N°', k: 'att', num: true, w: '6%' },
-                    { t: 'Montant', k: 'montant', num: true, w: '12%' },
-                ],
-                rows: tk.map(t => ({
-                    ref: 'TK-' + t._key.substring(0, 6).toUpperCase(),
-                    date: dateHeure(t._ts),
-                    patient: t.name || `${t.prenom || ''} ${t.nom || ''}`.trim(),
-                    age: t.age ?? '—',
-                    presta: t.choix || 'Non précisé',
-                    att: t.num_attente ?? '—',
-                    montant: fcfa(t.prix),
-                })),
-                totalLabel: `TOTAL — ${tk.length} consultation(s)`,
-                totalValue: fcfa(rTk),
-                vide: 'Aucune consultation sur cette période.',
-            },
-            {
-                titre: 'Répartition par prestation',
-                cols: [
-                    { t: 'Prestation', k: 'nom', w: '55%' },
-                    { t: 'Tickets', k: 'nb', num: true, w: '15%' },
-                    { t: 'Montant', k: 'montant', num: true, w: '18%' },
-                    { t: 'Part', k: 'part', num: true, w: '12%' },
-                ],
-                rows: parPrestation(tk).map(p => ({
-                    nom: p.nom, nb: p.nb, montant: fcfa(p.montant),
-                    part: (rTk ? Math.round(p.montant / rTk * 100) : 0) + ' %',
-                })),
-                totalLabel: 'TOTAL', totalValue: fcfa(rTk),
-                vide: 'Aucune prestation à présenter.',
-            },
-            {
-                titre: 'Détail des ventes de médicaments',
-                cols: [
-                    { t: 'Réf.', k: 'ref', w: '12%' },
-                    { t: 'Date & heure', k: 'date', w: '16%' },
-                    { t: 'Patient', k: 'patient', w: '22%' },
-                    { t: 'Médicaments délivrés', k: 'detail', w: '36%' },
-                    { t: 'Montant', k: 'montant', num: true, w: '14%' },
-                ],
-                rows: md.map(v => ({
-                    ref: 'MED-' + v._key.substring(0, 6).toUpperCase(),
-                    date: dateHeure(v._ts),
-                    patient: v.patient_nom || '(non identifié)',
-                    detail: (v.medicaments || []).map(l => `${l.qte} × ${l.nom}`).join(' ; ') || '—',
-                    montant: fcfa(v.total),
-                })),
-                totalLabel: `TOTAL — ${md.length} vente(s)`,
-                totalValue: fcfa(rMd),
-                vide: 'Aucune vente de médicament sur cette période.',
-            },
-            {
-                titre: 'Médicaments les plus vendus',
-                cols: [
-                    { t: 'Médicament', k: 'nom', w: '52%' },
-                    { t: 'Unités', k: 'qte', num: true, w: '15%' },
-                    { t: "Chiffre d'affaires", k: 'montant', num: true, w: '20%' },
-                    { t: 'Part', k: 'part', num: true, w: '13%' },
-                ],
-                rows: parMedicament(md).map(p => ({
-                    nom: p.nom, qte: p.qte, montant: fcfa(p.montant),
-                    part: (rMd ? Math.round(p.montant / rMd * 100) : 0) + ' %',
-                })),
-                totalLabel: 'TOTAL', totalValue: fcfa(rMd),
-                vide: 'Aucun médicament vendu sur cette période.',
-            },
-        ],
+        sections,
         note: "Les montants correspondent aux sommes effectivement encaissées, avant déduction des dépenses du poste (voir le bilan financier).",
     });
+    document.getElementById('export-modal').classList.remove('visible');
 });
 
 // ── NETTOYAGE ───────────────────────────────────
