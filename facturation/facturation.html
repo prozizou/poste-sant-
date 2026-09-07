@@ -17,25 +17,44 @@
 
 <nav class="topbar">
     <div class="topbar-left">
-        <a href="../accueil/menu_caissier.html" class="back-btn">⬅ <span class="txt">Menu</span></a>
+        <a href="../accueil/menu_caissier.html" class="back-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            <span class="txt">Menu</span>
+        </a>
         <div class="topbar-title">
-            <h1>🧾 Facturation</h1>
-            <p>Tickets de consultation &amp; Médicaments</p>
+            <h1>Facturation</h1>
+            <button type="button" class="printer-line" id="printer-line" onclick="toggleDropdown('printer-menu', this)">
+                <span class="dot"></span>
+                <span id="printer-line-text">Imprimante non connectée</span>
+            </button>
         </div>
     </div>
     <div class="topbar-right">
-        <select id="print-method" class="filter-select" onchange="setPrintMethod(this.value)" title="Méthode d'impression">
-            <option value="ble">Bluetooth (direct)</option>
-            <option value="usb">USB (WebUSB)</option>
-            <option value="rawbt">RawBT (Android)</option>
-            <option value="browser">Navigateur</option>
-        </select>
-        <button type="button" class="printer-badge off" id="printer-badge" onclick="connectPrinter()" title="Cliquer pour appairer l'imprimante">🖨️ Imprimante non connectée</button>
-        <button type="button" class="btn-reprint" onclick="printTestTicket()" title="Imprime un ticket de test">🧪 Test</button>
-        <button type="button" id="view-switch" class="view-switch" onclick="cycleViewMode()">
-            <span class="vs-ico">🔄</span><span class="vs-txt">Auto</span>
-        </button>
         <div class="conn-badge" id="conn-badge">● Synchronisation...</div>
+        <div class="menu-wrap">
+            <button type="button" class="menu-btn" id="printer-menu-btn" onclick="toggleDropdown('printer-menu', this)" aria-label="Imprimante et affichage">
+                <svg class="icon dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+            </button>
+            <div class="dropdown-menu" id="printer-menu" style="right:0;">
+                <div class="dropdown-section-title">Imprimante</div>
+                <select id="print-method" class="fc" onchange="setPrintMethod(this.value)" title="Méthode d'impression">
+                    <option value="ble">Bluetooth (direct)</option>
+                    <option value="usb">USB (WebUSB)</option>
+                    <option value="rawbt">RawBT (Android)</option>
+                    <option value="browser">Navigateur</option>
+                </select>
+                <button type="button" class="dropdown-item off" id="printer-badge" onclick="connectPrinter()" title="Cliquer pour appairer l'imprimante">Imprimante non connectée</button>
+                <button type="button" class="dropdown-item" onclick="printTestTicket()" title="Imprime un ticket de test">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    Tester l'impression
+                </button>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section-title">Affichage</div>
+                <button type="button" id="view-switch" class="dropdown-item" onclick="cycleViewMode()">
+                    <span class="vs-ico"></span><span class="vs-txt"></span>
+                </button>
+            </div>
+        </div>
     </div>
 </nav>
 
@@ -46,61 +65,75 @@
          un autre jour, à l'administration) d'enregistrer une consultation ou
          une vente survenue un jour précédent (ex. week-end sans caissier). -->
     <div class="backdate-bar" id="backdate-bar">
-        <div class="fg">
-            <label for="op-date">Date de l'opération</label>
-            <input type="date" id="op-date" class="fc">
+        <div class="backdate-summary">
+            <span class="dot"></span>
+            <span class="backdate-summary-text" id="backdate-summary-text">Aujourd'hui</span>
+            <button type="button" class="backdate-info-btn" id="backdate-info-btn" onclick="toggleBackdateInfo()" aria-label="À propos de la saisie a posteriori">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </button>
+            <button type="button" class="backdate-edit-btn" id="backdate-edit-btn" onclick="toggleBackdateExpand()">Modifier la date</button>
         </div>
-        <div class="fg">
-            <label for="op-heure">Heure</label>
-            <input type="time" id="op-heure" class="fc">
+        <div class="backdate-fields" id="backdate-fields">
+            <div class="fg">
+                <label for="op-date">Date de l'opération</label>
+                <input type="date" id="op-date" class="fc">
+            </div>
+            <div class="fg">
+                <label for="op-heure">Heure</label>
+                <input type="time" id="op-heure" class="fc">
+            </div>
+            <label class="bd-check"><input type="checkbox" id="op-imprimer" checked> Imprimer le reçu</label>
+            <button type="button" class="btn-reset-date" id="btn-reset-date">↺ Revenir à aujourd'hui</button>
         </div>
-        <label class="bd-check"><input type="checkbox" id="op-imprimer" checked> Imprimer le reçu</label>
-        <button type="button" class="btn-reset-date" id="btn-reset-date">↺ Revenir à aujourd'hui</button>
-        <span class="backdate-hint">Par défaut : maintenant, pour une saisie normale. Choisissez une date antérieure pour enregistrer une consultation ou une vente qui a eu lieu un autre jour (ex. le week-end en l'absence du caissier) — le numéro d'attente et les statistiques seront rattachés à cette date-là, pas à aujourd'hui.</span>
+        <p class="backdate-hint" id="backdate-hint">Par défaut : maintenant, pour une saisie normale. Choisissez une date antérieure pour enregistrer une consultation ou une vente qui a eu lieu un autre jour (ex. le week-end en l'absence du caissier) — le numéro d'attente et les statistiques seront rattachés à cette date-là, pas à aujourd'hui.</p>
     </div>
     <div class="backdate-banner" id="backdate-banner">
-        ⚠️ Mode saisie a posteriori — les enregistrements seront datés du <span id="backdate-banner-date">—</span>, pas d'aujourd'hui.
+        <svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        Mode saisie a posteriori — les enregistrements seront datés du <span id="backdate-banner-date">—</span>, pas d'aujourd'hui.
     </div>
 
-    <h3 class="sect-title">💰 Recettes Globales (Consultations + Pharmacie)</h3>
-    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+    <div class="stats-grid">
         <div class="stat-card">
+            <div class="stat-icon"><svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div>
             <div><div class="stat-label">Aujourd'hui</div><div class="stat-value" id="s-g-day">—</div></div>
         </div>
         <div class="stat-card">
-            <div><div class="stat-label">Semaine</div><div class="stat-value" id="s-g-week">—</div></div>
-        </div>
-        <div class="stat-card">
-            <div><div class="stat-label">Mois</div><div class="stat-value" id="s-g-month">—</div></div>
-        </div>
-        <div class="stat-card">
-            <div><div class="stat-label">Trimestre</div><div class="stat-value" id="s-g-quarter">—</div></div>
-        </div>
-        <div class="stat-card">
-            <div><div class="stat-label">Année</div><div class="stat-value" id="s-g-year">—</div></div>
+            <div class="stat-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
+            <div><div class="stat-label">Opérations</div><div class="stat-value" id="s-g-tickets">—</div></div>
         </div>
     </div>
 
-    <div class="divider"></div>
+    <div class="section-tabs">
+        <button type="button" class="section-btn active" id="sbtn-nouvelle" onclick="switchSection('nouvelle')">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Nouvelle opération
+        </button>
+        <button type="button" class="section-btn" id="sbtn-historique" onclick="switchSection('historique')">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+            Historique
+        </button>
+    </div>
 
     <div class="tabs-wrap">
         <button class="tab-btn active" id="tbtn-ticket" onclick="switchTab('ticket')">
-            🎟️ Ticket de Consultation
+            <svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
+            Consultation
             <span class="tab-count" id="cnt-ticket">0</span>
         </button>
         <button class="tab-btn" id="tbtn-med" onclick="switchTab('med')">
-            💊 Médicaments Ordonnance
+            <svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+            Médicaments
             <span class="tab-count" id="cnt-med">0</span>
         </button>
     </div>
 
     <div class="tab-pane active" id="pane-ticket">
         <div class="tab-body">
-            <div class="two-col">
+            <div class="section-block active" data-section="nouvelle">
                 <div>
                     <div class="card">
                         <div class="card-head" style="border-left:4px solid var(--primary);">
-                            <div class="card-head-icon" style="background:var(--blue-bg);">🎟️</div>
+                            <div class="card-head-icon" style="background:var(--blue-bg);color:var(--primary);"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
                             <div><h3>Nouveau Ticket de Consultation</h3><p>Enregistrez le patient et émettez le ticket</p></div>
                         </div>
                         <div class="card-body">
@@ -116,7 +149,7 @@
                             </div>
                             <div class="fg">
                                 <label>Âge <span class="req">*</span></label>
-                                <input type="number" id="t-age" class="fc" placeholder="Ex: 35" min="0" max="120">
+                                <input type="number" id="t-age" class="fc" inputmode="numeric" pattern="[0-9]*" placeholder="Ex: 35" min="0" max="120">
                             </div>
 
                             <div class="divider"></div>
@@ -124,38 +157,42 @@
                             <div class="tarif-label">Choisir le type de consultation <span style="color:var(--danger);">*</span></div>
                             <div class="tarif-grid">
                                 <div class="tarif-card" data-prest="Consultation Générale – Adulte" data-prix="500" onclick="selectTarif(this)">
-                                    <span class="tarif-emoji">🩺</span>
+                                    <svg class="icon" viewBox="0 0 24 24"><path d="M8 2h8"/><path d="M9 2v2.789a4 4 0 0 1-.672 2.219l-.656.984A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.789a4 4 0 0 0-.672-2.219l-.656-.984A4 4 0 0 1 15 4.788V2"/><path d="M7 15a6.472 6.472 0 0 1 5 0 6.47 6.47 0 0 0 5 0"/></svg>
                                     <div class="tarif-nom">Consultation – Adulte</div>
                                     <div class="tarif-prix">500 FCFA</div>
                                     <div class="tarif-sub">≥ 15 ans</div>
                                 </div>
                                 <div class="tarif-card" data-prest="Consultation Générale – Enfant" data-prix="300" onclick="selectTarif(this)">
-                                    <span class="tarif-emoji">👶</span>
+                                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
                                     <div class="tarif-nom">Consultation – Enfant</div>
                                     <div class="tarif-prix">300 FCFA</div>
                                     <div class="tarif-sub">&lt; 15 ans</div>
                                 </div>
                                 <div class="tarif-card" data-prest="CPN – Consultation Prénatale" data-prix="700" onclick="selectTarif(this)">
-                                    <span class="tarif-emoji">🤱</span>
+                                    <svg class="icon" viewBox="0 0 24 24"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
                                     <div class="tarif-nom">CPN</div>
                                     <div class="tarif-prix">700 FCFA</div>
                                     <div class="tarif-sub">Consultation prénatale</div>
                                 </div>
                                 <div class="tarif-card" data-prest="Pansement" data-prix="200" onclick="selectTarif(this)">
-                                    <span class="tarif-emoji">🩹</span>
+                                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 12h.01"/><path d="m14.305 7.53.923-.382"/><path d="m15.228 4.852-.923-.383"/><path d="m16.852 3.228-.383-.923"/><path d="m16.852 8.772-.383.924"/><path d="m19.148 3.228.383-.923"/><path d="m19.53 9.696-.382-.924"/><path d="m20.772 4.852.924-.383"/><path d="m20.772 7.148.924.383"/><path d="M6 12a6 6 0 0 0 12 0 6 6 0 0 0-12 0"/><path d="m4 20 1.5-1.5"/><path d="m20 20-1.5-1.5"/><path d="M2 22h20"/></svg>
                                     <div class="tarif-nom">Pansement</div>
                                     <div class="tarif-prix">200 FCFA</div>
                                     <div class="tarif-sub">Soins locaux</div>
                                 </div>
                                 <div class="tarif-card full" data-prest="Accouchement" data-prix="5000" onclick="selectTarif(this)">
-                                    <span class="tarif-emoji">👶</span>
+                                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
                                     <div class="tarif-nom">Accouchement</div>
-                                    <div class="tarif-prix">5 000 FCFA</div>
                                     <div class="tarif-sub">Prise en charge complète</div>
+                                    <div class="tarif-prix">5 000 FCFA</div>
                                 </div>
                             </div>
 
                             <div class="recap-box" style="margin-top:16px;">
+                                <div class="recap-patient" id="r-patient-wrap" hidden>
+                                    <span id="r-patient-nom">—</span>
+                                    <span class="sub" id="r-patient-sub"></span>
+                                </div>
                                 <div class="recap-row">
                                     <span class="recap-lbl">Prestation</span>
                                     <span class="recap-val" id="r-prest">—</span>
@@ -175,31 +212,45 @@
                             </div>
 
                             <div class="monnaie-box">
-                                <div class="monnaie-title">💰 Calcul de la monnaie</div>
+                                <div class="monnaie-title">Calcul de la monnaie</div>
                                 <div class="monnaie-row">
                                     <div class="monnaie-field">
                                         <label>Argent remis par le patient (FCFA)</label>
-                                        <input type="number" id="t-recu" class="fc" placeholder="Ex: 1 000" oninput="calcMonnaieT()">
+                                        <input type="number" id="t-recu" class="fc" inputmode="numeric" placeholder="Ex: 1 000" oninput="calcMonnaieT()">
                                     </div>
                                     <div>
                                         <div class="monnaie-result" id="t-monnaie">—</div>
                                         <div class="monnaie-hint">Monnaie à rendre</div>
                                     </div>
                                 </div>
+                                <div class="montant-rapide" id="t-montant-rapide">
+                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(500)">500</button>
+                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(1000)">1 000</button>
+                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(2000)">2 000</button>
+                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(5000)">5 000</button>
+                                </div>
                             </div>
 
                             <button class="btn btn-green" id="btn-ticket" onclick="encaisserTicket()" disabled>
-                                🖨️ Encaisser &amp; Imprimer le Ticket
+                                <span class="btn-row">
+                                    <svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                                    <span id="btn-ticket-label">Encaisser</span>
+                                </span>
+                                <span class="btn-sub">et imprimer le ticket</span>
                             </button>
                         </div>
                     </div>
                 </div>
+            </div><!-- /section-block nouvelle -->
 
+            <div class="section-block" data-section="historique">
                 <div>
                     <div class="card">
                         <div class="card-head flex-between" style="border-left:4px solid var(--accent);">
                             <div class="card-head-left">
-                                <div class="card-head-icon" style="background:var(--accent-bg);">📋</div>
+                                <div class="card-head-icon" style="background:var(--accent-bg);color:var(--accent-dark);">
+                                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                                </div>
                                 <div><h3>Historique Tickets <span id="hist-tickets-count" style="font-size:0.75rem;color:var(--muted);font-weight:400;"></span></h3><p>Consultations encaissées</p></div>
                             </div>
                             <select id="filter-tickets" class="filter-select" onchange="renderHistTickets()">
@@ -211,6 +262,7 @@
                                 <option value="all" selected>Tout l'historique</option>
                             </select>
                         </div>
+                        <div class="hist-cards" id="hist-tickets-cards"></div>
                         <div class="hist-wrap">
                             <table class="hist-table">
                                 <thead>
@@ -237,17 +289,19 @@
 
     <div class="tab-pane" id="pane-med">
         <div class="tab-body">
-            <div class="two-col">
+            <div class="section-block active" data-section="nouvelle">
                 <div>
                     <div class="card">
                         <div class="card-head" style="border-left:4px solid var(--purple);">
-                            <div class="card-head-icon" style="background:var(--purple-bg);">💊</div>
+                            <div class="card-head-icon" style="background:var(--purple-bg);color:var(--purple);">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+                            </div>
                             <div><h3>Paiement des Médicaments</h3><p>Sélectionnez les médicaments de l'ordonnance</p></div>
                         </div>
                         <div class="card-body">
                             <div class="patient-lookup">
                                 <div class="fg">
-                                    <label>🔍 Nom du patient <span class="req">*</span> <span style="color:var(--muted);font-weight:400;text-transform:none;">(ticket du jour ou saisie libre)</span></label>
+                                    <label>Nom du patient <span class="req">*</span> <span style="color:var(--muted);font-weight:400;text-transform:none;">(ticket du jour ou saisie libre)</span></label>
                                     <input type="text" id="m-search-patient" class="fc" placeholder="Rechercher un ticket du jour ou saisir le nom…" oninput="filtrerPatients()">
                                 </div>
                                 <div id="patient-suggestions" class="patient-list"></div>
@@ -266,7 +320,7 @@
                             <div class="divider"></div>
 
                             <div class="fg">
-                                <label>🔍 Rechercher un médicament</label>
+                                <label>Rechercher un médicament</label>
                                 <input type="text" id="m-search" class="fc" placeholder="Nom du médicament…" oninput="filtrerMeds()">
                             </div>
 
@@ -276,7 +330,7 @@
 
                             <div class="divider"></div>
 
-                            <h4 class="panier-title">🛒 Médicaments sélectionnés</h4>
+                            <h4 class="panier-title">Médicaments sélectionnés</h4>
                             <div id="panier-liste" class="panier-vide">Aucun médicament sélectionné</div>
 
                             <div class="recap-box" style="margin-top:12px;">
@@ -291,31 +345,45 @@
                             </div>
 
                             <div class="monnaie-box">
-                                <div class="monnaie-title">💰 Calcul de la monnaie</div>
+                                <div class="monnaie-title">Calcul de la monnaie</div>
                                 <div class="monnaie-row">
                                     <div class="monnaie-field">
                                         <label>Somme remise par le patient (FCFA)</label>
-                                        <input type="number" id="m-recu" class="fc" placeholder="Ex: 5 000" oninput="calcMonnaieM()">
+                                        <input type="number" id="m-recu" class="fc" inputmode="numeric" placeholder="Ex: 5 000" oninput="calcMonnaieM()">
                                     </div>
                                     <div>
                                         <div class="monnaie-result" id="m-monnaie">—</div>
                                         <div class="monnaie-hint">Monnaie à rendre</div>
                                     </div>
                                 </div>
+                                <div class="montant-rapide">
+                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(1000)">1 000</button>
+                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(2000)">2 000</button>
+                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(5000)">5 000</button>
+                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(10000)">10 000</button>
+                                </div>
                             </div>
 
                             <button class="btn btn-purple" id="btn-med" onclick="encaisserMedicaments()" disabled>
-                                🖨️ Encaisser &amp; Générer le Ticket Ordonnance
+                                <span class="btn-row">
+                                    <svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                                    <span id="btn-med-label">Encaisser</span>
+                                </span>
+                                <span class="btn-sub">et générer le ticket ordonnance</span>
                             </button>
                         </div>
                     </div>
                 </div>
+            </div><!-- /section-block nouvelle -->
 
+            <div class="section-block" data-section="historique">
                 <div>
                     <div class="card">
                         <div class="card-head flex-between" style="border-left:4px solid var(--purple);">
                             <div class="card-head-left">
-                                <div class="card-head-icon" style="background:var(--purple-bg);">📋</div>
+                                <div class="card-head-icon" style="background:var(--purple-bg);color:var(--purple);">
+                                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                                </div>
                                 <div><h3>Historique Ventes Médicaments <span id="hist-meds-count" style="font-size:0.75rem;color:var(--muted);font-weight:400;"></span></h3><p>Ordonnances payées</p></div>
                             </div>
                             <select id="filter-meds" class="filter-select" onchange="renderHistMeds()">
@@ -327,6 +395,7 @@
                                 <option value="all" selected>Tout l'historique</option>
                             </select>
                         </div>
+                        <div class="hist-cards" id="hist-meds-cards"></div>
                         <div class="hist-wrap">
                             <table class="hist-table">
                                 <thead>
@@ -359,7 +428,7 @@
 <div class="modal-overlay" id="modal-overlay">
     <div class="modal-box">
         <div class="modal-head">
-            <div class="m-icon">↩️</div>
+            <div class="m-icon"><svg class="icon" viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></div>
             <div>
                 <h3 id="modal-title">Annuler l'enregistrement</h3>
                 <p id="modal-sub">Cette action sera tracée</p>
@@ -387,7 +456,9 @@
         </div>
         <div class="modal-foot">
             <button type="button" class="btn btn-blue" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);" onclick="closeModalAnnulation()">Fermer</button>
-            <button type="button" class="btn" style="background:var(--danger);color:white;" id="modal-confirm-btn" onclick="confirmerAnnulation()" disabled>✕ Confirmer l'annulation</button>
+            <button type="button" class="btn" style="background:var(--danger);color:white;" id="modal-confirm-btn" onclick="confirmerAnnulation()" disabled>
+                <span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg> <span id="modal-confirm-btn-label">Confirmer l'annulation</span></span>
+            </button>
         </div>
     </div>
 </div>
@@ -400,20 +471,22 @@
 <div class="modal-overlay" id="modal-modif-overlay">
     <div class="modal-box modal-box-lg">
         <div class="modal-head">
-            <div class="m-icon" style="background:var(--purple-bg);color:var(--purple);">✏️</div>
+            <div class="m-icon" style="background:var(--purple-bg);color:var(--purple);">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+            </div>
             <div>
                 <h3>Modifier les médicaments de la vente</h3>
                 <p id="modif-sub">—</p>
             </div>
         </div>
         <div class="modal-body">
-            <h4 class="panier-title">🛒 Médicaments de cette vente</h4>
+            <h4 class="panier-title">Médicaments de cette vente</h4>
             <div id="modif-panier-liste" class="panier-vide">—</div>
 
             <div class="divider"></div>
 
             <div class="fg">
-                <label>➕ Ajouter un médicament</label>
+                <label>Ajouter un médicament</label>
                 <input type="text" id="modif-med-search" class="fc" placeholder="Rechercher un médicament du stock…" oninput="filtrerModifMeds()">
             </div>
             <div id="modif-med-liste" class="med-grid" style="max-height:220px;"></div>
@@ -451,7 +524,9 @@
         </div>
         <div class="modal-foot">
             <button type="button" class="btn btn-blue" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);" onclick="closeModalModifMed()">Fermer</button>
-            <button type="button" class="btn btn-purple" id="modif-confirm-btn" onclick="confirmerModifMed()" disabled>💾 Enregistrer les modifications</button>
+            <button type="button" class="btn btn-purple" id="modif-confirm-btn" onclick="confirmerModifMed()" disabled>
+                <span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg> <span id="modif-confirm-btn-label">Enregistrer les modifications</span></span>
+            </button>
         </div>
     </div>
 </div>

@@ -73,13 +73,23 @@ function majBackdateUI() {
     const bar = document.getElementById('backdate-bar');
     const banner = document.getElementById('backdate-banner');
     const imprimerEl = document.getElementById('op-imprimer');
+    const summary = document.getElementById('backdate-summary-text');
     if (!bar || !banner) return;
-    const backdate = !isSameDay(getOpTimestamp(), Date.now());
+    const opTs = getOpTimestamp();
+    const backdate = !isSameDay(opTs, Date.now());
     bar.classList.toggle('active', backdate);
     banner.classList.toggle('visible', backdate);
     if (backdate) {
         document.getElementById('backdate-banner-date').textContent =
-            new Date(getOpTimestamp()).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+            new Date(opTs).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+    }
+    // Résumé compact : « Aujourd'hui, 07/09/2026 · 05:39 » (ou la date
+    // choisie en saisie a posteriori) — la barre reste repliée par défaut.
+    if (summary) {
+        const d = new Date(opTs);
+        const jourTxt = backdate ? d.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' }) : "Aujourd'hui";
+        const heureTxt = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        summary.textContent = `${jourTxt.charAt(0).toUpperCase()}${jourTxt.slice(1)} · ${heureTxt}`;
     }
     // Décoché par défaut en entrant en mode « a posteriori » (l'imprimé n'a
     // souvent plus lieu d'être plusieurs jours après) — mais on ne revient
@@ -89,11 +99,30 @@ function majBackdateUI() {
     backdateEtaitActif = backdate;
 }
 
+// ── Repli/dépli de la barre de date (repliée par défaut) ────────
+window.toggleBackdateExpand = function () {
+    const fields = document.getElementById('backdate-fields');
+    const btn = document.getElementById('backdate-edit-btn');
+    const open = fields.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    btn.textContent = open ? 'Fermer' : 'Modifier la date';
+};
+window.toggleBackdateInfo = function () {
+    document.getElementById('backdate-hint').classList.toggle('open');
+};
+
 // Script chargé en <script type="module"> : le DOM est déjà disponible
 // (comportement "defer" natif des modules), pas besoin d'attendre
 // DOMContentLoaded — cohérent avec le reste du fichier.
 reglerHeureActuelle();
 majBackdateUI();
+// Rafraîchit l'heure affichée chaque minute — mais seulement en saisie
+// normale : un mode « a posteriori » choisi par l'utilisateur ne doit
+// jamais être silencieusement remis à « maintenant ».
+setInterval(() => {
+    if (!backdateEtaitActif) reglerHeureActuelle();
+    majBackdateUI();
+}, 60000);
 document.getElementById('op-date')?.addEventListener('change', () => {
     if (validerOpDate()) majBackdateUI();
     if (document.getElementById('m-search-patient')?.value.trim()) window.filtrerPatients();
@@ -159,6 +188,33 @@ function toast(msg, type='ok') {
     el.className='toast show '+type;
     setTimeout(()=>el.classList.remove('show'), 4000);
 }
+
+// ── Bibliothèque d'icônes SVG partagée (trait 2px, cohérente avec le
+//    reste de l'application) ──────────────────────────────────────
+const ICON_PRINTER = '<svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>';
+const ICON_CHECK   = '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>';
+const ICON_TRASH   = '<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
+const ICON_PENCIL  = '<svg class="icon" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
+const ICON_UNDO    = '<svg class="icon" viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>';
+const ICON_DOTS    = '<svg class="icon dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
+const ICON_CLOCK    = '<svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+const ICON_BOX     = '<svg class="icon" viewBox="0 0 24 24"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>';
+
+// ── Menus déroulants génériques (kebab) ──────────────────────────
+window.toggleDropdown = function (id, btn) {
+    const menu = document.getElementById(id);
+    if (!menu) return;
+    const wasOpen = menu.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) { menu.classList.add('open'); btn?.classList.add('open'); }
+};
+window.closeAllDropdowns = function () {
+    document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.menu-btn.open, .btn-kebab.open').forEach(b => b.classList.remove('open'));
+};
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.menu-wrap')) closeAllDropdowns();
+});
 
 // ── GABARITS HTML DES REÇUS (repli navigateur) ───
 // Les logos et le formatage du numéro d'attente proviennent de
@@ -282,23 +338,28 @@ function getPrintMethod() {
     return printer.isRawBTAvailable() ? 'rawbt' : 'browser';
 }
 
+// Met à jour à la fois l'entrée du menu ⋮ (détail) et la ligne compacte
+// du header (statut résumé : connectée / non connectée).
 function updatePrinterBadge() {
     const b = document.getElementById('printer-badge');
     if (!b) return;
     const method = getPrintMethod();
-    if (method === 'usb' && printer.isPrinterConnected()) {
-        b.textContent = '🖨️ USB connectée'; b.className = 'printer-badge ok';
-    } else if (method === 'usb') {
-        b.textContent = '🖨️ Connecter USB'; b.className = 'printer-badge off';
-    } else if (method === 'ble' && printer.isBLEConnected()) {
-        b.textContent = '🖨️ Bluetooth connectée'; b.className = 'printer-badge ok';
-    } else if (method === 'ble') {
-        b.textContent = '🖨️ Appairer Bluetooth'; b.className = 'printer-badge off';
-    } else if (method === 'rawbt') {
-        b.textContent = '📲 Impression via RawBT'; b.className = 'printer-badge ok';
-    } else {
-        b.textContent = '🖨️ Impression navigateur'; b.className = 'printer-badge off';
-    }
+    let label, ok;
+    if (method === 'usb' && printer.isPrinterConnected())      { label = 'USB connectée';          ok = true;  }
+    else if (method === 'usb')                                  { label = 'Connecter USB';           ok = false; }
+    else if (method === 'ble' && printer.isBLEConnected())      { label = 'Bluetooth connectée';     ok = true;  }
+    else if (method === 'ble')                                  { label = 'Appairer Bluetooth';      ok = false; }
+    else if (method === 'rawbt')                                { label = 'Impression via RawBT';    ok = true;  }
+    else                                                          { label = 'Impression navigateur';   ok = false; }
+
+    b.innerHTML = ICON_PRINTER + '<span>' + label + '</span>';
+    b.className = 'dropdown-item printer-badge' + (ok ? ' ok' : ' off');
+
+    const line = document.getElementById('printer-line');
+    const lineText = document.getElementById('printer-line-text');
+    if (line) line.classList.toggle('ok', ok);
+    if (lineText) lineText.textContent = ok ? 'Imprimante connectée' : 'Imprimante non connectée';
+
     const sel = document.getElementById('print-method');
     if (sel) sel.value = method;
 }
@@ -409,30 +470,22 @@ async function prochainNumeroAttente(refTs = Date.now()) {
 // ── STATS GLOBALES (TICKETS + MÉDICAMENTS) ───────
 // Les tickets/ventes annulés (retour pharmacie, erreur de caisse…) sont
 // exclus de toutes les statistiques pour ne pas fausser le bilan.
+// Le dashboard de caisse ne montre plus que l'essentiel du jour ; le détail
+// Semaine/Mois/Trimestre/Année vit dans Planification & Rapports.
 function updateStats() {
     const tickets = allTickets.filter(x=>!x.annule);
     const ventes  = allMedVentes.filter(x=>!x.annule);
 
-    const tDay = tickets.filter(x=>isToday(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const tWeek = tickets.filter(x=>isThisWeek(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const tMonth = tickets.filter(x=>isMonth(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const tQuarter = tickets.filter(x=>isThisQuarter(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const tYear = tickets.filter(x=>isThisYear(x._ts)).reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
+    const ticketsToday = tickets.filter(x=>isToday(x._ts));
+    const ventesToday  = ventes.filter(x=>isToday(x._ts));
+    const tDay = ticketsToday.reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
+    const mDay = ventesToday.reduce((s,x)=>s+(parseFloat(x.total)||0),0);
 
-    const mDay = ventes.filter(x=>isToday(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
-    const mWeek = ventes.filter(x=>isThisWeek(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
-    const mMonth = ventes.filter(x=>isMonth(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
-    const mQuarter = ventes.filter(x=>isThisQuarter(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
-    const mYear = ventes.filter(x=>isThisYear(x._ts)).reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    if(document.getElementById('s-g-day'))     document.getElementById('s-g-day').textContent = fmt(tDay + mDay) + ' FCFA';
+    if(document.getElementById('s-g-tickets')) document.getElementById('s-g-tickets').textContent = ticketsToday.length + ventesToday.length;
 
-    if(document.getElementById('s-g-day')) document.getElementById('s-g-day').textContent = fmt(tDay + mDay) + ' F';
-    if(document.getElementById('s-g-week')) document.getElementById('s-g-week').textContent = fmt(tWeek + mWeek) + ' F';
-    if(document.getElementById('s-g-month')) document.getElementById('s-g-month').textContent = fmt(tMonth + mMonth) + ' F';
-    if(document.getElementById('s-g-quarter')) document.getElementById('s-g-quarter').textContent = fmt(tQuarter + mQuarter) + ' F';
-    if(document.getElementById('s-g-year')) document.getElementById('s-g-year').textContent = fmt(tYear + mYear) + ' F';
-
-    if(document.getElementById('cnt-ticket')) document.getElementById('cnt-ticket').textContent = tickets.filter(x=>isToday(x._ts)).length;
-    if(document.getElementById('cnt-med')) document.getElementById('cnt-med').textContent = ventes.filter(x=>isToday(x._ts)).length;
+    if(document.getElementById('cnt-ticket')) document.getElementById('cnt-ticket').textContent = ticketsToday.length;
+    if(document.getElementById('cnt-med')) document.getElementById('cnt-med').textContent = ventesToday.length;
 }
 
 // ── FIREBASE LISTENERS ───────────────────────────
@@ -468,9 +521,41 @@ window.switchTab = function(t) {
     });
 };
 
+// ── SECTIONS : Nouvelle opération / Historique ────
+// Séparation architecturale : le caissier ne charge/parcourt pas
+// l'historique complet sous son formulaire de saisie en cours.
+window.switchSection = function(s) {
+    document.querySelectorAll('.section-block').forEach(el => {
+        el.classList.toggle('active', el.dataset.section === s);
+    });
+    document.getElementById('sbtn-nouvelle').classList.toggle('active', s === 'nouvelle');
+    document.getElementById('sbtn-historique').classList.toggle('active', s === 'historique');
+};
+
 // ═══════════════════════════════════════════════
 //  ONGLET 1 — TICKET DE CONSULTATION
 // ═══════════════════════════════════════════════
+// Résumé patient au-dessus de la prestation : « Aminata Diallo · 35 ans »,
+// visible dès que le formulaire est renseigné, sans attendre l'encaissement.
+function updateRecapPatientT() {
+    const prenom = document.getElementById('t-prenom').value.trim();
+    const nom    = document.getElementById('t-nom').value.trim();
+    const age    = document.getElementById('t-age').value.trim();
+    const wrap = document.getElementById('r-patient-wrap');
+    if (!wrap) return;
+    if (!prenom && !nom && !age) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    document.getElementById('r-patient-nom').textContent = [prenom, nom].filter(Boolean).join(' ') || '—';
+    document.getElementById('r-patient-sub').textContent = age ? `${age} ans` : '';
+}
+
+// Le libellé du bouton reflète le montant à encaisser, dès qu'une
+// prestation est sélectionnée — l'action devient concrète d'un coup d'œil.
+function updateBtnTicketLabel() {
+    const el = document.getElementById('btn-ticket-label');
+    if (el) el.textContent = prixActuel > 0 ? `Encaisser ${fmt(prixActuel)} FCFA` : 'Encaisser';
+}
+
 window.selectTarif = function(card) {
     document.querySelectorAll('.tarif-card').forEach(c=>c.classList.remove('sel'));
     card.classList.add('sel');
@@ -481,6 +566,7 @@ window.selectTarif = function(card) {
     document.getElementById('t-recu').value = '';
     document.getElementById('t-monnaie').textContent = '—';
     document.getElementById('t-monnaie').className = 'monnaie-result';
+    updateBtnTicketLabel();
     checkTicketBtn();
 };
 
@@ -491,6 +577,13 @@ window.calcMonnaieT = function() {
     el.textContent = recu>0 ? fmt(m)+' FCFA' : '—';
     el.className   = 'monnaie-result'+(m<0?' neg':'');
     checkTicketBtn();
+};
+
+// Raccourcis de billets (500 / 1000 / 2000 / 5000 FCFA) : évite une saisie
+// manuelle pour les montants remis les plus fréquents.
+window.setMontantRecuT = function(val) {
+    document.getElementById('t-recu').value = val;
+    window.calcMonnaieT();
 };
 
 function validateAge(val) {
@@ -519,6 +612,7 @@ function checkTicketBtn() {
         document.getElementById('t-monnaie').className = 'monnaie-result neg';
     }
 
+    updateRecapPatientT();
     document.getElementById('btn-ticket').disabled =
         !(prenom && nom && age && validateAge(age) && prixActuel > 0 && montantOk);
 }
@@ -550,7 +644,8 @@ window.encaisserTicket = async function() {
     if (!validerOpDate()) return;
 
     const btn=document.getElementById('btn-ticket');
-    btn.disabled=true; btn.innerHTML='⏳ Enregistrement…';
+    const btnLabel=document.getElementById('btn-ticket-label');
+    btn.disabled=true; btnLabel.textContent='Enregistrement…';
 
     // opTs = date/heure choisie dans la barre « saisie a posteriori » (ou
     // maintenant, en saisie normale). Tout le ticket (n° d'attente, reçu,
@@ -613,19 +708,22 @@ window.encaisserTicket = async function() {
     } catch(e) {
         console.error(e); toast('Erreur lors de l\'enregistrement.','err');
     } finally {
-        btn.disabled=false; btn.innerHTML='🖨️ Encaisser &amp; Imprimer le Ticket';
+        btn.disabled=false; updateBtnTicketLabel();
         checkTicketBtn();
     }
 };
 
 window.renderHistTickets = function() {
     const tbody=document.getElementById('hist-tickets');
+    const cards=document.getElementById('hist-tickets-cards');
     const filter=document.getElementById('filter-tickets').value;
     let list = filterByPeriod(allTickets, filter);
     const countEl = document.getElementById('hist-tickets-count');
     if (countEl) countEl.textContent = list.length ? `(${list.length})` : '';
     if (!list.length) {
-        tbody.innerHTML=`<tr><td colspan="6" class="hist-empty">Aucun ticket pour cette période.</td></tr>`;
+        const empty = `Aucun ticket pour cette période.`;
+        tbody.innerHTML=`<tr><td colspan="7" class="hist-empty">${empty}</td></tr>`;
+        if (cards) cards.innerHTML = `<div class="hist-empty">${ICON_BOX}<p>${empty}</p></div>`;
         return;
     }
     tbody.innerHTML = list.map(x=>`
@@ -634,14 +732,40 @@ window.renderHistTickets = function() {
             <td><strong>${esc(x.name||'—')}</strong></td>
             <td>${esc(x.age||'—')} ans</td>
             <td><span class="tbadge">${esc(x.choix||'—')}</span></td>
-            <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.prix||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">✕ Annulé</span>' : ''}</td>
-            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? '<span class="tag-differe">🕒 a posteriori</span>' : ''}</td>
+            <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.prix||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">Annulé</span>' : ''}</td>
+            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? `<span class="tag-differe">${ICON_CLOCK}a posteriori</span>` : ''}</td>
             <td><div class="hist-actions">
-                <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">🖨️ Réimprimer</button>
-                ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">✕ Annuler</button>` : ''}
+                <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">${ICON_PRINTER}Réimprimer</button>
+                ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">Annuler</button>` : ''}
             </div></td>
         </tr>
     `).join('');
+
+    if (cards) cards.innerHTML = list.map(x => {
+        const menuId = 'ht-menu-' + x._key;
+        return `<div class="hist-card${x.annule ? ' cancelled' : ''}">
+            <div class="hist-card-head">
+                <span class="hist-card-ref">${esc(x.num_attente||'—')}</span>
+                <span class="hist-card-amount${x.annule ? ' struck' : ''}">${esc(fmt(x.prix||0))} FCFA</span>
+            </div>
+            <div class="hist-card-patient">${esc(x.name||'—')}</div>
+            <div class="hist-card-meta">${esc(x.age||'—')} ans · ${esc(x.choix||'—')}</div>
+            <div class="hist-card-date">
+                ${esc(dateTimeStr(x._ts))}
+                ${x.annule ? '<span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">Annulé</span>' : ''}
+                ${x.saisie_differee ? `<span class="tag-differe">${ICON_CLOCK}a posteriori</span>` : ''}
+            </div>
+            <div class="hist-card-foot">
+                <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">${ICON_PRINTER}Réimprimer</button>
+                ${!x.annule ? `<div class="menu-wrap">
+                    <button type="button" class="btn-kebab" onclick="toggleDropdown('${menuId}', this)" aria-label="Plus d'actions">${ICON_DOTS}</button>
+                    <div class="dropdown-menu" id="${menuId}" style="right:0;">
+                        <button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();ouvrirModalTicket('${x._key}')">${ICON_UNDO}Annuler le ticket</button>
+                    </div>
+                </div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
 };
 
 window.reimprimerTicket = async function(key) {
@@ -756,17 +880,21 @@ function renderMedGrid(q) {
         }
 
         const hasPrix = (m.prix_unitaire !== undefined && m.prix_unitaire !== null && m.prix_unitaire !== '');
-        const prixHtml = hasPrix
-            ? `<div class="med-prix">${esc(fmt(m.prix_unitaire))} FCFA${inPanier?' ✓':''}</div>`
-            : (inPanier ? `<div class="med-prix">✓</div>` : '');
+        const prixHtml = hasPrix ? `<div class="med-prix">${esc(fmt(m.prix_unitaire))} FCFA</div>` : '';
         const catHtml = m.categorie ? ` · <span style="font-style:italic;">${esc(m.categorie)}</span>` : '';
-        
+
         const isBlocked = inPanier || isOutOfStock;
-        
+
+        // Action à droite : « + Ajouter », déjà ajouté, ou une référence en
+        // rupture n'est jamais sélectionnable.
+        let actionHtml;
+        if (isOutOfStock) actionHtml = `<button type="button" class="med-add-btn disabled" disabled>Indisponible</button>`;
+        else if (inPanier) actionHtml = `<span class="med-added-tag">${ICON_CHECK}Ajouté</span>`;
+        else actionHtml = `<button type="button" class="med-add-btn" onclick="event.stopPropagation();ajouterMed('${m._key}')">+ Ajouter</button>`;
+
         return `
-            <div class="med-item ${inPanier ? 'added' : ''}"
+            <div class="med-item ${inPanier ? 'added' : ''}${isOutOfStock ? ' out' : ''}"
                  tabindex="${isBlocked ? '-1' : '0'}" role="button"
-                 style="${isOutOfStock ? 'opacity: 0.5; cursor: not-allowed; border-color: var(--danger);' : ''}"
                  onclick="${isBlocked ? '' : `ajouterMed('${m._key}')`}"
                  onkeydown="if(!${isBlocked}&&(event.key==='Enter'||event.key===' ')){ajouterMed('${m._key}')}">
                 <div class="med-item-left">
@@ -778,7 +906,10 @@ function renderMedGrid(q) {
                         ${perimStr ? ' · <span class="'+perimClass+'">'+perimStr+'</span>' : ''}
                     </div>
                 </div>
-                ${prixHtml}
+                <div class="med-item-right">
+                    ${prixHtml}
+                    ${actionHtml}
+                </div>
             </div>`;
     }).filter(Boolean);
     
@@ -829,31 +960,39 @@ window.retirerMed = function(key) {
     checkMedBtn();
 };
 
+// Le libellé du bouton reflète le total du panier, comme côté ticket.
+function updateBtnMedLabel() {
+    const total = panier.reduce((s,p) => s + (p.prix * p.qte), 0);
+    const el = document.getElementById('btn-med-label');
+    if (el) el.textContent = total > 0 ? `Encaisser ${fmt(total)} FCFA` : 'Encaisser';
+}
+
 function renderPanier() {
     const container = document.getElementById('panier-liste');
     const total = panier.reduce((s,p) => s + (p.prix * p.qte), 0);
     document.getElementById('panier-count').textContent = panier.length;
     document.getElementById('panier-total').textContent = fmt(total) + ' FCFA';
-    
+    updateBtnMedLabel();
+
     if (!panier.length) {
         container.outerHTML = '<div id="panier-liste" class="panier-vide">Aucun médicament sélectionné</div>';
-        document.getElementById('m-recu').value = ''; 
+        document.getElementById('m-recu').value = '';
         calcMonnaieM();
         return;
     }
-    
+
     container.outerHTML = `<div id="panier-liste" class="panier-list">${panier.map(p => `
         <div class="panier-item">
             <div style="flex:1;">
-                <div class="panier-item-nom">💊 ${esc(p.nom)}</div>
-                <div style="font-size:0.7rem;color:var(--muted);">${esc(fmt(p.prix))} F / unité</div>
+                <div class="panier-item-nom">${esc(p.nom)}</div>
+                <div style="font-size:0.7rem;color:var(--muted);">${esc(fmt(p.prix))} FCFA / unité</div>
             </div>
             <div class="panier-qte-ctrl">
                 <button class="panier-btn" onclick="modifierQte('${esc(p.stock_key)}', -1)">-</button>
                 <div class="panier-qte-val">${p.qte}</div>
                 <button class="panier-btn" onclick="modifierQte('${esc(p.stock_key)}', 1)">+</button>
             </div>
-            <div class="panier-item-prix" style="width:70px;text-align:right;">${esc(fmt(p.prix * p.qte))} F</div>
+            <div class="panier-item-prix" style="width:82px;text-align:right;white-space:nowrap;">${esc(fmt(p.prix * p.qte))} FCFA</div>
             <button class="panier-del" style="margin-left:10px;" onclick="retirerMed('${esc(p.stock_key)}')">✕</button>
         </div>`).join('')}</div>`;
     calcMonnaieM();
@@ -866,6 +1005,12 @@ window.calcMonnaieM = function() {
     const el = document.getElementById('m-monnaie');
     el.textContent = recu > 0 ? fmt(m) + ' FCFA' : '—';
     el.className = 'monnaie-result' + (m < 0 ? ' neg' : '');
+};
+
+// Raccourcis de billets pour le règlement des médicaments.
+window.setMontantRecuM = function(val) {
+    document.getElementById('m-recu').value = val;
+    window.calcMonnaieM();
 };
 
 function checkMedBtn() {
@@ -882,7 +1027,7 @@ window.encaisserMedicaments = async function() {
         return;
     }
     if (!loadedS) {
-        toast("⏳ Chargement du stock en cours — veuillez patienter avant d'encaisser.", 'err');
+        toast("Chargement du stock en cours — veuillez patienter avant d'encaisser.", 'err');
         return;
     }
     const total = panier.reduce((s,p) => s + (p.prix * p.qte), 0);
@@ -896,7 +1041,8 @@ window.encaisserMedicaments = async function() {
     const patientAtt = patientSelectionne ? (patientSelectionne.num_attente||'—') : '—';
 
     const btn=document.getElementById('btn-med');
-    btn.disabled=true; btn.innerHTML='⏳ Enregistrement…';
+    const btnLabel=document.getElementById('btn-med-label');
+    btn.disabled=true; btnLabel.textContent='Enregistrement…';
 
     // Voir encaisserTicket() : opTs suit la barre « saisie a posteriori ».
     const opTs = getOpTimestamp();
@@ -966,35 +1112,65 @@ window.encaisserMedicaments = async function() {
     } catch(e) {
         console.error(e); toast('Erreur lors de l\'enregistrement.','err');
     } finally {
-        btn.disabled=false; btn.innerHTML='🖨️ Encaisser &amp; Générer le Ticket Ordonnance';
+        btn.disabled=false; updateBtnMedLabel();
         checkMedBtn();
     }
 };
 
 window.renderHistMeds = function() {
     const tbody=document.getElementById('hist-meds');
+    const cards=document.getElementById('hist-meds-cards');
     const filter=document.getElementById('filter-meds').value;
     let list=filterByPeriod(allMedVentes,filter);
     const countEl = document.getElementById('hist-meds-count');
     if (countEl) countEl.textContent = list.length ? `(${list.length})` : '';
     if (!list.length) {
-        tbody.innerHTML=`<tr><td colspan="5" class="hist-empty">Aucune vente pour cette période.</td></tr>`;
+        const empty = 'Aucune vente pour cette période.';
+        tbody.innerHTML=`<tr><td colspan="6" class="hist-empty">${empty}</td></tr>`;
+        if (cards) cards.innerHTML = `<div class="hist-empty">${ICON_BOX}<p>${empty}</p></div>`;
         return;
     }
     tbody.innerHTML=list.map(x=>`
         <tr${x.annule ? ' style="opacity:.55;"' : ''}>
             <td><span class="tbadge ordo">MED-${esc(x._key.substring(0,6).toUpperCase())}</span></td>
             <td><strong>${esc(x.patient_nom||'—')}</strong></td>
-            <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.total||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">↩ Retourné</span>' : ''}</td>
+            <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.total||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">Retourné</span>' : ''}</td>
             <td>${esc(String((x.medicaments||[]).length))}</td>
-            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? '<span class="tag-differe">🕒 a posteriori</span>' : ''}</td>
+            <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? `<span class="tag-differe">${ICON_CLOCK}a posteriori</span>` : ''}</td>
             <td><div class="hist-actions">
-                <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">🖨️ Réimprimer</button>
-                ${!x.annule ? `<button type="button" class="btn-modifier" onclick="ouvrirModalModifMed('${x._key}')">✏️ Modifier</button>` : ''}
-                ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">↩ Annuler &amp; Retourner</button>` : ''}
+                <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">${ICON_PRINTER}Réimprimer</button>
+                ${!x.annule ? `<button type="button" class="btn-modifier" onclick="ouvrirModalModifMed('${x._key}')">${ICON_PENCIL}Modifier</button>` : ''}
+                ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">${ICON_UNDO}Annuler</button>` : ''}
             </div></td>
         </tr>
     `).join('');
+
+    if (cards) cards.innerHTML = list.map(x => {
+        const menuId = 'hm-menu-' + x._key;
+        return `<div class="hist-card${x.annule ? ' cancelled' : ''}">
+            <div class="hist-card-head">
+                <span class="hist-card-ref">MED-${esc(x._key.substring(0,6).toUpperCase())}</span>
+                <span class="hist-card-amount${x.annule ? ' struck' : ''}">${esc(fmt(x.total||0))} FCFA</span>
+            </div>
+            <div class="hist-card-patient">${esc(x.patient_nom||'—')}</div>
+            <div class="hist-card-meta">${esc(String((x.medicaments||[]).length))} médicament${(x.medicaments||[]).length > 1 ? 's' : ''}</div>
+            <div class="hist-card-date">
+                ${esc(dateTimeStr(x._ts))}
+                ${x.annule ? '<span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">Retourné</span>' : ''}
+                ${x.saisie_differee ? `<span class="tag-differe">${ICON_CLOCK}a posteriori</span>` : ''}
+            </div>
+            <div class="hist-card-foot">
+                <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">${ICON_PRINTER}Réimprimer</button>
+                ${!x.annule ? `<div class="menu-wrap">
+                    <button type="button" class="btn-kebab" onclick="toggleDropdown('${menuId}', this)" aria-label="Plus d'actions">${ICON_DOTS}</button>
+                    <div class="dropdown-menu" id="${menuId}" style="right:0;">
+                        <button type="button" class="dropdown-item" onclick="closeAllDropdowns();ouvrirModalModifMed('${x._key}')">${ICON_PENCIL}Modifier la vente</button>
+                        <button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();ouvrirModalMed('${x._key}')">${ICON_UNDO}Annuler &amp; retourner</button>
+                    </div>
+                </div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
 };
 
 window.reimprimerMed = async function(key) {
@@ -1145,7 +1321,7 @@ window.confirmerAnnulation = async function() {
     const motif = document.getElementById('m-motif').value;
     const obs = document.getElementById('m-obs').value.trim();
     const btn = document.getElementById('modal-confirm-btn');
-    btn.disabled = true; btn.innerHTML = '⏳ Traitement…';
+    btn.disabled = true; document.getElementById('modal-confirm-btn-label').textContent = 'Traitement…';
 
     const caissierEmail = auth.currentUser?.email || '';
     const annuleFields = {
@@ -1186,7 +1362,7 @@ window.confirmerAnnulation = async function() {
         toast("Erreur lors de l'annulation : " + e.message, 'err');
     }
 
-    btn.innerHTML = '✕ Confirmer l\'annulation';
+    document.getElementById('modal-confirm-btn-label').textContent = "Confirmer l'annulation";
     checkAnnulationConfirm(); // ré-évalue l'état du bouton (modale restée ouverte après une erreur)
 };
 
@@ -1276,15 +1452,15 @@ function renderModifPanier() {
         container.outerHTML = `<div id="modif-panier-liste" class="panier-list">${modifPanier.map((p, i) => `
             <div class="panier-item">
                 <div style="flex:1;">
-                    <div class="panier-item-nom">💊 ${esc(p.nom)}</div>
-                    <div style="font-size:0.7rem;color:var(--muted);">${esc(fmt(p.prix))} F / unité</div>
+                    <div class="panier-item-nom">${esc(p.nom)}</div>
+                    <div style="font-size:0.7rem;color:var(--muted);">${esc(fmt(p.prix))} FCFA / unité</div>
                 </div>
                 <div class="panier-qte-ctrl">
                     <button class="panier-btn" onclick="modifierQteModif(${i}, -1)">-</button>
                     <div class="panier-qte-val">${p.qte}</div>
                     <button class="panier-btn" onclick="modifierQteModif(${i}, 1)">+</button>
                 </div>
-                <div class="panier-item-prix" style="width:70px;text-align:right;">${esc(fmt(p.prix * p.qte))} F</div>
+                <div class="panier-item-prix" style="width:82px;text-align:right;white-space:nowrap;">${esc(fmt(p.prix * p.qte))} FCFA</div>
                 <button class="panier-del" style="margin-left:10px;" onclick="retirerMedModif(${i})">✕</button>
             </div>`).join('')}</div>`;
     }
@@ -1432,7 +1608,7 @@ window.confirmerModifMed = async function() {
         return;
     }
 
-    btn.disabled = true; btn.innerHTML = '⏳ Enregistrement…';
+    btn.disabled = true; document.getElementById('modif-confirm-btn-label').textContent = 'Enregistrement…';
 
     try {
         const stockErrors = [];
@@ -1471,7 +1647,7 @@ window.confirmerModifMed = async function() {
         console.error(e);
         toast('Erreur lors de la modification : ' + e.message, 'err');
     } finally {
-        btn.innerHTML = '💾 Enregistrer les modifications';
+        document.getElementById('modif-confirm-btn-label').textContent = 'Enregistrer les modifications';
         checkModifConfirm(); // ré-évalue l'état du bouton (modale restée ouverte après une erreur)
     }
 };
