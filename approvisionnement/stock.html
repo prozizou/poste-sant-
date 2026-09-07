@@ -20,12 +20,15 @@
            VARIABLES
         ══════════════════════════════════════════ */
         :root {
+            /* Couleur primaire — bleu marine (surfaces larges : header, actions principales) */
             --primary:       #1a3a5c;
-            --primary-light: #274e74;
-            --accent:        #0ea472;
+            --primary-light: #2b5580;
+            --primary-bg:    #eaf0f6;
+            /* Couleur secondaire — violet, réservé aux petits accents (icônes, pastilles) */
             --purple:        #7b5ea7;
             --purple-light:  #9b7ec8;
             --purple-bg:     #f0ebf8;
+            --accent:        #0ea472;
             --danger:        #c0392b;
             --danger-bg:     #fdf1f0;
             --warning:       #d68910;
@@ -34,39 +37,48 @@
             --green-bg:      #e6f7f1;
             --req-bg:        #fff8f7;
             --req-border:    #f5b7b1;
-            --bg:            #f0f4f8;
+            --bg:            #f4f6f8;
             --card-bg:       #ffffff;
             --text:          #1e2a38;
             --muted:         #6b7a8d;
             --border:        #d8e0e8;
         }
+        .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -.15em; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .icon.fill { fill: currentColor; stroke: none; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
         body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: clip; }
 
         /* ── TOPBAR ── */
         .topbar {
-            background: linear-gradient(135deg, var(--purple), var(--purple-light));
-            color: white; padding: 0 28px; height: 64px;
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 2px 12px rgba(123,94,167,.3);
+            background: var(--primary);
+            color: white; padding: 0 24px; height: 56px;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            box-shadow: 0 2px 10px rgba(26,58,92,.25);
             position: sticky; top: 0; z-index: 100;
         }
-        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .topbar-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .topbar-title .icon { width: 1.15em; height: 1.15em; flex-shrink: 0; }
         .back-btn {
-            background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.3);
-            color: white; padding: 7px 14px; border-radius: 8px;
+            background: rgba(255,255,255,.14); border: 1.5px solid rgba(255,255,255,.28);
+            color: white; padding: 7px 12px; border-radius: 8px;
             font-family: inherit; font-size: .82rem; font-weight: 600;
-            cursor: pointer; text-decoration: none;
+            cursor: pointer; text-decoration: none; flex-shrink: 0;
             display: inline-flex; align-items: center; gap: 6px; transition: background .2s;
         }
-        .back-btn:hover { background: rgba(255,255,255,.25); }
-        .topbar h1 { font-size: 1.05rem; font-weight: 700; }
-        .topbar p  { font-size: .72rem; opacity: .8; }
+        .back-btn:hover { background: rgba(255,255,255,.24); }
+        .back-btn .label-full { display: inline; }
+        .topbar h1 { font-size: 1.02rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .topbar p  { font-size: .72rem; opacity: .78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .topbar p .subtitle-short { display: none; }
         .conn-badge {
-            background: rgba(14,164,114,.25); border: 1px solid rgba(14,164,114,.4);
-            color: #7dffd0; font-size: .75rem; font-weight: 700; padding: 5px 12px; border-radius: 20px;
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: .75rem; font-weight: 700; color: rgba(255,255,255,.85); flex-shrink: 0;
         }
+        .conn-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #6b7a8d; flex-shrink: 0; transition: background .2s; }
+        .conn-badge.online .dot { background: #4ade9a; box-shadow: 0 0 0 3px rgba(74,222,154,.25); }
+        .conn-badge .label { display: none; }
 
         .page { padding: 24px; max-width: 1400px; margin: 0 auto; }
 
@@ -77,22 +89,33 @@
             margin-bottom: 24px; width: fit-content;
         }
         .tab-btn {
-            padding: 9px 20px; border: none; border-radius: 9px;
+            padding: 9px 18px; border: none; border-radius: 9px;
             font-family: inherit; font-size: .85rem; font-weight: 700;
             cursor: pointer; transition: all .2s; background: transparent; color: var(--muted);
+            display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
         }
-        .tab-btn.active { background: var(--purple); color: white; box-shadow: 0 2px 8px rgba(123,94,167,.3); }
+        .tab-btn .label-short { display: none; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(26,58,92,.25); }
 
         /* ── STATS ── */
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; margin-bottom: 24px; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin-bottom: 20px; }
         .stat-card {
-            background: var(--card-bg); border-radius: 12px; padding: 16px 18px;
+            background: var(--card-bg); border-radius: 12px; padding: 14px 16px;
             border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,.03);
         }
-        .stat-label { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
-        .stat-val   { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+        .stat-label { font-size: .7rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+        .stat-val   { font-size: 1.3rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
         .stat-val.red    { color: var(--danger); }
         .stat-val.orange { color: var(--warning); }
+        .stat-sub   { font-size: .72rem; color: var(--muted); margin-top: 5px; }
+        .stat-link  {
+            display: inline-flex; align-items: center; gap: 3px; margin-top: 8px;
+            font-size: .72rem; font-weight: 700; color: var(--primary);
+            background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+        }
+        .stat-link .icon { width: .9em; height: .9em; }
+        .stat-link:hover { text-decoration: underline; }
+        .stat-card.stat-primary .stat-val { color: var(--primary); }
 
         /* ── PANEL ── */
         .panel {
@@ -103,15 +126,45 @@
             padding: 18px 22px; border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
         }
-        .panel-head-left { display: flex; align-items: center; gap: 10px; }
+        .panel-head-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .panel-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .panel-icon {
-            width: 36px; height: 36px; border-radius: 9px;
+            width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1rem; background: var(--purple-bg);
+            color: var(--purple); background: var(--purple-bg);
         }
+        .panel-icon .icon { width: 1.05em; height: 1.05em; }
         .panel-head h2 { font-size: .95rem; font-weight: 700; color: var(--primary); }
         .panel-head p  { font-size: .76rem; color: var(--muted); margin-top: 1px; }
         .panel-body { padding: 22px; }
+
+        /* ── PANEL MENU (kebab : actions secondaires, ex. Exporter PDF) ── */
+        .menu-btn {
+            width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg); border: 1.5px solid var(--border); color: var(--muted);
+            cursor: pointer; transition: all .2s; position: relative;
+        }
+        .menu-btn:hover, .menu-btn.open { border-color: var(--primary); color: var(--primary); }
+        .menu-btn .icon { width: 1.1em; height: 1.1em; }
+        .icon.dots { fill: currentColor; stroke: none; }
+        .menu-wrap { position: relative; display: inline-flex; }
+        .dropdown-menu {
+            position: absolute; top: calc(100% + 6px); right: 0; min-width: 190px;
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(20,30,45,.16); padding: 6px; z-index: 60; display: none;
+        }
+        .dropdown-menu.open { display: block; }
+        .dropdown-item {
+            display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+            padding: 9px 10px; border-radius: 7px; border: none; background: none;
+            font-family: inherit; font-size: .84rem; font-weight: 600; color: var(--text);
+            cursor: pointer; transition: background .15s;
+        }
+        .dropdown-item .icon { width: 1em; height: 1em; flex-shrink: 0; color: var(--muted); }
+        .dropdown-item:hover { background: var(--bg); }
+        .dropdown-item.danger { color: var(--danger); }
+        .dropdown-item.danger .icon { color: var(--danger); }
 
         /* ── SECTION DIVIDER ── */
         .sect-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0 14px; }
@@ -165,42 +218,70 @@
 
         /* ── ALERTS ── */
         .alert { padding: 10px 14px; border-radius: 8px; font-size: .85rem; margin-bottom: 16px; display: none; align-items: center; gap: 8px; }
+        .alert .icon { width: 1.1em; height: 1.1em; flex-shrink: 0; }
         .alert.visible { display: flex; }
         .alert.success { background: var(--green-bg); border: 1px solid #a7e3ce; color: #0b6e4c; }
         .alert.error   { background: var(--danger-bg); border: 1px solid #f5b7b1; color: var(--danger); }
 
         /* ── BUTTONS ── */
         .btn-submit {
-            padding: 11px 24px;
-            background: linear-gradient(135deg, var(--purple), var(--purple-light));
+            padding: 11px 22px;
+            background: var(--primary);
             color: white; border: none; border-radius: 9px;
             font-family: inherit; font-size: .9rem; font-weight: 700;
             cursor: pointer; transition: opacity .2s, transform .15s;
-            display: flex; align-items: center; gap: 8px;
+            display: inline-flex; align-items: center; gap: 8px;
         }
+        .btn-submit .icon { width: 1.05em; height: 1.05em; }
         .btn-submit:hover    { opacity: .9; transform: translateY(-1px); }
         .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
         .btn-secondary {
             padding: 10px 18px; background: var(--bg); border: 1.5px solid var(--border);
             color: var(--muted); border-radius: 9px; font-family: inherit;
             font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .2s;
+            display: inline-flex; align-items: center; gap: 7px;
         }
-        .btn-secondary:hover { border-color: var(--purple); color: var(--purple); }
+        .btn-secondary .icon { width: 1em; height: 1em; }
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
 
         /* ── TOOLBAR / SEARCH ── */
-        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-        .search-wrap { position: relative; flex: 1; min-width: 200px; }
-        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: .45; font-size: .9rem; }
+        .toolbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+        .toolbar-row1 { display: flex; gap: 10px; }
+        .toolbar-row2 { display: flex; gap: 10px; flex-wrap: wrap; }
+        .search-wrap { position: relative; flex: 1; min-width: 0; }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: .45; display: flex; }
+        .search-icon .icon { width: 1em; height: 1em; }
         .search-input {
             width: 100%; padding: 9px 12px 9px 32px; border: 1.5px solid var(--border);
             border-radius: 8px; font-size: .85rem; font-family: inherit; background: #fafbfc;
         }
-        .search-input:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 0 3px rgba(123,94,167,.12); }
+        .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,58,92,.1); }
         .filter-select {
             padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
             font-size: .82rem; font-family: inherit; background: #fafbfc;
             cursor: pointer; color: var(--text);
         }
+        /* Boutons Filtres / Trier (mobile-first) */
+        .toggle-btn {
+            padding: 9px 14px; background: #fafbfc; border: 1.5px solid var(--border);
+            border-radius: 8px; font-family: inherit; font-size: .82rem; font-weight: 700;
+            color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+            transition: all .2s; position: relative; flex: 1; justify-content: center;
+        }
+        .toggle-btn .icon { width: 1em; height: 1em; }
+        .toggle-btn.active, .toggle-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .toggle-btn .count {
+            background: var(--primary); color: #fff; font-size: .68rem; font-weight: 800;
+            min-width: 17px; height: 17px; border-radius: 20px; display: inline-flex;
+            align-items: center; justify-content: center; padding: 0 4px;
+        }
+        .filters-panel {
+            display: none; gap: 10px; flex-wrap: wrap; padding: 12px; margin-top: -2px;
+            background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px;
+        }
+        .filters-panel.open { display: flex; }
+        .filters-panel .filter-select { flex: 1; min-width: 160px; background: #fff; }
+        .sort-select { display: none; }
 
         /* ── TABLE ── */
         .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
@@ -216,21 +297,52 @@
         tr:hover td { background: #fafbfd; }
 
         /* ── BADGES ── */
-        .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+        .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+        .badge .icon { width: .9em; height: .9em; }
         .badge.ok      { background: #e6f7f1; color: #0b6e4c; }
         .badge.warn    { background: #fef9ec; color: #7a5200; }
         .badge.expired { background: var(--danger-bg); color: var(--danger); }
-        .badge.low     { background: #fdeaea; color: #c0392b; }
+        .badge.low     { background: #fef4e6; color: #8a5300; }
+        .badge.rupture { background: var(--danger-bg); color: var(--danger); }
         .pill-type { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; background: var(--purple-bg); color: var(--purple); }
 
-        /* ── ACTION BUTTONS ── */
-        .btn-icon { background: none; border: 1.5px solid var(--border); padding: 5px 9px; border-radius: 7px; cursor: pointer; font-size: .85rem; transition: all .2s; color: var(--muted); }
-        .btn-icon:hover { border-color: var(--danger); color: var(--danger); }
+        /* ── ACTIONS (bouton principal isolé de la suppression) ── */
+        .row-actions { display: flex; align-items: center; gap: 6px; }
+        .btn-icon {
+            background: none; border: 1.5px solid var(--border); padding: 6px 10px; border-radius: 7px;
+            cursor: pointer; font-size: .78rem; font-weight: 700; transition: all .2s; color: var(--text);
+            display: inline-flex; align-items: center; gap: 5px; font-family: inherit; white-space: nowrap;
+        }
+        .btn-icon .icon { width: .95em; height: .95em; }
+        .btn-icon:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-kebab {
+            background: none; border: 1.5px solid var(--border); width: 30px; height: 30px; flex-shrink: 0;
+            border-radius: 7px; cursor: pointer; color: var(--muted); position: relative;
+            display: inline-flex; align-items: center; justify-content: center; transition: all .2s;
+        }
+        .btn-kebab .icon { width: 1em; height: 1em; }
+        .btn-kebab:hover, .btn-kebab.open { border-color: var(--danger); color: var(--danger); }
+        .row-menu { right: 0; min-width: 170px; }
 
         /* ── EMPTY STATE ── */
         .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
-        .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+        .empty-state .empty-icon { width: 2.2rem; height: 2.2rem; margin-bottom: 12px; color: var(--border); display: inline-block; }
         .empty-state p { font-size: .88rem; }
+
+        /* ── CARTES MÉDICAMENT (vue mobile de l'inventaire) ── */
+        .cards-wrap { display: none; flex-direction: column; gap: 10px; }
+        .med-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+            padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.03);
+        }
+        .med-card-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+        .med-card-name { font-size: .92rem; font-weight: 700; color: var(--text); }
+        .med-card-sub { font-size: .76rem; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .med-card-body { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+        .med-card-row { display: flex; justify-content: space-between; align-items: baseline; font-size: .84rem; gap: 10px; }
+        .med-card-row .k { color: var(--muted); font-size: .76rem; flex-shrink: 0; }
+        .med-card-row .v { font-weight: 700; color: var(--text); text-align: right; }
+        .med-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid #f0f2f5; flex-wrap: wrap; }
 
         /* ── TAB PANES ── */
         .tab-pane { display: none; }
@@ -256,32 +368,63 @@
         .opt-toggle.open .arrow { transform: rotate(90deg); }
         .opt-block { display: none; margin-top: 14px; }
         .opt-block.open { display: block; }
+        .menu-wrap.mobile-only { display: none; }
 
         /* ── RESPONSIVE ── */
         @media (max-width: 700px) {
             .form-grid.three { grid-template-columns: 1fr; }
             .form-grid.two   { grid-template-columns: 1fr; }
             .fg.span2, .fg.span3 { grid-column: span 1; }
-            .page { padding: 14px; }
+            .page { padding: 12px; }
             .panel-body { padding: 14px; }
 
-            /* Barre supérieure : hauteur auto + retour à la ligne */
-            .topbar { height: auto; min-height: 58px; padding: 10px 14px; flex-wrap: wrap; gap: 8px 10px; }
-            .topbar-left { min-width: 0; flex: 1 1 auto; }
-            .topbar-left > div { min-width: 0; }
-            .topbar h1 { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .topbar p  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .back-btn { flex-shrink: 0; }
-            .conn-badge { order: 3; }
+            /* Barre supérieure : compacte, sur une seule ligne */
+            .topbar { padding: 0 10px; gap: 8px; }
+            .back-btn { padding: 7px 9px; }
+            .back-btn .label-full { display: none; }
+            .topbar h1 { font-size: .92rem; }
+            .topbar p .subtitle-full  { display: none; }
+            .topbar p .subtitle-short { display: inline; }
+            .conn-badge .label { display: none; }
 
-            /* Onglets : défilement horizontal propre au lieu de déborder */
-            .tabs-wrap { width: 100%; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
-            .tab-btn { flex: 0 0 auto; white-space: nowrap; padding: 9px 14px; font-size: .8rem; }
+            /* Onglets : répartis à égalité, jamais tronqués */
+            .tabs-wrap { width: 100%; }
+            .tab-btn {
+                flex: 1 1 0; white-space: nowrap; padding: 8px 4px; font-size: .68rem;
+                flex-direction: column; gap: 3px; border-radius: 8px;
+            }
+            .tab-btn .icon { width: 1.1em; height: 1.1em; }
+            .tab-btn .label-full  { display: none; }
+            .tab-btn .label-short { display: inline; }
 
-            /* Tableaux : garder les colonnes lisibles et défiler */
-            .table-wrap table { min-width: 620px; }
+            /* KPI : grille compacte 2 colonnes */
+            .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stat-card { padding: 12px 14px; }
+            .stat-val { font-size: 1.15rem; }
+
+            /* Barre d'outils : recherche + filtres/tri en pleine largeur */
+            .toolbar-row1 { flex-wrap: wrap; }
+            .filter-select.desktop-only { display: none; }
+            .toggle-btn { display: inline-flex; }
+            .sort-select { display: block; }
+
+            /* Panneau : export PDF devient une action secondaire (menu ⋮) */
+            .btn-pdf-primary { display: none; }
+            .menu-wrap.mobile-only { display: inline-flex; }
+
+            /* Tableau desktop masqué → cartes médicament à la place */
+            .table-wrap { display: none; }
+            .cards-wrap { display: flex; }
+
             .imp-mapping { grid-template-columns: 1fr; }
-            .stats-row { grid-template-columns: 1fr 1fr; }
+        }
+        @media (min-width: 701px) {
+            .cards-wrap { display: none !important; }
+            .toggle-btn, .sort-select { display: none; }
+            .filters-panel { display: flex !important; background: none; border: none; padding: 0; }
+            .tab-btn .label-short { display: none; }
+            .menu-wrap.mobile-only { display: none !important; }
+            .conn-badge .label { display: inline; }
         }
     </style>
 </head>
@@ -292,51 +435,77 @@
 ══════════════════════════════════════════ -->
 <nav class="topbar">
     <div class="topbar-left">
-        <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
-        <div>
-            <h1>📦 Stock Pharmacie</h1>
-            <p>Module 3 – Approvisionnement & Réapprovisionnement</p>
+        <a href="../accueil/menu_admin.html" class="back-btn" aria-label="Retour au menu">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            <span class="label-full">Menu</span>
+        </a>
+        <div class="topbar-title">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            <div>
+                <h1>Stock Pharmacie</h1>
+                <p><span class="subtitle-full">Module 3 – Approvisionnement &amp; Réapprovisionnement</span><span class="subtitle-short">Approvisionnement</span></p>
+            </div>
         </div>
     </div>
-    <div class="conn-badge" id="conn-badge">● Synchronisation…</div>
+    <div class="conn-badge" id="conn-badge"><span class="dot"></span><span class="label">Synchronisation…</span></div>
 </nav>
 
 <div class="page">
 
     <!-- ══════════════════════════════════════════
-         STATISTIQUES RAPIDES
+         STATISTIQUES RAPIDES — cartes compactes et contextualisées
     ══════════════════════════════════════════ -->
     <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-label">Total références</div>
+        <div class="stat-card stat-primary">
+            <div class="stat-label">Références</div>
             <div class="stat-val" id="s-total">—</div>
+            <div class="stat-sub" id="s-today-ctx">— aujourd'hui</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Valeur du stock</div>
             <div class="stat-val" id="s-valeur">—</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Périmés / Proches</div>
-            <div class="stat-val red" id="s-perimes">—</div>
+            <div class="stat-sub">FCFA</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Stock faible</div>
             <div class="stat-val orange" id="s-faible">—</div>
+            <div class="stat-sub" id="s-faible-ctx">— des références</div>
+            <button type="button" class="stat-link" onclick="goToFilter('low')">
+                <span>Voir les produits</span>
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Entrées aujourd'hui</div>
-            <div class="stat-val" id="s-today">—</div>
+            <div class="stat-label">Péremption</div>
+            <div class="stat-val red" id="s-perimes">—</div>
+            <div class="stat-sub">Dans les 90 prochains jours</div>
+            <button type="button" class="stat-link" onclick="goToFilter('warn')">
+                <span>Examiner</span>
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
         </div>
     </div>
 
     <!-- ══════════════════════════════════════════
-         ONGLETS
+         ONGLETS — répartis à égalité, jamais tronqués sur mobile
     ══════════════════════════════════════════ -->
     <div class="tabs-wrap">
-        <button class="tab-btn active" onclick="switchTab('inventaire', this)">📋 Inventaire</button>
-        <button class="tab-btn"        onclick="switchTab('entree',     this)">➕ Nouvelle Entrée</button>
-        <button class="tab-btn"        onclick="switchTab('reappro',    this)">🔄 Réapprovisionnement</button>
-        <button class="tab-btn"        onclick="switchTab('import',     this)">📥 Importer Excel</button>
+        <button class="tab-btn active" onclick="switchTab('inventaire', this)">
+            <svg class="icon" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+            <span class="label-full">Inventaire</span><span class="label-short">Inventaire</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('entree', this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            <span class="label-full">Nouvelle Entrée</span><span class="label-short">Entrée</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('reappro', this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+            <span class="label-full">Réapprovisionnement</span><span class="label-short">Réappro.</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('import', this)">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M19 21H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2Z"/></svg>
+            <span class="label-full">Importer Excel</span><span class="label-short">Import</span>
+        </button>
     </div>
 
     <!-- ══════════════════════════════════════════
@@ -346,49 +515,91 @@
         <div class="panel">
             <div class="panel-head">
                 <div class="panel-head-left">
-                    <div class="panel-icon">📋</div>
+                    <div class="panel-icon">
+                        <svg class="icon" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+                    </div>
                     <div>
                         <h2>Inventaire du Stock</h2>
-                        <p>Vue complète de tous les médicaments enregistrés</p>
+                        <p id="inv-count-sub">Vue complète de tous les médicaments enregistrés</p>
                     </div>
                 </div>
-                <button class="btn-submit" id="btn-pdf-inv" onclick="exportInventairePDF()"
-                        title="Générer un PDF de la liste des médicaments (stock initial) pour les assemblées générales">
-                    <span>📄</span> Exporter en PDF
-                </button>
+                <div class="panel-head-right">
+                    <button class="btn-submit btn-pdf-primary" id="btn-pdf-inv" onclick="exportInventairePDF()"
+                            title="Générer un PDF de la liste des médicaments (stock initial) pour les assemblées générales">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+                        Exporter en PDF
+                    </button>
+                    <div class="menu-wrap mobile-only">
+                        <button class="menu-btn" id="inv-menu-btn" onclick="toggleDropdown('inv-menu', this)" aria-label="Plus d'actions">
+                            <svg class="icon dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                        </button>
+                        <div class="dropdown-menu" id="inv-menu">
+                            <button type="button" class="dropdown-item" onclick="exportInventairePDF()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+                                Exporter en PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="panel-body">
                 <div class="toolbar">
-                    <div class="search-wrap">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" class="search-input" id="search-inv"
-                               placeholder="Rechercher un médicament ou un lot…"
-                               oninput="filterInventaire()">
+                    <div class="toolbar-row1">
+                        <div class="search-wrap">
+                            <span class="search-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+                            <input type="text" class="search-input" id="search-inv"
+                                   placeholder="Rechercher un médicament ou un lot…"
+                                   oninput="filterInventaire()">
+                        </div>
                     </div>
-                    <select class="filter-select" id="filter-cat" onchange="filterInventaire()">
-                        <option value="">Toutes catégories</option>
-                        <option>Antibiotique</option>
-                        <option>Antalgique</option>
-                        <option>Antipaludéen</option>
-                        <option>Antihypertenseur</option>
-                        <option>Antidiabétique</option>
-                        <option>Antiparasitaire</option>
-                        <option>Vitamines & Suppléments</option>
-                        <option>Contraceptif</option>
-                        <option>Vaccin</option>
-                        <option>Soluté & Perfusion</option>
-                        <option>Désinfectant & Antiseptique</option>
-                        <option>Matériel médical</option>
-                        <option>Autre</option>
-                    </select>
-                    <select class="filter-select" id="filter-statut" onchange="filterInventaire()">
-                        <option value="">Tous statuts</option>
-                        <option value="ok">✅ En stock</option>
-                        <option value="warn">⚠️ Expire bientôt</option>
-                        <option value="expired">❌ Périmé</option>
-                        <option value="low">📉 Stock faible</option>
-                    </select>
+                    <div class="toolbar-row2">
+                        <button type="button" class="toggle-btn" id="filters-toggle-btn" onclick="toggleFilters()">
+                            <svg class="icon" viewBox="0 0 24 24"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
+                            <span>Filtres</span>
+                            <span class="count" id="filters-count" hidden>0</span>
+                        </button>
+                        <select class="filter-select sort-select" id="sort-inv" onchange="filterInventaire()">
+                            <option value="nom_asc">Trier : Nom (A→Z)</option>
+                            <option value="qte_asc">Trier : Stock (croissant)</option>
+                            <option value="qte_desc">Trier : Stock (décroissant)</option>
+                            <option value="perempt_asc">Trier : Péremption (proche→loin)</option>
+                        </select>
+                    </div>
+                    <div class="filters-panel" id="filters-panel">
+                        <select class="filter-select" id="filter-cat" onchange="filterInventaire()">
+                            <option value="">Toutes catégories</option>
+                            <option>Antibiotique</option>
+                            <option>Antalgique</option>
+                            <option>Antipaludéen</option>
+                            <option>Antihypertenseur</option>
+                            <option>Antidiabétique</option>
+                            <option>Antiparasitaire</option>
+                            <option>Vitamines & Suppléments</option>
+                            <option>Contraceptif</option>
+                            <option>Vaccin</option>
+                            <option>Soluté & Perfusion</option>
+                            <option>Désinfectant & Antiseptique</option>
+                            <option>Matériel médical</option>
+                            <option>Autre</option>
+                        </select>
+                        <select class="filter-select" id="filter-statut" onchange="filterInventaire()">
+                            <option value="">Tous statuts</option>
+                            <option value="ok">En stock</option>
+                            <option value="warn">Expiration proche</option>
+                            <option value="expired">Expiré</option>
+                            <option value="low">Stock faible</option>
+                            <option value="rupture">Rupture</option>
+                        </select>
+                        <select class="filter-select desktop-only" id="sort-inv-desktop" onchange="document.getElementById('sort-inv').value=this.value; filterInventaire();">
+                            <option value="nom_asc">Trier : Nom (A→Z)</option>
+                            <option value="qte_asc">Trier : Stock (croissant)</option>
+                            <option value="qte_desc">Trier : Stock (décroissant)</option>
+                            <option value="perempt_asc">Trier : Péremption (proche→loin)</option>
+                        </select>
+                    </div>
                 </div>
+
+                <!-- Vue tableau — desktop / tablette -->
                 <div class="table-wrap">
                     <table id="inv-table">
                         <thead>
@@ -409,13 +620,21 @@
                             <tr>
                                 <td colspan="10">
                                     <div class="empty-state">
-                                        <div class="empty-icon">📦</div>
+                                        <svg class="icon empty-icon" viewBox="0 0 24 24"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                                         <p>Chargement du stock…</p>
                                     </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Vue cartes — mobile -->
+                <div class="cards-wrap" id="inv-cards">
+                    <div class="empty-state">
+                        <svg class="icon empty-icon" viewBox="0 0 24 24"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                        <p>Chargement du stock…</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -428,7 +647,7 @@
         <div class="panel">
             <div class="panel-head">
                 <div class="panel-head-left">
-                    <div class="panel-icon">➕</div>
+                    <div class="panel-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></div>
                     <div>
                         <h2>Enregistrer une Entrée en Stock</h2>
                         <p>Renseignez les 5 champs obligatoires, puis complétez les informations optionnelles si disponibles</p>
@@ -449,7 +668,7 @@
                      BLOC 1 — CHAMPS OBLIGATOIRES
                 ════════════════════════════════ -->
                 <div class="sect-divider req-section">
-                    <span>🔴 Informations obligatoires</span>
+                    <span>Informations obligatoires</span>
                 </div>
 
                 <div class="req-band">
@@ -520,7 +739,7 @@
                 <div class="opt-block" id="opt-block">
 
                     <!-- IDENTIFICATION COMPLÈTE -->
-                    <div class="sect-divider"><span>🏷️ Identification complémentaire</span></div>
+                    <div class="sect-divider"><span>Identification complémentaire</span></div>
                     <div class="form-grid">
                         <div class="fg">
                             <label>Catégorie thérapeutique <span class="opt">(optionnel)</span></label>
@@ -571,7 +790,7 @@
                     </div>
 
                     <!-- DATES & TRAÇABILITÉ -->
-                    <div class="sect-divider"><span>📅 Dates & traçabilité</span></div>
+                    <div class="sect-divider"><span>Dates & traçabilité</span></div>
                     <div class="form-grid three">
                         <div class="fg">
                             <label>Date de fabrication <span class="opt">(optionnel)</span></label>
@@ -605,7 +824,7 @@
                     </div>
 
                     <!-- QUANTITÉS & CONDITIONNEMENT -->
-                    <div class="sect-divider"><span>📦 Conditionnement & stock</span></div>
+                    <div class="sect-divider"><span>Conditionnement & stock</span></div>
                     <div class="form-grid">
                         <div class="fg">
                             <label>Unité de mesure <span class="opt">(optionnel)</span></label>
@@ -632,7 +851,7 @@
                     </div>
 
                     <!-- TARIFICATION COMPLÈTE -->
-                    <div class="sect-divider"><span>💰 Tarification complémentaire</span></div>
+                    <div class="sect-divider"><span>Tarification complémentaire</span></div>
                     <div class="prix-grid">
                         <div class="prix-card">
                             <label>Prix par boîte <span class="opt">(optionnel)</span></label>
@@ -657,7 +876,7 @@
                     </div>
 
                     <!-- OBSERVATIONS -->
-                    <div class="sect-divider"><span>📝 Stockage & observations</span></div>
+                    <div class="sect-divider"><span>Stockage & observations</span></div>
                     <div class="form-grid two">
                         <div class="fg">
                             <label>Conditions de stockage <span class="opt">(optionnel)</span></label>
@@ -683,9 +902,11 @@
                 <!-- BOUTONS D'ACTION -->
                 <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;">
                     <button class="btn-submit" id="btn-save-entree" onclick="saveEntree()">
-                        <span>💾</span> Enregistrer dans le stock
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg> Enregistrer dans le stock
                     </button>
-                    <button class="btn-secondary" onclick="clearFormEntree()">🗑️ Effacer le formulaire</button>
+                    <button class="btn-secondary" onclick="clearFormEntree()">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg> Effacer le formulaire
+                    </button>
                 </div>
 
             </div><!-- /panel-body -->
@@ -699,7 +920,7 @@
         <div class="panel">
             <div class="panel-head">
                 <div class="panel-head-left">
-                    <div class="panel-icon">🔄</div>
+                    <div class="panel-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg></div>
                     <div>
                         <h2>Réapprovisionnement</h2>
                         <p>Mettre à jour la quantité d'un médicament existant</p>
@@ -758,17 +979,20 @@
 
                 <!-- Aperçu médicament sélectionné -->
                 <div id="r-preview" style="display:none;background:#fafbfc;border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:.83rem;max-width:700px;">
-                    <div style="font-weight:700;color:var(--primary);margin-bottom:6px;">📋 Médicament sélectionné</div>
+                    <div style="font-weight:700;color:var(--primary);margin-bottom:6px;display:flex;align-items:center;gap:7px;">
+                        <svg class="icon" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+                        Médicament sélectionné
+                    </div>
                     <div id="r-preview-content"></div>
                 </div>
 
                 <button class="btn-submit" id="btn-save-reappro" onclick="saveReappro()">
-                    <span>🔄</span> Enregistrer le réapprovisionnement
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg> Enregistrer le réapprovisionnement
                 </button>
 
                 <!-- Historique réapprovisionnements -->
                 <div class="sect-divider" style="margin-top:30px;">
-                    <span>📜 Historique des réapprovisionnements</span>
+                    <span>Historique des réapprovisionnements</span>
                 </div>
                 <div class="table-wrap">
                     <table>
@@ -787,7 +1011,7 @@
                             <tr>
                                 <td colspan="7">
                                     <div class="empty-state">
-                                        <div class="empty-icon">🔄</div>
+                                        <svg class="icon empty-icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
                                         <p>Aucun réapprovisionnement enregistré.</p>
                                     </div>
                                 </td>
@@ -810,7 +1034,8 @@
         .imp-drop-txt{display:flex;flex-direction:column;gap:3px;}
         .imp-drop-txt strong{color:var(--primary);font-size:.95rem;}
         .imp-drop-txt span{color:var(--muted);font-size:.8rem;}
-        .imp-filename{margin-top:12px;padding:10px 14px;background:var(--green-bg);border:1px solid var(--green);border-radius:8px;font-size:.85rem;color:var(--primary);}
+        .imp-filename{margin-top:12px;padding:10px 14px;background:var(--green-bg);border:1px solid var(--green);border-radius:8px;font-size:.85rem;color:var(--primary);display:flex;align-items:center;gap:8px;}
+        .imp-filename .icon{width:1.1em;height:1.1em;flex-shrink:0;color:var(--green);}
         .imp-mapping{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;}
         .imp-map-item{display:flex;align-items:center;gap:8px;background:#fafbfc;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:.8rem;}
         .imp-map-field{font-weight:700;color:var(--primary);}
@@ -828,7 +1053,7 @@
         <div class="panel">
             <div class="panel-head">
                 <div class="panel-head-left">
-                    <div class="panel-icon">📥</div>
+                    <div class="panel-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M19 21H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2Z"/></svg></div>
                     <div>
                         <h2>Importer depuis un fichier Excel</h2>
                         <p>Approvisionner ou réapprovisionner la pharmacie en masse — chaque ligne devient une entrée Firebase (une clé par ligne)</p>
@@ -841,7 +1066,7 @@
 
                 <!-- Zone de dépôt -->
                 <label id="imp-drop" for="imp-file" class="imp-drop">
-                    <div class="imp-drop-icon">📄</div>
+                    <div class="imp-drop-icon"><svg class="icon" viewBox="0 0 24 24" style="width:1em;height:1em"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
                     <div class="imp-drop-txt">
                         <strong>Choisir un fichier Excel</strong>
                         <span>Formats acceptés : .xlsx, .xls, .csv — cliquez ou glissez le fichier ici</span>
@@ -853,7 +1078,7 @@
                 <!-- Options (visibles après lecture) -->
                 <div id="imp-options" style="display:none;">
 
-                    <div class="sect-divider"><span>⚙️ Options d'import</span></div>
+                    <div class="sect-divider"><span>Options d'import</span></div>
                     <div class="form-grid three">
                         <div class="fg">
                             <label>Feuille Excel</label>
@@ -866,16 +1091,16 @@
                         <div class="fg">
                             <label>Type d'import</label>
                             <select class="fc" id="imp-mode">
-                                <option value="appro">➕ Approvisionnement (nouvelles entrées)</option>
-                                <option value="reappro">🔄 Réapprovisionnement (stock existant)</option>
+                                <option value="appro">Approvisionnement (nouvelles entrées)</option>
+                                <option value="reappro">Réapprovisionnement (stock existant)</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="sect-divider"><span>🔗 Correspondance des colonnes détectée</span></div>
+                    <div class="sect-divider"><span>Correspondance des colonnes détectée</span></div>
                     <div id="imp-mapping" class="imp-mapping"></div>
 
-                    <div class="sect-divider"><span>👁️ Aperçu (<span id="imp-count">0</span> ligne(s))</span></div>
+                    <div class="sect-divider"><span>Aperçu (<span id="imp-count">0</span> ligne(s))</span></div>
                     <div class="table-wrap" style="max-height:380px;overflow:auto;">
                         <table id="imp-table">
                             <thead>
@@ -901,9 +1126,11 @@
 
                     <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
                         <button class="btn-submit" id="btn-import" onclick="runImport()">
-                            <span>📥</span> Importer <span id="imp-btn-count"></span>
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M19 21H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2Z"/></svg> Importer <span id="imp-btn-count"></span>
                         </button>
-                        <button class="btn-secondary" onclick="resetImport()">🗑️ Annuler</button>
+                        <button class="btn-secondary" onclick="resetImport()">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg> Annuler
+                        </button>
                     </div>
 
                 </div><!-- /imp-options -->
@@ -929,8 +1156,8 @@ onAuthStateChanged(auth, (user) => {
     const role = sessionStorage.getItem('userRole');
     if (role !== 'admin') { window.location.href = '../accueil/menu_caissier.html'; return; }
     const badge = document.getElementById('conn-badge');
-    badge.textContent = '● Connecté';
-    badge.style.background = 'rgba(14,164,114,.25)';
+    badge.classList.add('online');
+    badge.querySelector('.label').textContent = 'Connecté';
     // Pré-remplir agent
     document.getElementById('e-agent').value = (user.email || '').split('@')[0];
 });
@@ -958,6 +1185,15 @@ let allReappro = [];
 
 // ── Utilitaires ─────────────────────────────────────────────────
 function fmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
+function fmtFCFA(n) { return fmt(n) + ' F CFA'; }
+
+// — Date affichée en JJ/MM/AAAA (le format ISO reste utilisé en base) —
+function fmtDateFR(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return esc(dateStr);
+    return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+}
 
 function esc(str) {
     const div = document.createElement('div');
@@ -972,12 +1208,29 @@ function diffJours(dateStr) {
     return Math.floor((d - auj) / 86400000);
 }
 
-function statutPeremption(dateStr, qte) {
+// ── Bibliothèque d'icônes SVG (cohérence visuelle : trait 2px, taille unique) ──
+const ICONS = {
+    check:   '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+    warn:    '<svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    x:       '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>',
+    pencil:  '<svg class="icon" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
+    trash:   '<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>',
+    dots:    '<svg class="icon dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>',
+    box:     '<svg class="icon" viewBox="0 0 24 24"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+    save:    '<svg class="icon" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>',
+    refresh: '<svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>',
+    fileText:'<svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>',
+};
+
+// — Statut d'un médicament : normalisé, sans emoji, vocabulaire cohérent avec le dashboard —
+function statutPeremption(dateStr, qte, seuil) {
     const j = diffJours(dateStr);
-    if (j < 0)   return { cls: 'expired', txt: '❌ Périmé' };
-    if (j <= 90)  return { cls: 'warn',    txt: `⚠️ ${j}j` };
-    if ((qte||0) <= 10) return { cls: 'low', txt: '📉 Stock bas' };
-    return { cls: 'ok', txt: '✅ OK' };
+    const q = qte || 0;
+    if (j < 0)              return { cls: 'expired', txt: 'Expiré',        icon: ICONS.x };
+    if (q <= 0)              return { cls: 'rupture', txt: 'Rupture',       icon: ICONS.x };
+    if (j <= 90)             return { cls: 'warn',    txt: `Expire dans ${j} j`, icon: ICONS.warn };
+    if (q <= (seuil || 10))  return { cls: 'low',     txt: 'Stock faible',  icon: ICONS.warn };
+    return { cls: 'ok', txt: 'En stock', icon: ICONS.check };
 }
 
 // ── Écoute temps réel — stock ───────────────────────────────────
@@ -999,10 +1252,11 @@ onValue(reapproRef, (snap) => {
     renderReapproHistorique();
 });
 
-// ── Statistiques ────────────────────────────────────────────────
+// ── Statistiques (contextualisées : le dashboard devient un outil de décision) ──
 function updateStats() {
     const arr = Object.values(allStock);
-    document.getElementById('s-total').textContent = arr.length;
+    const total = arr.length;
+    document.getElementById('s-total').textContent = total;
     let valeur = 0, perimes = 0, faible = 0;
     const todayStr = new Date().toISOString().split('T')[0];
     arr.forEach(m => {
@@ -1010,59 +1264,161 @@ function updateStats() {
         if (diffJours(m.date_peremption) <= 90) perimes++;
         if ((m.quantite||0) <= (m.seuil_alerte||10) && (m.quantite||0) > 0) faible++;
     });
-    document.getElementById('s-valeur').textContent  = fmt(valeur) + ' F';
+    const todayCount = arr.filter(m => (m.date_entree||'').startsWith(todayStr)).length;
+
+    document.getElementById('s-valeur').textContent  = fmt(valeur);
     document.getElementById('s-perimes').textContent = perimes;
     document.getElementById('s-faible').textContent  = faible;
-    document.getElementById('s-today').textContent   =
-        arr.filter(m => (m.date_entree||'').startsWith(todayStr)).length;
+    document.getElementById('s-today-ctx').textContent =
+        (todayCount ? '+' + todayCount : '0') + " aujourd'hui";
+    document.getElementById('s-faible-ctx').textContent =
+        total ? Math.round((faible/total)*100) + '% des références' : '—';
 }
 
-// ── Filtrage inventaire (partagé écran + export PDF) ────────────
+window.goToFilter = function (statutValue) {
+    document.getElementById('filter-statut').value = statutValue;
+    filterInventaire();
+    document.getElementById('filters-panel').classList.add('open');
+    document.getElementById('filters-toggle-btn')?.classList.add('active');
+    updateFiltersCount();
+    document.querySelector('#pane-inventaire .panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+// ── Filtrage + tri inventaire (partagé écran + export PDF) ─────
 function getFilteredStock() {
     const cat   = document.getElementById('filter-cat')?.value   || '';
     const stat  = document.getElementById('filter-statut')?.value || '';
     const q     = (document.getElementById('search-inv')?.value  || '').toLowerCase();
+    const sort  = document.getElementById('sort-inv')?.value || 'nom_asc';
 
     let arr = Object.values(allStock);
     if (cat)  arr = arr.filter(m => m.categorie === cat);
     if (q)    arr = arr.filter(m =>
         (m.nom||'').toLowerCase().includes(q) || (m.lot||'').toLowerCase().includes(q));
     if (stat) arr = arr.filter(m =>
-        statutPeremption(m.date_peremption, m.quantite).cls === stat);
+        statutPeremption(m.date_peremption, m.quantite, m.seuil_alerte).cls === stat);
+
+    const cmpDate = (a,b) => {
+        const da = a.date_peremption ? new Date(a.date_peremption).getTime() : Infinity;
+        const db = b.date_peremption ? new Date(b.date_peremption).getTime() : Infinity;
+        return da - db;
+    };
+    if (sort === 'qte_asc')       arr.sort((a,b) => (a.quantite||0) - (b.quantite||0));
+    else if (sort === 'qte_desc') arr.sort((a,b) => (b.quantite||0) - (a.quantite||0));
+    else if (sort === 'perempt_asc') arr.sort(cmpDate);
+    else                           arr.sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
+
     return arr;
 }
 
-// ── Rendu inventaire ────────────────────────────────────────────
+window.toggleFilters = function () {
+    const panel = document.getElementById('filters-panel');
+    const btn   = document.getElementById('filters-toggle-btn');
+    const open  = panel.classList.toggle('open');
+    btn.classList.toggle('active', open);
+};
+
+function updateFiltersCount() {
+    const cat  = document.getElementById('filter-cat')?.value  || '';
+    const stat = document.getElementById('filter-statut')?.value || '';
+    const n = (cat ? 1 : 0) + (stat ? 1 : 0);
+    const badge = document.getElementById('filters-count');
+    badge.textContent = n;
+    badge.hidden = n === 0;
+}
+
+// ── Rendu inventaire — tableau (desktop) + cartes (mobile) ─────
 function renderInventaire() {
+    updateFiltersCount();
     const tbody = document.getElementById('inv-tbody');
+    const cards = document.getElementById('inv-cards');
     const arr   = getFilteredStock();
 
+    document.getElementById('inv-count-sub').textContent =
+        `${arr.length} référence${arr.length > 1 ? 's' : ''}${arr.length !== Object.keys(allStock).length ? ' (filtré)' : ''}`;
+
     if (!arr.length) {
-        tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">📦</div><p>Aucun médicament trouvé.</p></div></td></tr>`;
+        const empty = `<div class="empty-state">${ICONS.box.replace('class="icon"','class="icon empty-icon"')}<p>Aucun médicament trouvé.</p></div>`;
+        tbody.innerHTML = `<tr><td colspan="10">${empty}</td></tr>`;
+        cards.innerHTML = empty;
         return;
     }
 
     tbody.innerHTML = arr.map(m => {
-        const s = statutPeremption(m.date_peremption, m.quantite);
+        const s = statutPeremption(m.date_peremption, m.quantite, m.seuil_alerte);
+        const id = esc(m.id);
         return `<tr>
             <td><strong>${esc(m.nom||'—')}</strong>${m.dosage ? `<br><small style="color:var(--muted)">${esc(m.dosage)}</small>` : ''}</td>
             <td><span class="pill-type">${esc(m.forme||'—')}</span></td>
             <td>${esc(m.categorie||'—')}</td>
             <td><strong>${fmt(m.quantite)}</strong></td>
             <td style="font-size:.78rem">${esc(m.unite||'—')}</td>
-            <td style="font-size:.78rem">${esc(m.date_peremption||'—')}</td>
-            <td>${fmt(m.prix_unitaire)} F</td>
+            <td style="font-size:.78rem">${fmtDateFR(m.date_peremption)}</td>
+            <td>${fmtFCFA(m.prix_unitaire)}</td>
             <td style="font-size:.78rem">${esc(m.lot||'—')}</td>
-            <td><span class="badge ${s.cls}">${esc(s.txt)}</span></td>
-            <td style="white-space:nowrap">
-                <button class="btn-icon" title="Modifier" onclick="editStock('${esc(m.id)}')">✏️</button>
-                <button class="btn-icon" title="Supprimer" onclick="deleteStock('${esc(m.id)}')">🗑️</button>
-            </td>
+            <td><span class="badge ${s.cls}">${s.icon}${esc(s.txt)}</span></td>
+            <td>${rowActionsHtml(id, 'row-menu-t-' + id)}</td>
         </tr>`;
+    }).join('');
+
+    cards.innerHTML = arr.map(m => {
+        const s = statutPeremption(m.date_peremption, m.quantite, m.seuil_alerte);
+        const id = esc(m.id);
+        return `<div class="med-card">
+            <div class="med-card-head">
+                <div>
+                    <div class="med-card-name">${esc(m.nom||'—')}</div>
+                    <div class="med-card-sub">
+                        <span>${esc(m.forme||'—')}</span>${m.dosage ? `<span>· ${esc(m.dosage)}</span>` : ''}${m.categorie ? `<span>· ${esc(m.categorie)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="med-card-body">
+                <div class="med-card-row"><span class="k">Stock</span><span class="v">${fmt(m.quantite)} ${esc(m.unite||'')}</span></div>
+                <div class="med-card-row"><span class="k">Prix</span><span class="v">${fmtFCFA(m.prix_unitaire)}</span></div>
+                <div class="med-card-row"><span class="k">Péremption</span><span class="v">${fmtDateFR(m.date_peremption)}</span></div>
+                ${m.lot ? `<div class="med-card-row"><span class="k">Lot</span><span class="v">${esc(m.lot)}</span></div>` : ''}
+            </div>
+            <div class="med-card-foot">
+                <span class="badge ${s.cls}">${s.icon}${esc(s.txt)}</span>
+                ${rowActionsHtml(id, 'row-menu-c-' + id)}
+            </div>
+        </div>`;
     }).join('');
 }
 
+// — Bloc d'actions partagé table/carte : action principale visible + suppression isolée dans un menu ──
+function rowActionsHtml(id, menuId) {
+    return `<div class="row-actions">
+        <button class="btn-icon" title="Modifier" onclick="editStock('${id}')">${ICONS.pencil}Modifier</button>
+        <div class="menu-wrap">
+            <button class="btn-kebab" aria-label="Plus d'actions" onclick="toggleDropdown('${menuId}', this)">${ICONS.dots}</button>
+            <div class="dropdown-menu row-menu" id="${menuId}">
+                <button type="button" class="dropdown-item danger" onclick="closeAllDropdowns(); deleteStock('${id}')">${ICONS.trash}Supprimer</button>
+            </div>
+        </div>
+    </div>`;
+}
+
 window.filterInventaire = () => renderInventaire();
+
+// ── Menus déroulants génériques (kebab) ─────────────────────────
+window.toggleDropdown = function (id, btn) {
+    const menu = document.getElementById(id);
+    const wasOpen = menu.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) {
+        menu.classList.add('open');
+        btn?.classList.add('open');
+    }
+};
+window.closeAllDropdowns = function () {
+    document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.menu-btn.open, .btn-kebab.open').forEach(b => b.classList.remove('open'));
+};
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.menu-wrap')) closeAllDropdowns();
+});
 
 // ── Export PDF de l'inventaire (stock initial pour assemblées) ──
 // Reprend exactement le stock affiché (filtres/recherche appliqués) et
@@ -1089,10 +1445,10 @@ window.exportInventairePDF = function () {
             categorie: m.categorie || '—',
             qte:       fmt(q),
             unite:     m.unite || '—',
-            perempt:   m.date_peremption || '—',
+            perempt:   fmtDateFR(m.date_peremption),
             pu:        fmt(pu),
             valeur:    fmt(valeur),
-            statut:    statutPeremption(m.date_peremption, q).txt,
+            statut:    statutPeremption(m.date_peremption, q, m.seuil_alerte).txt,
         };
     });
 
@@ -1100,7 +1456,7 @@ window.exportInventairePDF = function () {
     const cat  = document.getElementById('filter-cat')?.value   || '';
     const stat = document.getElementById('filter-statut')?.value || '';
     const q    = (document.getElementById('search-inv')?.value  || '').trim();
-    const statLbl = { ok:'En stock', warn:'Expire bientôt', expired:'Périmé', low:'Stock faible' }[stat] || '';
+    const statLbl = { ok:'En stock', warn:'Expiration proche', expired:'Expiré', low:'Stock faible', rupture:'Rupture' }[stat] || '';
     const filtres = [
         cat ? `Catégorie : ${cat}` : '',
         statLbl ? `Statut : ${statLbl}` : '',
@@ -1170,8 +1526,8 @@ document.addEventListener('change', (e) => {
     document.getElementById('r-preview-content').innerHTML = `
         <span style="color:var(--muted)">Forme :</span> ${esc(m.forme||'—')} &nbsp;|&nbsp;
         <span style="color:var(--muted)">Stock actuel :</span> <strong>${fmt(m.quantite)} ${esc(m.unite||'')}</strong> &nbsp;|&nbsp;
-        <span style="color:var(--muted)">Péremption :</span> ${esc(m.date_peremption||'—')} &nbsp;|&nbsp;
-        <span style="color:var(--muted)">P. unitaire :</span> ${fmt(m.prix_unitaire)} F
+        <span style="color:var(--muted)">Péremption :</span> ${fmtDateFR(m.date_peremption)} &nbsp;|&nbsp;
+        <span style="color:var(--muted)">P. unitaire :</span> ${fmtFCFA(m.prix_unitaire)}
     `;
 });
 
@@ -1179,15 +1535,15 @@ document.addEventListener('change', (e) => {
 function renderReapproHistorique() {
     const tbody = document.getElementById('reappro-tbody');
     if (!allReappro.length) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔄</div><p>Aucun réapprovisionnement enregistré.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">${ICONS.box.replace('class="icon"','class="icon empty-icon"')}<p>Aucun réapprovisionnement enregistré.</p></div></td></tr>`;
         return;
     }
     tbody.innerHTML = allReappro.map(r => `<tr>
-        <td style="font-size:.8rem">${esc(r.date||'—')}</td>
+        <td style="font-size:.8rem">${fmtDateFR(r.date)}</td>
         <td><strong>${esc(r.nom_medicament||'—')}</strong></td>
         <td><strong>+${fmt(r.quantite_ajoutee)}</strong></td>
         <td style="font-size:.78rem">${esc(r.lot||'—')}</td>
-        <td style="font-size:.78rem">${esc(r.nouvelle_peremption||'—')}</td>
+        <td style="font-size:.78rem">${fmtDateFR(r.nouvelle_peremption)}</td>
         <td style="font-size:.78rem">${esc(r.source||'—')}</td>
         <td style="font-size:.78rem;max-width:200px">${esc(r.observations||'—')}</td>
     </tr>`).join('');
@@ -1197,7 +1553,7 @@ function renderReapproHistorique() {
 function showAlert(id, type, msg) {
     const el = document.getElementById(id);
     el.className = `alert ${type} visible`;
-    el.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span><span>${msg}</span>`;
+    el.innerHTML = `${type === 'success' ? ICONS.check : ICONS.warn}<span>${msg}</span>`;
     setTimeout(() => el.classList.remove('visible'), 5000);
 }
 
@@ -1279,14 +1635,14 @@ window.saveEntree = async function () {
 
     try {
         await push(stockRef, data);
-        showAlert('alert-entree', 'success', `✅ "${nom}" enregistré avec succès dans le stock.`);
+        showAlert('alert-entree', 'success', `"${nom}" enregistré avec succès dans le stock.`);
         clearFormEntree();
     } catch (err) {
         showAlert('alert-entree', 'error', 'Erreur lors de l\'enregistrement : ' + err.message);
     }
 
     btn.disabled = false;
-    btn.innerHTML = '<span>💾</span> Enregistrer dans le stock';
+    btn.innerHTML = ICONS.save + ' Enregistrer dans le stock';
 };
 
 // ── SAVE RÉAPPRO ────────────────────────────────────────────────
@@ -1337,7 +1693,7 @@ window.saveReappro = async function () {
         });
 
         showAlert('alert-reappro', 'success',
-            `✅ Réapprovisionnement de ${qte} enregistré pour "${med.nom}".`);
+            `Réapprovisionnement de ${qte} enregistré pour "${med.nom}".`);
         ['r-med-select','r-qte','r-lot','r-perempion','r-obs','r-source']
             .forEach(id => {
                 const el = document.getElementById(id);
@@ -1349,7 +1705,7 @@ window.saveReappro = async function () {
     }
 
     btn.disabled = false;
-    btn.innerHTML = '<span>🔄</span> Enregistrer le réapprovisionnement';
+    btn.innerHTML = ICONS.refresh + ' Enregistrer le réapprovisionnement';
 };
 
 // ── SUPPRIMER ───────────────────────────────────────────────────
@@ -1556,8 +1912,8 @@ async function handleImportFile(file){
             .map(n => `<option>${esc(n)}</option>`).join('');
 
         const fn = document.getElementById('imp-filename');
-        fn.style.display = 'block';
-        fn.innerHTML = `📄 <strong>${esc(file.name)}</strong>`;
+        fn.style.display = 'flex';
+        fn.innerHTML = `${ICONS.fileText} <strong>${esc(file.name)}</strong>`;
         document.getElementById('imp-options').style.display = 'block';
         loadImportSheet();
     } catch (err) {
@@ -1642,7 +1998,7 @@ function renderImportPreview(){
     impRows = computeImportRows();
     const tb = document.getElementById('imp-tbody');
     if (!impRows.length) {
-        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📄</div><p>Aucune ligne détectée dans cette feuille.</p></div></td></tr>`;
+        tb.innerHTML = `<tr><td colspan="8"><div class="empty-state">${ICONS.box.replace('class="icon"','class="icon empty-icon"')}<p>Aucune ligne détectée dans cette feuille.</p></div></td></tr>`;
     } else {
         tb.innerHTML = impRows.map((r, i) => `<tr class="${r.include ? '' : 'imp-row-off'}">
             <td><input type="checkbox" class="imp-cb" data-i="${i}" ${r.include ? 'checked' : ''} ${r.nom ? '' : 'disabled'}></td>
@@ -1838,7 +2194,7 @@ window.toggleOptional = function () {
     .modal-grid .fg.full{grid-column:1/-1;}
     @media(max-width:520px){.modal-grid{grid-template-columns:1fr;}}
     .modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--card-bg);}
-    .btn-save{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-weight:700;cursor:pointer;font-family:inherit;}
+    .btn-save{background:var(--primary);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:7px;}
     .btn-save:disabled{opacity:.6;cursor:progress;}
     .btn-cancel{background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;font-family:inherit;}
 </style>
@@ -1886,7 +2242,9 @@ window.toggleOptional = function () {
         </div>
         <div class="modal-foot">
             <button class="btn-cancel" onclick="closeEditModal()">Annuler</button>
-            <button class="btn-save" id="ed-save-btn" onclick="saveEditStock()">💾 Enregistrer</button>
+            <button class="btn-save" id="ed-save-btn" onclick="saveEditStock()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg> Enregistrer
+            </button>
         </div>
     </div>
 </div>
