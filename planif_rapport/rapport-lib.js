@@ -53,6 +53,7 @@ export function getSafeTs(val) {
 // ── PÉRIODES ─────────────────────────────────────
 export const PERIODES = {
     jour:      { label: "Aujourd'hui",     court: 'Journalier'   },
+    j7:        { label: '7 derniers jours', court: '7 jours'     },
     semaine:   { label: 'Cette semaine',   court: 'Hebdomadaire' },
     mois:      { label: 'Ce mois',         court: 'Mensuel'      },
     trimestre: { label: 'Ce trimestre',    court: 'Trimestriel'  },
@@ -66,6 +67,7 @@ export function bornes(periode, ref = new Date()) {
     const debut = new Date(n); debut.setHours(0, 0, 0, 0);
     switch (periode) {
         case 'jour': break;
+        case 'j7': debut.setDate(debut.getDate() - 6); break; // aujourd'hui + 6 jours précédents
         case 'semaine': {
             const dow = n.getDay();                 // 0 = dimanche
             debut.setDate(n.getDate() - (dow === 0 ? 6 : dow - 1)); // lundi
