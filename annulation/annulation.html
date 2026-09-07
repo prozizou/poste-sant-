@@ -14,245 +14,199 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary:       #1a3a5c;
-            --primary-light: #274e74;
-            --accent:        #0ea472;
-            --accent-bg:     #e6f7f1;
-            --danger:        #c0392b;
-            --danger-light:  #e0685a;
-            --danger-bg:     #fdf1f0;
-            --warning:       #d68910;
-            --warning-bg:    #fef9ec;
-            --bg:            #f0f4f8;
-            --card-bg:       #ffffff;
-            --text:          #1e2a38;
-            --muted:         #6b7a8d;
-            --border:        #d8e0e8;
+        :root{
+            --primary:#1a3a5c;--primary-light:#2b5580;--primary-bg:#eaf0f6;
+            --accent:#0ea472;--accent-dark:#0b7d54;--accent-bg:#e6f7f1;
+            --danger:#c0392b;--danger-dark:#96271b;--danger-bg:#fdf1f0;
+            --warning:#d68910;--warning-bg:#fef9ec;
+            --bg:#f4f6f8;--card-bg:#fff;--text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
         }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
         html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:clip;}
+        .icon{width:1em;height:1em;display:inline-block;vertical-align:-.15em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 
         /* ── TOPBAR ── */
-        .topbar {
-            background: linear-gradient(135deg, var(--danger), var(--danger-light));
-            color: white; padding: 0 28px; height: 64px;
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 2px 12px rgba(192,57,43,.3);
-            position: sticky; top: 0; z-index: 100;
-        }
-        .topbar-left { display: flex; align-items: center; gap: 12px; }
-        .back-btn {
-            background: rgba(255,255,255,.15); border: 1.5px solid rgba(255,255,255,.3);
-            color: white; padding: 7px 14px; border-radius: 8px;
-            font-family: inherit; font-size: .82rem; font-weight: 600;
-            cursor: pointer; text-decoration: none;
-            display: inline-flex; align-items: center; gap: 6px; transition: background .2s;
-        }
-        .back-btn:hover { background: rgba(255,255,255,.25); }
-        .topbar h1 { font-size: 1.05rem; font-weight: 700; }
-        .topbar p  { font-size: .72rem; opacity: .8; }
-        .conn-badge {
-            background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35);
-            color: white; font-size: .75rem; font-weight: 700; padding: 5px 12px; border-radius: 20px;
-        }
+        .topbar{background:var(--primary);color:#fff;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 2px 10px rgba(26,58,92,.25);position:sticky;top:0;z-index:200;}
+        .topbar-left{display:flex;align-items:center;gap:10px;min-width:0;}
+        .back-btn{background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);color:#fff;padding:7px 10px;border-radius:8px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;}
+        .back-btn:hover{background:rgba(255,255,255,.24);}
+        .back-btn .icon{width:1.05em;height:1.05em;}
+        .topbar-title{min-width:0;}
+        .topbar-title h1{font-size:.98rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .topbar-title p{font-size:.72rem;opacity:.78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+        .conn-badge{font-size:.85rem;line-height:1;font-weight:700;color:#6b7a8d;flex-shrink:0;transition:color .2s;}
+        .conn-badge.online{color:#7dffd0;}
 
-        .page { padding: 24px; max-width: 1400px; margin: 0 auto; }
+        .page{padding:20px;max-width:1300px;margin:0 auto;}
 
-        /* ── NOTICE ── */
-        .notice {
-            background: var(--warning-bg); border: 1.5px solid #f5d78a; border-radius: 12px;
-            padding: 14px 18px; margin-bottom: 22px; font-size: .85rem; color: #7a5200;
-            line-height: 1.5; display: flex; gap: 10px; align-items: flex-start;
-        }
+        /* ── NOTICE COMPACTE ── */
+        .notice{display:flex;align-items:center;gap:10px;background:var(--warning-bg);border:1px solid #f5d78a;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.8rem;color:#7a5200;line-height:1.4;}
+        .notice .icon{width:1.2em;height:1.2em;flex-shrink:0;color:var(--warning);}
+        .notice span.txt{flex:1;}
+        .notice button{flex-shrink:0;background:none;border:none;font-family:inherit;font-size:.78rem;font-weight:800;color:var(--warning-dark,#96650a);cursor:pointer;text-decoration:underline;white-space:nowrap;}
 
-        /* ── STATS ── */
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 14px; margin-bottom: 24px; }
-        .stat-card {
-            background: var(--card-bg); border-radius: 12px; padding: 16px 18px;
-            border: 1px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,.03);
-        }
-        .stat-label { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
-        .stat-val   { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
-        .stat-val.red { color: var(--danger); }
+        /* ── RÉSUMÉ COMPACT ── */
+        .summary-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:16px;box-shadow:0 2px 6px rgba(0,0,0,.03);}
+        .summary-today{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+        .summary-today .st-label{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+        .summary-today .st-vals{display:flex;align-items:baseline;gap:6px;font-size:.92rem;font-weight:800;color:var(--danger);white-space:nowrap;}
+        .summary-today .st-vals .sep{color:var(--border);font-weight:400;}
+        .summary-hist{background:none;border:none;font-family:inherit;font-size:.78rem;font-weight:700;color:var(--primary);cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+        .summary-hist:hover{text-decoration:underline;}
+        .summary-hist .icon{width:.95em;height:.95em;}
 
-        /* ── TABS ── */
-        .tabs-wrap {
-            display: flex; gap: 4px; background: var(--card-bg);
-            padding: 4px; border-radius: 12px; border: 1px solid var(--border);
-            margin-bottom: 24px; width: fit-content;
-        }
-        .tab-btn {
-            padding: 9px 20px; border: none; border-radius: 9px;
-            font-family: inherit; font-size: .85rem; font-weight: 700;
-            cursor: pointer; transition: all .2s; background: transparent; color: var(--muted);
-        }
-        .tab-btn.active { background: var(--danger); color: white; box-shadow: 0 2px 8px rgba(192,57,43,.3); }
-        .tab-pane { display: none; }
-        .tab-pane.active { display: block; }
+        /* ── ONGLETS SEGMENTÉS ── */
+        .tabs-wrap{display:inline-flex;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:3px;gap:2px;margin-bottom:14px;}
+        .tab-btn{padding:8px 18px;border:none;border-radius:17px;background:transparent;font-family:inherit;font-size:.82rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}
+        .tab-btn .icon{width:1.05em;height:1.05em;}
+        .tab-btn:hover{color:var(--primary);}
+        .tab-btn.active{background:var(--primary);color:#fff;}
+        .tab-pane{display:none;}
+        .tab-pane.active{display:block;}
 
-        /* ── PANEL ── */
-        .panel {
-            background: var(--card-bg); border-radius: 14px; border: 1px solid var(--border);
-            box-shadow: 0 2px 10px rgba(0,0,0,.03); margin-bottom: 24px; overflow: hidden;
-        }
-        .panel-head {
-            padding: 18px 22px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-        }
-        .panel-head-left { display: flex; align-items: center; gap: 10px; }
-        .panel-icon {
-            width: 36px; height: 36px; border-radius: 9px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1rem; background: var(--danger-bg);
-        }
-        .panel-head h2 { font-size: .95rem; font-weight: 700; color: var(--primary); }
-        .panel-head p  { font-size: .76rem; color: var(--muted); margin-top: 1px; }
-        .panel-body { padding: 22px; }
+        /* ── RECHERCHE + FILTRES ── */
+        .toolbar{display:flex;gap:8px;margin-bottom:10px;}
+        .search-wrap{position:relative;flex:1;min-width:0;}
+        .search-wrap .icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);width:1.05em;height:1.05em;}
+        .search-input{width:100%;padding:10px 12px 10px 34px;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit;background:#fafbfc;color:var(--text);}
+        .search-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,58,92,.1);background:#fff;}
+        .btn-filters{flex-shrink:0;display:inline-flex;align-items:center;gap:7px;padding:0 15px;border:1.5px solid var(--border);border-radius:9px;background:var(--card-bg);color:var(--primary);font-family:inherit;font-size:.83rem;font-weight:700;cursor:pointer;white-space:nowrap;position:relative;}
+        .btn-filters:hover{border-color:var(--primary);}
+        .btn-filters .icon{width:1.05em;height:1.05em;}
+        .btn-filters .dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--danger);display:none;}
+        .btn-filters.active .dot{display:block;}
 
-        /* ── TOOLBAR ── */
-        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-        .search-wrap { position: relative; flex: 1; min-width: 200px; }
-        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: .45; font-size: .9rem; }
-        .search-input {
-            width: 100%; padding: 9px 12px 9px 32px; border: 1.5px solid var(--border);
-            border-radius: 8px; font-size: .85rem; font-family: inherit; background: #fafbfc;
-        }
-        .search-input:focus { outline: none; border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
-        .filter-select {
-            padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
-            font-size: .82rem; font-family: inherit; background: #fafbfc;
-            cursor: pointer; color: var(--text);
-        }
+        .chips-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px;}
+        .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 11px;border-radius:20px;background:var(--primary-bg);color:var(--primary);font-size:.74rem;font-weight:700;white-space:nowrap;}
+        .chip button{background:rgba(26,58,92,.12);border:none;width:16px;height:16px;border-radius:50%;color:var(--primary);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;}
+        .chip button .icon{width:.65em;height:.65em;stroke-width:3;}
 
-        /* ── TABLE ── */
-        .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-        thead tr { background: #f5f7fa; }
-        th {
-            padding: 11px 14px; text-align: left; font-size: .72rem; font-weight: 800;
-            color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
-            border-bottom: 1px solid var(--border); white-space: nowrap;
-        }
-        td { padding: 11px 14px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #fafbfd; }
-        tr.row-annule td { opacity: .55; }
-        tr.row-annule .montant { text-decoration: line-through; }
+        .results-title{font-size:.74rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+
+        /* ── PANEL / TABLEAU DESKTOP ── */
+        .tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+        table.data{width:100%;border-collapse:collapse;font-size:.82rem;}
+        table.data thead tr{background:#f5f7fa;}
+        table.data th{padding:10px 13px;text-align:left;font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap;}
+        table.data td{padding:10px 13px;border-bottom:1px solid #f0f2f5;vertical-align:middle;}
+        table.data tbody tr:last-child td{border-bottom:none;}
+        table.data tbody tr:hover td{background:#fafbfd;}
+        table.data tr.row-annule td{opacity:.55;}
+        table.data tr.row-annule .montant{text-decoration:line-through;}
+        table.data .montant{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:800;}
+
+        /* ── CARTES MOBILE ── */
+        .item-cards{display:none;flex-direction:column;gap:10px;}
+        .item-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:13px 15px;box-shadow:0 1px 4px rgba(0,0,0,.03);}
+        .item-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+        .item-card-nom{font-size:.92rem;font-weight:700;color:var(--text);}
+        .item-card-ref{margin-top:3px;}
+        .item-card-detail{font-size:.8rem;color:var(--muted);margin-top:8px;line-height:1.5;}
+        .item-card-detail .more{color:var(--primary);font-weight:700;}
+        .item-card-mid{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:10px;}
+        .item-card-montant{font-size:1.05rem;font-weight:800;color:var(--danger);white-space:nowrap;}
+        .item-card.cancelled .item-card-montant{text-decoration:line-through;color:var(--muted);}
+        .item-card-date{font-size:.74rem;color:var(--muted);white-space:nowrap;}
+        .item-card-actions{display:flex;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid #f0f2f5;}
 
         /* ── BADGES ── */
-        .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
-        .badge.ok      { background: var(--accent-bg); color: #0b6e4c; }
-        .badge.annule  { background: var(--danger-bg); color: var(--danger); }
-        .pill-nattente { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: .7rem; font-weight: 700; background: var(--accent-bg); color: #0b6e4c; }
+        .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:700;white-space:nowrap;}
+        .badge.ok{background:var(--accent-bg);color:var(--accent-dark);}
+        .badge.annule{background:var(--danger-bg);color:var(--danger);}
+        .badge.restaure{background:var(--accent-bg);color:var(--accent-dark);}
+        .pill-ref{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:700;background:var(--accent-bg);color:var(--accent-dark);}
+        .pill-ref.med{background:var(--danger-bg);color:var(--danger);}
 
-        /* ── BUTTONS ── */
-        .btn-annuler {
-            padding: 7px 14px; background: var(--danger); color: white; border: none;
-            border-radius: 7px; font-family: inherit; font-size: .78rem; font-weight: 700;
-            cursor: pointer; transition: opacity .2s; white-space: nowrap;
-        }
-        .btn-annuler:hover { opacity: .88; }
-        .btn-annuler:disabled { opacity: .5; cursor: not-allowed; }
-        .btn-restaurer {
-            padding: 7px 14px; background: var(--accent); color: white; border: none;
-            border-radius: 7px; font-family: inherit; font-size: .78rem; font-weight: 700;
-            cursor: pointer; transition: opacity .2s; white-space: nowrap;
-        }
-        .btn-restaurer:hover { opacity: .88; }
-        .row-actions { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-        .badge.restaure { background: var(--accent-bg); color: #0b6e4c; }
-        .btn-secondary {
-            padding: 10px 18px; background: var(--bg); border: 1.5px solid var(--border);
-            color: var(--muted); border-radius: 9px; font-family: inherit;
-            font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .2s;
-        }
-        .btn-secondary:hover { border-color: var(--danger); color: var(--danger); }
-        .btn-submit {
-            padding: 11px 24px; background: var(--danger); color: white; border: none; border-radius: 9px;
-            font-family: inherit; font-size: .9rem; font-weight: 700;
-            cursor: pointer; transition: opacity .2s, transform .15s;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .btn-submit:hover    { opacity: .9; transform: translateY(-1px); }
-        .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-        .btn-submit.btn-restaurer-submit { background: var(--accent); }
+        /* ── BOUTONS ── */
+        .btn-annuler{flex:1;padding:9px 10px;background:var(--danger);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;transition:opacity .2s;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+        .btn-annuler:hover{opacity:.88;}
+        .btn-annuler .icon{width:1em;height:1em;}
+        .btn-restaurer{flex:1;padding:9px 10px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;transition:opacity .2s;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+        .btn-restaurer:hover{opacity:.88;}
+        .btn-restaurer .icon{width:1em;height:1em;}
+        .btn-voir{padding:9px 12px;background:#fafbfc;border:1.5px solid var(--border);color:var(--primary);border-radius:8px;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;}
+        .btn-voir:hover{border-color:var(--primary);}
+        .table-actions{display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
+        .table-actions .par{font-size:.7rem;color:var(--muted);}
+        .table-actions-row{display:flex;gap:6px;}
+        .table-actions-row .btn-annuler,.table-actions-row .btn-restaurer{flex:none;padding:7px 12px;}
+        .table-actions-row .btn-voir{padding:7px 10px;}
 
         /* ── EMPTY STATE ── */
-        .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
-        .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
-        .empty-state p { font-size: .88rem; }
+        .empty-state{text-align:center;color:var(--muted);font-size:.86rem;padding:36px 20px;}
+        .empty-state .icon{width:1.8rem;height:1.8rem;color:var(--border);display:block;margin:0 auto 10px;}
 
-        /* ── MODAL ── */
-        .modal-overlay {
-            display: none; position: fixed; inset: 0; background: rgba(20,25,35,.55);
-            z-index: 500; align-items: center; justify-content: center; padding: 16px;
+        /* ── MODALES (bottom-sheet mobile / centrée desktop) ── */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,32,.55);z-index:500;align-items:flex-end;justify-content:center;padding:0;}
+        .modal-overlay.visible{display:flex;}
+        .modal-box{background:var(--card-bg);border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,.25);}
+        .modal-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border);}
+        .modal-head .m-icon{width:38px;height:38px;border-radius:10px;background:var(--danger-bg);color:var(--danger);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .modal-head .m-icon .icon{width:1.2em;height:1.2em;}
+        .modal-head h3{font-size:.98rem;color:var(--primary);font-weight:800;}
+        .modal-head p{font-size:.75rem;color:var(--muted);margin-top:1px;}
+        .modal-close{background:none;border:none;font-size:1.2rem;line-height:1;cursor:pointer;color:var(--muted);flex-shrink:0;margin-left:auto;}
+        .modal-body{padding:18px 20px;}
+        @media(min-width:600px){
+            .modal-overlay{align-items:center;padding:16px;}
+            .modal-box{border-radius:16px;}
         }
-        .modal-overlay.visible { display: flex; }
-        .modal-box {
-            background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 480px;
-            max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,.25);
-        }
-        .modal-head {
-            padding: 18px 22px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 10px;
-        }
-        .modal-head .m-icon {
-            width: 38px; height: 38px; border-radius: 10px; background: var(--danger-bg);
-            display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
-        }
-        .modal-head h3 { font-size: 1rem; color: var(--primary); font-weight: 700; }
-        .modal-head p { font-size: .78rem; color: var(--muted); margin-top: 1px; }
-        .modal-body { padding: 20px 22px; }
-        .modal-summary {
-            background: #fafbfc; border: 1.5px solid var(--border); border-radius: 10px;
-            padding: 12px 14px; font-size: .82rem; margin-bottom: 18px; line-height: 1.6;
-        }
-        .modal-summary strong { color: var(--primary); }
-        .m-field { margin-bottom: 14px; }
-        .m-field label { display: block; font-size: .78rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
-        .m-field select, .m-field textarea {
-            width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
-            border-radius: 8px; font-size: .85rem; font-family: inherit; background: #fafbfc; color: var(--text);
-        }
-        .m-field select:focus, .m-field textarea:focus { outline: none; border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
-        .m-field textarea { resize: vertical; }
-        .modal-foot { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
 
-        /* ── CONFIRMATION PAR CODE PATIENT ── */
-        .confirm-fg { background: var(--warning-bg); border: 1.5px dashed var(--warning); border-radius: 10px; padding: 12px 14px; margin-top: 4px; }
-        .confirm-fg label { color: #7a5200; }
-        .confirm-fg input {
-            width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
-            border-radius: 8px; font-size: .85rem; font-family: inherit; background: #fff; color: var(--text);
-        }
-        .confirm-fg input:focus { outline: none; border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.12); }
-        .confirm-hint { font-size: .72rem; color: var(--muted); margin-top: 5px; }
-        .confirm-hint.ok { color: #0b6e4c; font-weight: 700; }
+        .modal-summary{background:#fafbfc;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:.83rem;margin-bottom:16px;line-height:1.65;}
+        .modal-summary strong{color:var(--primary);}
+        .modal-summary ul{margin:4px 0 0 18px;}
+        .modal-audit{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:.78rem;color:var(--muted);margin-bottom:16px;line-height:1.6;}
+        .modal-audit strong{color:var(--text);}
+        .m-field{margin-bottom:14px;}
+        .m-field label{display:block;font-size:.72rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+        .m-field select,.m-field textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;background:#fafbfc;color:var(--text);}
+        .m-field select:focus,.m-field textarea:focus{outline:none;border-color:var(--danger);box-shadow:0 0 0 3px rgba(192,57,43,.12);}
+        .m-field textarea{resize:vertical;}
+        .modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;}
+        .btn-secondary{flex:1;padding:11px 16px;background:var(--bg);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;}
+        .btn-secondary:hover{border-color:var(--primary);color:var(--primary);}
+        .btn-submit{flex:2;padding:11px 16px;background:var(--danger);color:#fff;border:none;border-radius:9px;font-family:inherit;font-size:.87rem;font-weight:800;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+        .btn-submit:hover{opacity:.9;}
+        .btn-submit:disabled{opacity:.55;cursor:not-allowed;}
+        .btn-submit.btn-restaurer-submit{background:var(--accent);}
+        .btn-submit .icon{width:1.05em;height:1.05em;}
 
-        /* ── TOAST ── */
-        .toast {
-            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-            background: var(--primary); color: white; padding: 12px 20px; border-radius: 10px;
-            font-size: .85rem; font-weight: 600; display: none; align-items: center; gap: 8px;
-            z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,.2);
-        }
-        .toast.show { display: flex; }
-        .toast.ok  { background: #0b6e4c; }
-        .toast.err { background: var(--danger); }
+        .confirm-fg{background:var(--warning-bg);border:1.5px dashed var(--warning);border-radius:10px;padding:12px 14px;margin-top:2px;}
+        .confirm-fg label{color:#7a5200;}
+        .confirm-fg input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.85rem;font-family:inherit;background:#fff;color:var(--text);}
+        .confirm-fg input:focus{outline:none;border-color:var(--danger);box-shadow:0 0 0 3px rgba(192,57,43,.12);}
+        .confirm-hint{font-size:.72rem;color:var(--muted);margin-top:5px;}
+        .confirm-hint.ok{color:var(--accent-dark);font-weight:700;}
 
-        @media (max-width: 700px) {
-            .page { padding: 14px; }
-            .panel-body { padding: 14px; }
-            .topbar { height: auto; min-height: 58px; padding: 10px 14px; flex-wrap: wrap; gap: 8px 10px; }
-            .topbar-left { min-width: 0; flex: 1 1 auto; }
-            .topbar-left > div { min-width: 0; }
-            .topbar h1 { font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .tabs-wrap { width: 100%; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
-            .tab-btn { flex: 0 0 auto; white-space: nowrap; padding: 9px 14px; font-size: .8rem; }
-            .table-wrap table { min-width: 620px; }
-            .stats-row { grid-template-columns: 1fr 1fr; }
+        /* ── MODALE FILTRES (bottom sheet) ── */
+        .filter-group{margin-bottom:18px;}
+        .filter-group:last-child{margin-bottom:4px;}
+        .filter-group h4{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;}
+        .filter-opts{display:flex;flex-direction:column;gap:2px;}
+        .filter-opt{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;cursor:pointer;font-size:.87rem;font-weight:600;}
+        .filter-opt:hover{background:var(--bg);}
+        .filter-opt input{accent-color:var(--primary);width:17px;height:17px;flex-shrink:0;}
+
+        /* ── MODALE INFO ── */
+        .info-body{font-size:.86rem;line-height:1.7;color:var(--text);}
+        .info-body strong{color:var(--primary);}
+
+        .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--primary);color:#fff;padding:12px 22px;border-radius:10px;font-size:.86rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:transform .28s;z-index:600;max-width:90vw;}
+        .toast.show{transform:translateX(-50%) translateY(0);}
+        .toast.err{background:var(--danger);}
+        .toast.ok{background:var(--accent-dark);}
+        ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px;}
+
+        @media(max-width:900px){
+            .item-cards{display:flex;}
+            .tbl-wrap{display:none;}
+        }
+        @media(max-width:600px){
+            .page{padding:12px;}
+            .topbar{padding:0 12px;}
+            .summary-row{flex-direction:column;align-items:flex-start;}
         }
     </style>
 </head>
@@ -260,166 +214,171 @@
 
 <nav class="topbar">
     <div class="topbar-left">
-        <a href="../accueil/menu_admin.html" class="back-btn">⬅ Menu</a>
-        <div>
-            <h1>↩️ Retours & Annulations</h1>
-            <p>Module 5 – Corrections de caisse</p>
+        <a href="../accueil/menu_admin.html" class="back-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            <span>Menu</span>
+        </a>
+        <div class="topbar-title">
+            <h1>Retours &amp; Annulations</h1>
+            <p>Corrections de caisse</p>
         </div>
     </div>
-    <div class="conn-badge" id="conn-badge">● Synchronisation…</div>
+    <div class="topbar-right">
+        <div class="conn-badge" id="conn-badge">●</div>
+    </div>
 </nav>
 
 <div class="page">
 
     <div class="notice">
-        <span>⚠️</span>
-        <span>
-            Utilisez cette page pour annuler un ticket ou une vente enregistrés <strong>par erreur</strong>
-            (mauvaise saisie de la caisse) ou suite au <strong>désistement d'un client</strong>. Une vente de
-            médicaments annulée <strong>remet automatiquement les quantités en stock</strong>. Les enregistrements
-            annulés restent visibles ici pour traçabilité, mais sont exclus des statistiques et du bilan.
-        </span>
+        <svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <span class="txt"><strong>À savoir :</strong> les annulations sont définitives. Les médicaments retournés sont automatiquement remis en stock.</span>
+        <button type="button" onclick="openInfoModal()">En savoir plus</button>
     </div>
 
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-label">Tickets annulés (jour)</div>
-            <div class="stat-val red" id="s-tk-day">—</div>
+    <div class="summary-row">
+        <div class="summary-today">
+            <span class="st-label">Aujourd'hui</span>
+            <span class="st-vals"><span id="s-day-count">—</span> annulation(s)<span class="sep">·</span><span id="s-day-val">—</span></span>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Ventes retournées (jour)</div>
-            <div class="stat-val red" id="s-md-day">—</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Valeur retournée (jour)</div>
-            <div class="stat-val red" id="s-val-day">—</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total annulations (historique)</div>
-            <div class="stat-val" id="s-total-hist">—</div>
-        </div>
+        <button type="button" class="summary-hist" onclick="voirHistorique()">
+            Historique : <span id="s-total-hist">—</span> annulation(s)
+            <svg class="icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
     </div>
 
-    <div class="tabs-wrap">
-        <button class="tab-btn active" id="tbtn-ticket" onclick="switchTab('ticket')">🎟️ Tickets de consultation</button>
-        <button class="tab-btn"        id="tbtn-med"    onclick="switchTab('med')">💊 Ventes médicaments</button>
+    <div class="tabs-wrap" id="tabs-wrap">
+        <button class="tab-btn active" id="tbtn-ticket" onclick="switchTab('ticket')">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>
+            Consultations
+        </button>
+        <button class="tab-btn" id="tbtn-med" onclick="switchTab('med')">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+            Médicaments
+        </button>
     </div>
 
     <!-- ═══ TICKETS ═══ -->
     <div class="tab-pane active" id="pane-ticket">
-        <div class="panel">
-            <div class="panel-head">
-                <div class="panel-head-left">
-                    <div class="panel-icon">🎟️</div>
-                    <div>
-                        <h2>Tickets de consultation</h2>
-                        <p>Annuler un ticket saisi par erreur ou suite au désistement d'un patient</p>
-                    </div>
-                </div>
+        <div class="toolbar">
+            <div class="search-wrap">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" class="search-input" id="tk-search" placeholder="Rechercher patient, N° ticket…" oninput="renderTickets()">
             </div>
-            <div class="panel-body">
-                <div class="toolbar">
-                    <div class="search-wrap">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" class="search-input" id="tk-search" placeholder="Rechercher un patient…" oninput="renderTickets()">
-                    </div>
-                    <select class="filter-select" id="tk-periode" onchange="renderTickets()">
-                        <option value="day">Aujourd'hui</option>
-                        <option value="week">Cette semaine</option>
-                        <option value="month">Ce mois</option>
-                        <option value="all">Toutes les périodes</option>
-                    </select>
-                    <select class="filter-select" id="tk-statut" onchange="renderTickets()">
-                        <option value="tous" selected>Tous les statuts</option>
-                        <option value="actifs">Actifs uniquement</option>
-                        <option value="annules">Annulés uniquement</option>
-                    </select>
-                </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>N° att.</th><th>Patient</th><th>Âge</th><th>Prestation</th>
-                                <th>Montant</th><th>Date &amp; heure</th><th>Statut</th><th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tk-tbody">
-                            <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎟️</div><p>Chargement…</p></div></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <button type="button" class="btn-filters" id="tk-btn-filters" onclick="openFilterModal('ticket')">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>
+                Filtres<span class="dot"></span>
+            </button>
         </div>
+        <div class="chips-row" id="tk-chips"></div>
+        <div class="results-title" id="tk-results-title">—</div>
+
+        <div class="tbl-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>N° att.</th><th>Patient</th><th>Âge</th><th>Prestation</th>
+                    <th>Montant</th><th>Date &amp; heure</th><th>Statut</th><th>Action</th>
+                </tr></thead>
+                <tbody id="tk-tbody"></tbody>
+            </table>
+        </div>
+        <div class="item-cards" id="tk-cards"></div>
     </div>
 
     <!-- ═══ MÉDICAMENTS ═══ -->
     <div class="tab-pane" id="pane-med">
-        <div class="panel">
-            <div class="panel-head">
-                <div class="panel-head-left">
-                    <div class="panel-icon">💊</div>
-                    <div>
-                        <h2>Ventes de médicaments</h2>
-                        <p>Annuler une vente et remettre automatiquement les médicaments en stock</p>
-                    </div>
-                </div>
+        <div class="toolbar">
+            <div class="search-wrap">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" class="search-input" id="md-search" placeholder="Rechercher patient, référence, médicament…" oninput="renderMeds()">
             </div>
-            <div class="panel-body">
-                <div class="toolbar">
-                    <div class="search-wrap">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" class="search-input" id="md-search" placeholder="Rechercher un patient…" oninput="renderMeds()">
-                    </div>
-                    <select class="filter-select" id="md-periode" onchange="renderMeds()">
-                        <option value="day">Aujourd'hui</option>
-                        <option value="week">Cette semaine</option>
-                        <option value="month">Ce mois</option>
-                        <option value="all">Toutes les périodes</option>
-                    </select>
-                    <select class="filter-select" id="md-statut" onchange="renderMeds()">
-                        <option value="tous" selected>Tous les statuts</option>
-                        <option value="actifs">Actifs uniquement</option>
-                        <option value="annules">Annulés uniquement</option>
-                    </select>
-                </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Réf.</th><th>Patient</th><th>Médicaments</th>
-                                <th>Montant</th><th>Date &amp; heure</th><th>Statut</th><th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="md-tbody">
-                            <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💊</div><p>Chargement…</p></div></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <button type="button" class="btn-filters" id="md-btn-filters" onclick="openFilterModal('med')">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>
+                Filtres<span class="dot"></span>
+            </button>
         </div>
+        <div class="chips-row" id="md-chips"></div>
+        <div class="results-title" id="md-results-title">—</div>
+
+        <div class="tbl-wrap">
+            <table class="data">
+                <thead><tr>
+                    <th>Réf.</th><th>Patient</th><th>Médicaments</th>
+                    <th>Montant</th><th>Date &amp; heure</th><th>Statut</th><th>Action</th>
+                </tr></thead>
+                <tbody id="md-tbody"></tbody>
+            </table>
+        </div>
+        <div class="item-cards" id="md-cards"></div>
     </div>
 
 </div><!-- /page -->
 
-<!-- ══ MODAL D'ANNULATION ══ -->
+<!-- ══ MODALE FILTRES ══ -->
+<div class="modal-overlay" id="filter-modal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3>Filtres</h3>
+            <button type="button" class="modal-close" onclick="closeFilterModal()" aria-label="Fermer">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="filter-group">
+                <h4>Période</h4>
+                <div class="filter-opts" id="f-periode-opts"></div>
+            </div>
+            <div class="filter-group">
+                <h4>Statut</h4>
+                <div class="filter-opts" id="f-statut-opts"></div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-secondary" onclick="reinitialiserFiltres()">Réinitialiser</button>
+            <button class="btn-submit" style="flex:2;background:var(--primary);" onclick="closeFilterModal()">Appliquer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODALE DÉTAIL (lecture seule) ══ -->
+<div class="modal-overlay" id="detail-modal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="m-icon" style="background:var(--primary-bg);color:var(--primary);">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </div>
+            <div>
+                <h3 id="detail-title">Détail</h3>
+                <p id="detail-sub"></p>
+            </div>
+            <button type="button" class="modal-close" onclick="closeDetailModal()" aria-label="Fermer">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-summary" id="detail-summary"></div>
+            <div class="modal-audit" id="detail-audit" style="display:none;"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-secondary" style="flex:1;" onclick="closeDetailModal()">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODALE D'ANNULATION / RESTAURATION ══ -->
 <div class="modal-overlay" id="modal-overlay">
     <div class="modal-box">
         <div class="modal-head">
-            <div class="m-icon">↩️</div>
+            <div class="m-icon" id="modal-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+            </div>
             <div>
                 <h3 id="modal-title">Annuler l'enregistrement</h3>
                 <p id="modal-sub">Cette action sera tracée</p>
             </div>
+            <button type="button" class="modal-close" onclick="closeModal()" aria-label="Fermer">✕</button>
         </div>
         <div class="modal-body">
             <div class="modal-summary" id="modal-summary"></div>
             <div class="m-field">
-                <label>Motif de l'annulation <span style="color:var(--danger)">*</span></label>
-                <select id="m-motif">
-                    <option value="Erreur de saisie (caisse)">Erreur de saisie (caisse)</option>
-                    <option value="Désistement du client">Désistement du client</option>
-                    <option value="Autre motif">Autre motif</option>
-                </select>
+                <label>Motif <span style="color:var(--danger)">*</span></label>
+                <select id="m-motif"></select>
             </div>
             <div class="m-field">
                 <label>Observation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optionnel)</span></label>
@@ -432,8 +391,37 @@
             </div>
         </div>
         <div class="modal-foot">
-            <button class="btn-secondary" onclick="closeModal()">Fermer</button>
-            <button class="btn-submit" id="modal-confirm-btn" onclick="confirmerAnnulation()" disabled>✕ Confirmer l'annulation</button>
+            <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+            <button class="btn-submit" id="modal-confirm-btn" onclick="confirmerAnnulation()" disabled>
+                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <span>Confirmer l'annulation</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODALE INFO ══ -->
+<div class="modal-overlay" id="info-modal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="m-icon" style="background:var(--warning-bg);color:var(--warning);">
+                <svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </div>
+            <h3>À savoir</h3>
+            <button type="button" class="modal-close" onclick="closeInfoModal()" aria-label="Fermer">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="info-body">
+                Utilisez cette page pour annuler un ticket ou une vente enregistrés <strong>par erreur</strong>
+                (mauvaise saisie de la caisse) ou suite au <strong>désistement d'un client</strong>.<br><br>
+                Une vente de médicaments annulée <strong>remet automatiquement les quantités en stock</strong>.<br><br>
+                Les enregistrements annulés restent visibles ici pour traçabilité, mais sont exclus des
+                statistiques et du bilan. Une annulation ou une restauration exige de resaisir le n° d'attente
+                (ou le nom) du patient concerné, pour éviter d'agir sur la mauvaise ligne.
+            </p>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-secondary" style="flex:1;" onclick="closeInfoModal()">Fermer</button>
         </div>
     </div>
 </div>
@@ -450,8 +438,6 @@ onAuthStateChanged(auth, (user) => {
     if (!user) { window.location.href = '../index.html'; return; }
     const role = sessionStorage.getItem('userRole');
     if (role !== 'admin') { window.location.href = '../accueil/menu_caissier.html'; return; }
-    const badge = document.getElementById('conn-badge');
-    badge.textContent = '● Connecté';
 });
 
 // ── Utilitaires ──────────────────────────────────────────────────
@@ -461,6 +447,7 @@ function esc(str) {
     return div.innerHTML;
 }
 function fmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
+function fcfa(n) { return fmt(n) + ' FCFA'; }
 function getSafeTs(val) {
     if (val.date_heure_ts) return val.date_heure_ts;
     if (val.date) {
@@ -502,6 +489,9 @@ function filterByStatut(list, statut) {
     return list;
 }
 
+const PERIODE_LABELS = { day: "Aujourd'hui", week: 'Cette semaine', month: 'Ce mois', all: 'Toutes périodes' };
+const STATUT_LABELS  = { tous: 'Tous les statuts', actifs: 'Actif', annules: 'Annulé' };
+
 // ── Firebase refs & state ───────────────────────────────────────
 const ticketRef = ref(db, 'ticket_dbase');
 const medRef    = ref(db, 'vente_medicaments');
@@ -510,10 +500,18 @@ const stockRef  = ref(db, 'db_pharmacie_stock');
 let allTickets = [], allMedVentes = [], allStock = [];
 let loadedT = false, loadedM = false, loadedS = false;
 
+// État des filtres par onglet (période par défaut : aujourd'hui ; statut par
+// défaut : actifs seulement — l'historique des annulations reste à un clic).
+const filtres = {
+    ticket: { periode: 'day', statut: 'actifs' },
+    med:    { periode: 'day', statut: 'actifs' },
+};
+let ongletActif = 'ticket';
+
 function checkLoad() {
     if (loadedT && loadedM && loadedS) {
         const b = document.getElementById('conn-badge');
-        b.textContent = '● En direct';
+        b.classList.add('online');
     }
 }
 
@@ -535,95 +533,268 @@ onValue(stockRef, snap => {
     loadedS = true; checkLoad();
 });
 
-// ── Stats ────────────────────────────────────────────────────────
+// ── Résumé compact ───────────────────────────────────────────────
 function updateStats() {
     const tkAnnulesDay = allTickets.filter(x => x.annule && isToday(x._ts));
     const mdAnnulesDay = allMedVentes.filter(x => x.annule && isToday(x._ts));
     const valDay = tkAnnulesDay.reduce((s,x)=>s+(Number(x.prix)||0),0) + mdAnnulesDay.reduce((s,x)=>s+(Number(x.total)||0),0);
-    document.getElementById('s-tk-day').textContent = tkAnnulesDay.length;
-    document.getElementById('s-md-day').textContent = mdAnnulesDay.length;
-    document.getElementById('s-val-day').textContent = fmt(valDay) + ' F';
+    document.getElementById('s-day-count').textContent = tkAnnulesDay.length + mdAnnulesDay.length;
+    document.getElementById('s-day-val').textContent = fcfa(valDay) + ' retourné(s)';
     document.getElementById('s-total-hist').textContent =
         allTickets.filter(x=>x.annule).length + allMedVentes.filter(x=>x.annule).length;
 }
 
+window.voirHistorique = function() {
+    filtres[ongletActif] = { periode: 'all', statut: 'annules' };
+    refreshOnglet(ongletActif);
+    document.querySelector('.page').scrollIntoView({ behavior: 'smooth' });
+};
+
 // ── Onglets ──────────────────────────────────────────────────────
 window.switchTab = function(t) {
+    ongletActif = t;
     ['ticket','med'].forEach(id => {
         document.getElementById('pane-'+id).classList.toggle('active', id===t);
         document.getElementById('tbtn-'+id).classList.toggle('active', id===t);
     });
 };
+function refreshOnglet(t) {
+    if (t === 'ticket') renderTickets(); else renderMeds();
+}
+
+// ── Info notice ──────────────────────────────────────────────────
+window.openInfoModal  = () => document.getElementById('info-modal').classList.add('visible');
+window.closeInfoModal = () => document.getElementById('info-modal').classList.remove('visible');
+
+// ── Filtres (bottom sheet + chips) ────────────────────────────────
+let filtreOngletCourant = 'ticket';
+window.openFilterModal = function(onglet) {
+    filtreOngletCourant = onglet;
+    const f = filtres[onglet];
+    document.getElementById('f-periode-opts').innerHTML = Object.entries(PERIODE_LABELS).map(([v, lbl]) => `
+        <label class="filter-opt"><input type="radio" name="f-periode" value="${v}" ${f.periode===v?'checked':''} onchange="setFiltre('${onglet}','periode','${v}')"> ${esc(lbl)}</label>
+    `).join('');
+    document.getElementById('f-statut-opts').innerHTML = Object.entries(STATUT_LABELS).map(([v, lbl]) => `
+        <label class="filter-opt"><input type="radio" name="f-statut" value="${v}" ${f.statut===v?'checked':''} onchange="setFiltre('${onglet}','statut','${v}')"> ${esc(lbl)}</label>
+    `).join('');
+    document.getElementById('filter-modal').classList.add('visible');
+};
+window.closeFilterModal = () => document.getElementById('filter-modal').classList.remove('visible');
+window.setFiltre = function(onglet, cle, val) {
+    filtres[onglet][cle] = val;
+    refreshOnglet(onglet);
+};
+window.reinitialiserFiltres = function() {
+    filtres[filtreOngletCourant] = { periode: 'day', statut: 'actifs' };
+    refreshOnglet(filtreOngletCourant);
+    closeFilterModal();
+};
+window.retirerFiltre = function(onglet, cle) {
+    filtres[onglet][cle] = (cle === 'periode') ? 'all' : 'tous';
+    refreshOnglet(onglet);
+};
+function renderChips(onglet) {
+    const f = filtres[onglet];
+    const host = document.getElementById(onglet==='ticket' ? 'tk-chips' : 'md-chips');
+    const btn  = document.getElementById(onglet==='ticket' ? 'tk-btn-filters' : 'md-btn-filters');
+    const chips = [];
+    if (f.periode !== 'all') chips.push(['periode', PERIODE_LABELS[f.periode]]);
+    if (f.statut  !== 'tous') chips.push(['statut', STATUT_LABELS[f.statut]]);
+    btn.classList.toggle('active', chips.length > 0);
+    host.innerHTML = chips.map(([cle, lbl]) => `
+        <span class="chip">${esc(lbl)}
+            <button type="button" onclick="retirerFiltre('${onglet}','${cle}')" aria-label="Retirer">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </span>`).join('');
+}
 
 // ── Rendu tickets ────────────────────────────────────────────────
 window.renderTickets = function() {
+    const f = filtres.ticket;
     const q = document.getElementById('tk-search').value.trim().toLowerCase();
-    const periode = document.getElementById('tk-periode').value;
-    const statut = document.getElementById('tk-statut').value;
-    let list = filterByStatut(filterByPeriod(allTickets, periode), statut);
-    if (q) list = list.filter(x => (x.name||'').toLowerCase().includes(q));
+    let list = filterByStatut(filterByPeriod(allTickets, f.periode), f.statut);
+    if (q) list = list.filter(x => (x.name||'').toLowerCase().includes(q) || (x.num_attente||'').toLowerCase().includes(q));
+    renderChips('ticket');
+    document.getElementById('tk-results-title').textContent = `Consultations — ${list.length} résultat${list.length>1?'s':''}`;
 
     const tbody = document.getElementById('tk-tbody');
+    const cards = document.getElementById('tk-cards');
     if (!list.length) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🎟️</div><p>Aucun ticket pour ces critères.</p></div></td></tr>`;
+        const vide = `<div class="empty-state"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg><p>Aucun ticket pour ces critères.</p></div>`;
+        tbody.innerHTML = `<tr><td colspan="8">${vide}</td></tr>`;
+        cards.innerHTML = vide;
         return;
     }
+
     tbody.innerHTML = list.map(x => `
         <tr class="${x.annule ? 'row-annule' : ''}">
-            <td><span class="pill-nattente">${esc(x.num_attente||'—')}</span></td>
+            <td><span class="pill-ref">${esc(x.num_attente||'—')}</span></td>
             <td><strong>${esc(x.name||'—')}</strong></td>
             <td>${esc(x.age||'—')} ans</td>
             <td>${esc(x.choix||'—')}</td>
-            <td class="montant"><strong>${esc(fmt(x.prix||0))} FCFA</strong></td>
+            <td class="montant">${esc(fcfa(x.prix||0))}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
+            <td>${badgeTicket(x)}</td>
             <td>${x.annule
-                ? `<span class="badge annule" title="${esc(x.annule_motif||'')} ${x.annule_obs ? '— '+esc(x.annule_obs) : ''}">✕ Annulé</span>`
-                : (x.restaure_ts ? `<span class="badge restaure" title="Restauré par ${esc((x.restaure_par||'').split('@')[0]||'—')}">↺ Actif (restauré)</span>` : `<span class="badge ok">Actif</span>`)}</td>
-            <td>${x.annule
-                ? `<div class="row-actions">
-                        <span style="font-size:.72rem;color:var(--muted);">par ${esc((x.annule_par||'').split('@')[0]||'—')}</span>
-                        <button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerTicket('${x._key}')">↺ Restaurer</button>
-                   </div>`
-                : `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">✕ Annuler le ticket</button>`}</td>
+                ? `<div class="table-actions"><span class="par">par ${esc((x.annule_par||'').split('@')[0]||'—')}</span>
+                        <div class="table-actions-row"><button type="button" class="btn-voir" onclick="ouvrirDetail('ticket','${x._key}')">Détails</button>
+                        <button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerTicket('${x._key}')">Restaurer</button></div></div>`
+                : `<div class="table-actions-row"><button type="button" class="btn-voir" onclick="ouvrirDetail('ticket','${x._key}')">Détails</button>
+                        <button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">Annuler</button></div>`}</td>
         </tr>
     `).join('');
+
+    cards.innerHTML = list.map(x => `
+        <div class="item-card ${x.annule ? 'cancelled' : ''}">
+            <div class="item-card-top">
+                <div>
+                    <div class="item-card-nom">${esc(x.name||'—')} <span style="font-weight:500;color:var(--muted);font-size:.8rem;">· ${esc(x.age||'—')} ans</span></div>
+                    <div class="item-card-ref"><span class="pill-ref">${esc(x.num_attente||'—')}</span></div>
+                </div>
+                ${badgeTicket(x)}
+            </div>
+            <div class="item-card-detail">${esc(x.choix||'—')}</div>
+            <div class="item-card-mid">
+                <span class="item-card-montant">${esc(fcfa(x.prix||0))}</span>
+                <span class="item-card-date">${esc(dateTimeStr(x._ts))}</span>
+            </div>
+            <div class="item-card-actions">
+                <button type="button" class="btn-voir" onclick="ouvrirDetail('ticket','${x._key}')">Voir détails</button>
+                ${x.annule
+                    ? `<button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerTicket('${x._key}')"><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Restaurer</button>`
+                    : `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Annuler</button>`}
+            </div>
+        </div>
+    `).join('');
 };
+function badgeTicket(x) {
+    if (x.annule) return `<span class="badge annule">Annulé</span>`;
+    if (x.restaure_ts) return `<span class="badge restaure">Restauré</span>`;
+    return `<span class="badge ok">Actif</span>`;
+}
 
 // ── Rendu ventes médicaments ─────────────────────────────────────
+function refMed(x) { return 'MED-' + x._key.substring(0,6).toUpperCase(); }
+function medsResume(meds, max = 2) {
+    if (!meds.length) return '—';
+    const lignes = meds.slice(0, max).map(m => `${esc(m.qte)} × ${esc(m.nom)}`).join('<br>');
+    const reste = meds.length - max;
+    return lignes + (reste > 0 ? `<br><span class="more">+ ${reste} médicament${reste>1?'s':''}</span>` : '');
+}
 window.renderMeds = function() {
+    const f = filtres.med;
     const q = document.getElementById('md-search').value.trim().toLowerCase();
-    const periode = document.getElementById('md-periode').value;
-    const statut = document.getElementById('md-statut').value;
-    let list = filterByStatut(filterByPeriod(allMedVentes, periode), statut);
-    if (q) list = list.filter(x => (x.patient_nom||'').toLowerCase().includes(q));
+    let list = filterByStatut(filterByPeriod(allMedVentes, f.periode), f.statut);
+    if (q) list = list.filter(x =>
+        (x.patient_nom||'').toLowerCase().includes(q) ||
+        refMed(x).toLowerCase().includes(q) ||
+        (x.medicaments||[]).some(m => (m.nom||'').toLowerCase().includes(q)));
+    renderChips('med');
+    document.getElementById('md-results-title').textContent = `Médicaments — ${list.length} résultat${list.length>1?'s':''}`;
 
     const tbody = document.getElementById('md-tbody');
+    const cards = document.getElementById('md-cards');
     if (!list.length) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💊</div><p>Aucune vente pour ces critères.</p></div></td></tr>`;
+        const vide = `<div class="empty-state"><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/></svg><p>Aucune vente pour ces critères.</p></div>`;
+        tbody.innerHTML = `<tr><td colspan="7">${vide}</td></tr>`;
+        cards.innerHTML = vide;
         return;
     }
+
     tbody.innerHTML = list.map(x => {
         const meds = x.medicaments || [];
         const medsStr = meds.map(m => `${m.qte}× ${m.nom}`).join(', ');
         return `
         <tr class="${x.annule ? 'row-annule' : ''}">
-            <td><span class="pill-nattente" style="background:var(--danger-bg);color:var(--danger);">MED-${esc(x._key.substring(0,6).toUpperCase())}</span></td>
+            <td><span class="pill-ref med">${esc(refMed(x))}</span></td>
             <td><strong>${esc(x.patient_nom||'—')}</strong></td>
-            <td style="max-width:260px;font-size:.78rem;" title="${esc(medsStr)}">${esc(medsStr.length > 60 ? medsStr.slice(0,60)+'…' : medsStr)}</td>
-            <td class="montant"><strong>${esc(fmt(x.total||0))} FCFA</strong></td>
+            <td style="max-width:220px;font-size:.78rem;" title="${esc(medsStr)}">${esc(medsStr.length > 50 ? medsStr.slice(0,50)+'…' : medsStr)}</td>
+            <td class="montant">${esc(fcfa(x.total||0))}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}</td>
+            <td>${badgeMed(x)}</td>
             <td>${x.annule
-                ? `<span class="badge annule" title="${esc(x.annule_motif||'')} ${x.annule_obs ? '— '+esc(x.annule_obs) : ''}">↩ Retourné</span>`
-                : (x.restaure_ts ? `<span class="badge restaure" title="Restauré par ${esc((x.restaure_par||'').split('@')[0]||'—')}">↺ Actif (restauré)</span>` : `<span class="badge ok">Actif</span>`)}</td>
-            <td>${x.annule
-                ? `<div class="row-actions">
-                        <span style="font-size:.72rem;color:var(--muted);">par ${esc((x.annule_par||'').split('@')[0]||'—')}</span>
-                        <button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerMed('${x._key}')">↺ Restaurer</button>
-                   </div>`
-                : `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">↩ Annuler &amp; Retourner</button>`}</td>
+                ? `<div class="table-actions"><span class="par">par ${esc((x.annule_par||'').split('@')[0]||'—')}</span>
+                        <div class="table-actions-row"><button type="button" class="btn-voir" onclick="ouvrirDetail('med','${x._key}')">Détails</button>
+                        <button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerMed('${x._key}')">Restaurer</button></div></div>`
+                : `<div class="table-actions-row"><button type="button" class="btn-voir" onclick="ouvrirDetail('med','${x._key}')">Détails</button>
+                        <button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">Annuler</button></div>`}</td>
         </tr>`;
     }).join('');
+
+    cards.innerHTML = list.map(x => {
+        const meds = x.medicaments || [];
+        return `
+        <div class="item-card ${x.annule ? 'cancelled' : ''}">
+            <div class="item-card-top">
+                <div>
+                    <div class="item-card-nom">${esc(x.patient_nom||'—')}</div>
+                    <div class="item-card-ref"><span class="pill-ref med">${esc(refMed(x))}</span></div>
+                </div>
+                ${badgeMed(x)}
+            </div>
+            <div class="item-card-detail">${medsResume(meds)}</div>
+            <div class="item-card-mid">
+                <span class="item-card-montant">${esc(fcfa(x.total||0))}</span>
+                <span class="item-card-date">${esc(dateTimeStr(x._ts))}</span>
+            </div>
+            <div class="item-card-actions">
+                <button type="button" class="btn-voir" onclick="ouvrirDetail('med','${x._key}')">Voir détails</button>
+                ${x.annule
+                    ? `<button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerMed('${x._key}')"><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Restaurer</button>`
+                    : `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Annuler</button>`}
+            </div>
+        </div>`;
+    }).join('');
 };
+function badgeMed(x) {
+    if (x.annule) return `<span class="badge annule">Retourné</span>`;
+    if (x.restaure_ts) return `<span class="badge restaure">Restauré</span>`;
+    return `<span class="badge ok">Actif</span>`;
+}
+
+// ── Modale détail (lecture seule) ─────────────────────────────────
+window.ouvrirDetail = function(type, key) {
+    const x = type === 'ticket' ? allTickets.find(t => t._key === key) : allMedVentes.find(m => m._key === key);
+    if (!x) return;
+    document.getElementById('detail-title').textContent = type === 'ticket'
+        ? 'Détail du ticket' : 'Détail de la vente';
+    document.getElementById('detail-sub').textContent = x.annule
+        ? (type === 'ticket' ? 'Annulé' : 'Retourné') : 'Actif';
+
+    let sum = '';
+    if (type === 'ticket') {
+        sum = `<div><strong>Patient :</strong> ${esc(x.name||'—')} (${esc(x.age||'?')} ans)</div>
+               <div><strong>Prestation :</strong> ${esc(x.choix||'—')}</div>
+               <div><strong>Montant :</strong> ${esc(fcfa(x.prix||0))}</div>
+               <div><strong>N° attente :</strong> ${esc(x.num_attente||'—')}</div>
+               <div><strong>Date :</strong> ${esc(dateTimeStr(x._ts))}</div>`;
+    } else {
+        const meds = x.medicaments || [];
+        sum = `<div><strong>Patient :</strong> ${esc(x.patient_nom||'—')}</div>
+               <div><strong>Référence :</strong> ${esc(refMed(x))}</div>
+               <div><strong>Montant :</strong> ${esc(fcfa(x.total||0))}</div>
+               <div><strong>Date :</strong> ${esc(dateTimeStr(x._ts))}</div>
+               <div style="margin-top:6px;"><strong>Médicaments :</strong></div>
+               <ul>${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
+    }
+    document.getElementById('detail-summary').innerHTML = sum;
+
+    const audit = document.getElementById('detail-audit');
+    if (x.annule) {
+        audit.style.display = 'block';
+        audit.innerHTML = `<strong>Annulé</strong> le ${esc(dateTimeStr(x.annule_ts||x._ts))} par ${esc((x.annule_par||'').split('@')[0]||'—')}<br>
+            Motif : ${esc(x.annule_motif||'—')}${x.annule_obs ? ' — '+esc(x.annule_obs) : ''}`;
+    } else if (x.restaure_ts) {
+        audit.style.display = 'block';
+        audit.innerHTML = `<strong>Restauré</strong> le ${esc(dateTimeStr(x.restaure_ts))} par ${esc((x.restaure_par||'').split('@')[0]||'—')}<br>
+            Motif : ${esc(x.restaure_motif||'—')}${x.restaure_obs ? ' — '+esc(x.restaure_obs) : ''}`;
+    } else {
+        audit.style.display = 'none';
+    }
+    document.getElementById('detail-modal').classList.add('visible');
+};
+window.closeDetailModal = () => document.getElementById('detail-modal').classList.remove('visible');
 
 // ── Modal d'annulation / restauration ─────────────────────────────
 let pending = null; // { type: 'ticket'|'med'|'restaurer_ticket'|'restaurer_med', key }
@@ -669,21 +840,41 @@ function codePatient(numAttente, nom) {
     };
 }
 
-const MOTIFS_ANNULATION = [
-    'Erreur de saisie (caisse)',
-    'Désistement du client',
-    'Autre motif'
+const ICON_UNDO = '<svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>';
+const ICON_X    = '<svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+
+// Motifs détaillés — les motifs propres aux ventes de médicaments
+// (mauvais médicament, mauvaise quantité) n'ont pas de sens pour un ticket
+// de consultation, qui n'a donc qu'une liste réduite.
+const MOTIFS_ANNULATION_TICKET = [
+    'Erreur de saisie (caisse)', 'Désistement du patient', 'Erreur de paiement', 'Autre motif',
+];
+const MOTIFS_ANNULATION_MED = [
+    'Erreur de saisie (caisse)', 'Désistement du patient', 'Mauvais médicament',
+    'Mauvaise quantité', 'Erreur de paiement', 'Autre motif',
 ];
 const MOTIFS_RESTAURATION = [
-    "Annulation faite par erreur (à maintenir)",
-    "Décision de l'administration",
-    'Autre motif'
+    "Annulation faite par erreur (à maintenir)", "Décision de l'administration", 'Autre motif',
 ];
 
 function remplirMotifs(options, valeurParDefaut) {
     const sel = document.getElementById('m-motif');
     sel.innerHTML = options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
     sel.value = valeurParDefaut;
+}
+function styleModal(mode) {
+    // mode: 'annuler' | 'restaurer'
+    const icon = document.getElementById('modal-icon');
+    const btn = document.getElementById('modal-confirm-btn');
+    if (mode === 'restaurer') {
+        icon.style.background = 'var(--accent-bg)'; icon.style.color = 'var(--accent-dark)';
+        btn.className = 'btn-submit btn-restaurer-submit';
+        btn.innerHTML = ICON_UNDO + '<span>Confirmer la restauration</span>';
+    } else {
+        icon.style.background = 'var(--danger-bg)'; icon.style.color = 'var(--danger)';
+        btn.className = 'btn-submit';
+        btn.innerHTML = ICON_X + '<span>Confirmer l\'annulation</span>';
+    }
 }
 
 window.ouvrirModalTicket = function(key) {
@@ -695,12 +886,11 @@ window.ouvrirModalTicket = function(key) {
     document.getElementById('modal-summary').innerHTML = `
         <div><strong>Patient :</strong> ${esc(x.name||'—')} (${esc(x.age||'?')} ans)</div>
         <div><strong>Prestation :</strong> ${esc(x.choix||'—')}</div>
-        <div><strong>Montant :</strong> ${esc(fmt(x.prix||0))} FCFA</div>
+        <div><strong>Montant :</strong> ${esc(fcfa(x.prix||0))}</div>
         <div><strong>N° attente :</strong> ${esc(x.num_attente||'—')}</div>`;
-    remplirMotifs(MOTIFS_ANNULATION, 'Erreur de saisie (caisse)');
+    remplirMotifs(MOTIFS_ANNULATION_TICKET, 'Erreur de saisie (caisse)');
     document.getElementById('m-obs').value = '';
-    document.getElementById('modal-confirm-btn').className = 'btn-submit';
-    document.getElementById('modal-confirm-btn').innerHTML = '✕ Confirmer l\'annulation';
+    styleModal('annuler');
     { const { code, indice } = codePatient(x.num_attente, x.name); armerConfirmation(code, indice); }
     document.getElementById('modal-overlay').classList.add('visible');
 };
@@ -714,13 +904,12 @@ window.ouvrirModalMed = function(key) {
     document.getElementById('modal-sub').textContent = 'Les quantités seront automatiquement remises en stock.';
     document.getElementById('modal-summary').innerHTML = `
         <div><strong>Patient :</strong> ${esc(x.patient_nom||'—')}</div>
-        <div><strong>Montant :</strong> ${esc(fmt(x.total||0))} FCFA</div>
+        <div><strong>Montant :</strong> ${esc(fcfa(x.total||0))}</div>
         <div><strong>Médicaments à retourner :</strong></div>
-        <ul style="margin:4px 0 0 18px;">${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
-    remplirMotifs(MOTIFS_ANNULATION, 'Désistement du client');
+        <ul>${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
+    remplirMotifs(MOTIFS_ANNULATION_MED, 'Désistement du patient');
     document.getElementById('m-obs').value = '';
-    document.getElementById('modal-confirm-btn').className = 'btn-submit';
-    document.getElementById('modal-confirm-btn').innerHTML = '✕ Confirmer l\'annulation';
+    styleModal('annuler');
     { const { code, indice } = codePatient(x.num_attente, x.patient_nom); armerConfirmation(code, indice); }
     document.getElementById('modal-overlay').classList.add('visible');
 };
@@ -730,16 +919,15 @@ window.ouvrirModalRestaurerTicket = function(key) {
     if (!x || !x.annule) return;
     pending = { type: 'restaurer_ticket', key };
     document.getElementById('modal-title').textContent = 'Restaurer le ticket de consultation';
-    document.getElementById('modal-sub').textContent = "Révoque l'annulation faite par la caisse — le ticket redevient actif et réintègre le bilan.";
+    document.getElementById('modal-sub').textContent = "Révoque l'annulation — le ticket redevient actif et réintègre le bilan.";
     document.getElementById('modal-summary').innerHTML = `
         <div><strong>Patient :</strong> ${esc(x.name||'—')} (${esc(x.age||'?')} ans)</div>
-        <div><strong>Montant :</strong> ${esc(fmt(x.prix||0))} FCFA</div>
+        <div><strong>Montant :</strong> ${esc(fcfa(x.prix||0))}</div>
         <div><strong>Annulé le :</strong> ${esc(dateTimeStr(x.annule_ts||x._ts))} par ${esc((x.annule_par||'').split('@')[0]||'—')}</div>
         <div><strong>Motif d'annulation :</strong> ${esc(x.annule_motif||'—')}${x.annule_obs ? ' — '+esc(x.annule_obs) : ''}</div>`;
     remplirMotifs(MOTIFS_RESTAURATION, "Annulation faite par erreur (à maintenir)");
     document.getElementById('m-obs').value = '';
-    document.getElementById('modal-confirm-btn').className = 'btn-submit btn-restaurer-submit';
-    document.getElementById('modal-confirm-btn').innerHTML = '↺ Confirmer la restauration';
+    styleModal('restaurer');
     { const { code, indice } = codePatient(x.num_attente, x.name); armerConfirmation(code, indice); }
     document.getElementById('modal-overlay').classList.add('visible');
 };
@@ -753,15 +941,14 @@ window.ouvrirModalRestaurerMed = function(key) {
     document.getElementById('modal-sub').textContent = "Révoque l'annulation — les quantités remises en stock seront retirées à nouveau.";
     document.getElementById('modal-summary').innerHTML = `
         <div><strong>Patient :</strong> ${esc(x.patient_nom||'—')}</div>
-        <div><strong>Montant :</strong> ${esc(fmt(x.total||0))} FCFA</div>
+        <div><strong>Montant :</strong> ${esc(fcfa(x.total||0))}</div>
         <div><strong>Annulé le :</strong> ${esc(dateTimeStr(x.annule_ts||x._ts))} par ${esc((x.annule_par||'').split('@')[0]||'—')}</div>
         <div><strong>Motif d'annulation :</strong> ${esc(x.annule_motif||'—')}${x.annule_obs ? ' — '+esc(x.annule_obs) : ''}</div>
         <div><strong>Médicaments à retirer du stock :</strong></div>
-        <ul style="margin:4px 0 0 18px;">${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
+        <ul>${meds.map(m => `<li>${esc(m.qte)} × ${esc(m.nom)}</li>`).join('')}</ul>`;
     remplirMotifs(MOTIFS_RESTAURATION, "Décision de l'administration");
     document.getElementById('m-obs').value = '';
-    document.getElementById('modal-confirm-btn').className = 'btn-submit btn-restaurer-submit';
-    document.getElementById('modal-confirm-btn').innerHTML = '↺ Confirmer la restauration';
+    styleModal('restaurer');
     { const { code, indice } = codePatient(x.num_attente, x.patient_nom); armerConfirmation(code, indice); }
     document.getElementById('modal-overlay').classList.add('visible');
 };
@@ -846,10 +1033,11 @@ window.confirmerAnnulation = async function() {
     const motif = document.getElementById('m-motif').value;
     const obs = document.getElementById('m-obs').value.trim();
     const btn = document.getElementById('modal-confirm-btn');
-    const restaurerBtnLabel = '↺ Confirmer la restauration';
-    const annulerBtnLabel = '✕ Confirmer l\'annulation';
     const isRestauration = pending.type.startsWith('restaurer');
-    btn.disabled = true; btn.innerHTML = '⏳ Traitement…';
+    const labelFinal = isRestauration
+        ? ICON_UNDO + '<span>Confirmer la restauration</span>'
+        : ICON_X + '<span>Confirmer l\'annulation</span>';
+    btn.disabled = true; btn.innerHTML = '<span>Traitement…</span>';
 
     const adminEmail = auth.currentUser?.email || '';
 
@@ -906,7 +1094,7 @@ window.confirmerAnnulation = async function() {
         toast("Erreur lors de l'opération : " + e.message, 'err');
     }
 
-    btn.innerHTML = isRestauration ? restaurerBtnLabel : annulerBtnLabel;
+    btn.innerHTML = labelFinal;
     window.checkConfirm(); // ré-évalue l'état du bouton (modale restée ouverte après une erreur)
 };
 
