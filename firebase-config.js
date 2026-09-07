@@ -99,10 +99,22 @@ const firebaseConfig = {
 };
 
 // Initialisation des services Firebase
-const app       = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);       // Google Analytics
-const db        = getDatabase(app);        // ✅ Realtime Database
-const auth      = getAuth(app);            // Authentification
+const app = initializeApp(firebaseConfig);
+
+// Google Analytics n'est utilisé nulle part ailleurs dans l'application —
+// getAnalytics() peut lever une exception synchrone dans certains contextes
+// (navigateur/webview qui bloque le stockage tiers, mode privé, connexion
+// hors-ligne au démarrage…). Si elle n'était pas isolée dans son propre
+// try/catch, une telle exception faisait échouer TOUT ce module : plus
+// aucune page ne pouvait alors importer { auth, db }, cassant l'authentification
+// et la connexion automatique sur l'ensemble de l'application — y compris la
+// page de connexion elle-même, qui redemandait alors email + code à chaque
+// ouverture puisque le script gérant la session ne s'exécutait jamais.
+let analytics = null;
+try { analytics = getAnalytics(app); } catch (e) { console.warn('[Firebase] Analytics indisponible (ignoré) :', e); }
+
+const db   = getDatabase(app);        // ✅ Realtime Database
+const auth = getAuth(app);            // Authentification
 
 // Noeuds RTDB utilisés dans l'application
 //   db_pharmacie_stock    → inventaire des médicaments

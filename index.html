@@ -415,6 +415,12 @@
             get
         } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
+        // Marqueur lu par le script de secours ci-dessous : s'il n'apparaît
+        // jamais (ex. les imports Firebase ci-dessus ont échoué à charger,
+        // faute de réseau au démarrage), un message explicite est affiché
+        // au lieu de laisser le formulaire silencieusement inerte.
+        window.__loginModuleReady = true;
+
         // 2. RÔLES : le rôle n'est plus choisi par l'utilisateur avant la
         // connexion — il est déterminé après authentification, à partir des
         // droits réellement enregistrés pour ce compte dans la base
@@ -767,6 +773,28 @@
                 else majEtatBouton();
             }
         });
+    </script>
+
+    <!-- Filet de secours : si le module ci-dessus n'a jamais pu se charger
+         (typiquement pas de réseau au tout premier chargement, avant que le
+         service worker n'ait mis les fichiers de l'app en cache — les
+         modules Firebase eux-mêmes viennent d'un CDN externe et ne sont
+         jamais mis en cache), le formulaire reste sinon silencieusement
+         inerte : ni auto-connexion, ni soumission possible, sans aucune
+         explication. On avertit alors clairement plutôt que de laisser
+         croire à un simple oubli de compte. -->
+    <script>
+        setTimeout(function () {
+            if (window.__loginModuleReady) return;
+            var box = document.getElementById('message-box');
+            if (!box) return;
+            box.querySelector('.icon')?.remove();
+            box.insertAdjacentHTML('afterbegin',
+                '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>');
+            var txt = document.getElementById('message-text');
+            if (txt) txt.innerHTML = "Impossible de charger l'application.<span class=\"msg-sub\">Vérifiez votre connexion Internet puis relancez l'application.</span>";
+            box.className = 'message-box visible error';
+        }, 6000);
     </script>
 
     <!-- PWA Install Banner -->
