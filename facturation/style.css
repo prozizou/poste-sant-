@@ -1,7 +1,9 @@
 :root {
     --primary:       #1a3a5c;
-    --primary-light: #274e74;
+    --primary-light: #2b5580;
+    --primary-bg:    #eaf0f6;
     --accent:        #0ea472;
+    --accent-dark:   #0b7d54;
     --accent-bg:     #e6f7f1;
     --blue-bg:       #e8f0f8;
     --gold:          #b7770d;
@@ -11,7 +13,7 @@
     --warning:       #e67e22;
     --purple:        #7b5ea7;
     --purple-bg:     #f0ebf8;
-    --bg:            #f0f4f8;
+    --bg:            #f4f6f8;
     --card-bg:       #ffffff;
     --text:          #1e2a38;
     --muted:         #6b7a8d;
@@ -20,6 +22,8 @@
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
+.icon{width:1em;height:1em;display:inline-block;vertical-align:-.15em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.icon.dots{fill:currentColor;stroke:none;}
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -63,60 +67,121 @@ progress:not([value])::-moz-progress-bar {
 @page { size: 58mm auto; margin: 0; }
 
 /* ════════════════════════════════
-   TOP BAR
+   TOP BAR — compacte : l'essentiel (patient/prestation/montant) doit
+   rester la priorité visuelle, pas la configuration d'impression.
 ════════════════════════════════ */
 .topbar {
-    background: linear-gradient(135deg, var(--primary), var(--primary-light));
-    color: white; padding: 8px 24px; min-height: 62px; display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 8px;
-    box-shadow: 0 2px 12px rgba(26,58,92,0.2); position: sticky; top: 0; z-index: 200;
+    background: var(--primary);
+    color: white; padding: 0 16px; height: 56px; display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    box-shadow: 0 2px 10px rgba(26,58,92,0.25); position: sticky; top: 0; z-index: 200;
 }
 .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
 .back-btn {
-    background: rgba(255,255,255,0.14); border: 1.5px solid rgba(255,255,255,0.28); color: white; padding: 6px 13px; border-radius: 8px;
+    background: rgba(255,255,255,0.14); border: 1.5px solid rgba(255,255,255,0.28); color: white; padding: 7px 10px; border-radius: 8px;
     font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; text-decoration: none;
     display: inline-flex; align-items: center; gap: 5px; transition: background 0.2s; flex-shrink: 0;
 }
 .back-btn:hover { background: rgba(255,255,255,0.24); }
+.back-btn .icon { width: 1.05em; height: 1.05em; }
 .topbar-title { min-width: 0; }
-.topbar-title h1 { font-size: 1rem; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar-title p  { font-size: 0.7rem; opacity: 0.72; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-title h1 { font-size: 0.98rem; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-title .printer-line {
+    display: flex; align-items: center; gap: 6px; font-size: 0.72rem; opacity: 0.85;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: none; border: none;
+    color: inherit; font-family: inherit; padding: 0; cursor: pointer;
+}
+.topbar-title .printer-line .dot { width: 7px; height: 7px; border-radius: 50%; background: #ffd27d; flex-shrink: 0; }
+.topbar-title .printer-line.ok .dot { background: #4ade9a; box-shadow: 0 0 0 3px rgba(74,222,154,.25); }
 .conn-badge {
-    font-size: 0.72rem; font-weight: 700; padding: 4px 11px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 700; padding: 4px 9px; border-radius: 20px; flex-shrink: 0;
     background: rgba(14,164,114,0.22); border: 1px solid rgba(14,164,114,0.4); color: #7dffd0;
     white-space: nowrap; transition: all 0.3s ease;
 }
-.topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 100%; }
-.topbar-right #print-method { font-size: 0.68rem; padding: 4px 6px; color: var(--primary); background: white; }
-.printer-badge {
-    font-size: 0.7rem; font-weight: 700; padding: 4px 11px; border-radius: 20px; cursor: pointer;
-    font-family: inherit; white-space: nowrap; transition: all 0.2s ease;
+
+/* ── Menu déroulant « Imprimante & affichage » (kebab) ── */
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.menu-wrap { position: relative; display: inline-flex; }
+.menu-btn {
+    width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.14); border: 1.5px solid rgba(255,255,255,.28); color: white;
+    cursor: pointer; transition: background .2s;
 }
-.printer-badge.ok  { background: rgba(14,164,114,0.22); border: 1px solid rgba(14,164,114,0.4); color: #7dffd0; }
-.printer-badge.off { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); color: #ffd27d; }
-.printer-badge:hover { filter: brightness(1.1); }
+.menu-btn:hover, .menu-btn.open { background: rgba(255,255,255,.24); }
+.menu-btn .icon { width: 1.1em; height: 1.1em; }
+.dropdown-menu {
+    position: absolute; top: calc(100% + 8px); right: 0; min-width: 250px;
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(20,30,45,.18); padding: 10px; z-index: 300; display: none; color: var(--text);
+}
+.dropdown-menu.open { display: block; }
+.dropdown-section-title { font-size: 0.68rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; padding: 4px 6px; }
+.dropdown-menu .fc { margin-bottom: 8px; }
+.dropdown-divider { height: 1px; background: var(--border); margin: 6px 0; }
+.dropdown-item {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    padding: 9px 8px; border-radius: 7px; border: none; background: none;
+    font-family: inherit; font-size: 0.84rem; font-weight: 600; color: var(--text);
+    cursor: pointer; transition: background .15s;
+}
+.dropdown-item .icon { width: 1em; height: 1em; flex-shrink: 0; color: var(--muted); }
+.dropdown-item:hover { background: var(--bg); }
+.dropdown-item.ok { color: var(--accent-dark); }
+.dropdown-item.ok .icon { color: var(--accent-dark); }
+.printer-badge {
+    font-size: 0.78rem; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap;
+}
 .btn-reprint {
     font-size: 0.7rem; font-weight: 700; padding: 5px 10px; border-radius: 7px; cursor: pointer;
     background: var(--blue-bg); border: 1.5px solid var(--primary); color: var(--primary); white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
 }
 .btn-reprint:hover { background: var(--primary); color: white; }
 
 /* ════════════════════════════════
-   PAGE & STATS
+   PAGE & STATS — l'essentiel du jour uniquement ; le détail
+   Semaine/Mois/Trimestre/Année vit dans Planification & Rapports.
 ════════════════════════════════ */
 .page { padding: 20px; max-width: 1300px; margin: 0 auto; }
 .sect-title {
     font-size: 0.85rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;
     margin: 20px 0 10px 0; display: flex; align-items: center; gap: 8px;
 }
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 10px; }
+.sect-title .icon { width: 1em; height: 1em; }
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 10px; max-width: 460px; }
 .stat-card {
-    background: var(--card-bg); border-radius: 12px; padding: 15px 18px; border: 1px solid var(--border);
+    background: var(--card-bg); border-radius: 12px; padding: 13px 16px; border: 1px solid var(--border);
     box-shadow: 0 1px 6px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 12px;
 }
-.stat-icon { width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; color: var(--primary); }
+.stat-icon { width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--primary); background: var(--primary-bg); }
+.stat-icon .icon { width: 1.1em; height: 1.1em; }
 .stat-label { font-size: 0.68rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-.stat-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); line-height: 1.1; }
+.stat-value { font-size: 1.25rem; font-weight: 800; color: var(--primary); line-height: 1.15; margin-top: 2px; }
+
+/* ── Onglets de section : Nouvelle opération / Historique ──
+   Le changement architectural principal : le caissier n'a plus,
+   par défaut, tout l'historique chargé sous son formulaire de saisie. */
+.section-tabs {
+    display: flex; gap: 4px; background: var(--card-bg); padding: 4px; border-radius: 12px;
+    border: 1px solid var(--border); margin: 14px 0; width: fit-content; max-width: 100%;
+}
+.section-btn {
+    padding: 9px 20px; border: none; border-radius: 9px; font-family: inherit; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; transition: all .2s; background: transparent; color: var(--muted);
+    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+}
+.section-btn .icon { width: 1.05em; height: 1.05em; }
+.section-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(26,58,92,.25); }
+.section-block { display: none; }
+.section-block.active { display: block; }
+/* Sur grand écran, la colonne unique (Nouvelle opération / Historique)
+   reste à une largeur de formulaire confortable plutôt que de s'étirer
+   sur toute la largeur de la page. */
+@media (min-width: 860px) {
+    .section-block > div { max-width: 640px; margin: 0 auto; }
+    .section-block[data-section="historique"] > div { max-width: 900px; }
+}
 
 /* ════════════════════════════════
    TABS
@@ -173,15 +238,27 @@ progress:not([value])::-moz-progress-bar {
 
 /* ════════════════════════════════
    SAISIE A POSTERIORI (DATE DE L'OPÉRATION)
-   Permet d'enregistrer, un autre jour, les consultations/ventes d'une
-   journée où la caisse n'a pas pu être tenue (ex. week-end).
+   Repliée par défaut : un résumé compact + un bouton « Modifier »,
+   les champs et l'aide détaillée n'apparaissent qu'à la demande.
 ════════════════════════════════ */
 .backdate-bar {
     background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px;
-    padding: 12px 16px; margin: 14px 0 18px; display: flex; align-items: flex-end; gap: 12px;
-    flex-wrap: wrap; transition: background 0.2s, border-color 0.2s;
+    padding: 10px 14px; margin: 14px 0 18px; transition: background 0.2s, border-color 0.2s;
 }
 .backdate-bar.active { background: #fff8e8; border-color: var(--warning); }
+.backdate-summary { display: flex; align-items: center; gap: 10px; }
+.backdate-summary .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.backdate-bar.active .backdate-summary .dot { background: var(--warning); }
+.backdate-summary-text { flex: 1; min-width: 0; font-size: 0.85rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.backdate-edit-btn {
+    padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--muted);
+    font-family: inherit; font-size: 0.76rem; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.backdate-edit-btn:hover, .backdate-edit-btn.open { border-color: var(--primary); color: var(--primary); }
+.backdate-fields {
+    display: none; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+}
+.backdate-fields.open { display: flex; }
 .backdate-bar .fg { margin-bottom: 0; }
 .backdate-bar input[type=date], .backdate-bar input[type=time] {
     width: auto; padding: 8px 11px; font-size: 0.82rem;
@@ -193,16 +270,24 @@ progress:not([value])::-moz-progress-bar {
     font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .btn-reset-date:hover { border-color: var(--primary); color: var(--primary); }
-.backdate-hint { font-size: 0.72rem; color: var(--muted); flex-basis: 100%; line-height: 1.4; }
+.backdate-info-btn {
+    width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--bg); color: var(--muted);
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding-bottom: 0;
+}
+.backdate-info-btn .icon { width: 1em; height: 1em; }
+.backdate-info-btn:hover { border-color: var(--primary); color: var(--primary); }
+.backdate-hint { display: none; font-size: 0.76rem; color: var(--muted); flex-basis: 100%; line-height: 1.5; background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-top: 2px; }
+.backdate-hint.open { display: block; }
 .backdate-banner {
     display: none; align-items: center; gap: 8px; background: var(--warning); color: #fff; font-weight: 800;
     font-size: 0.82rem; padding: 9px 16px; border-radius: 10px; margin-bottom: 14px;
 }
 .backdate-banner.visible { display: flex; }
 .tag-differe {
-    display: inline-block; font-size: 0.65rem; font-weight: 800; padding: 2px 7px; border-radius: 10px;
+    display: inline-flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 800; padding: 2px 7px; border-radius: 10px;
     background: #fef5e7; color: var(--warning); border: 1px solid #f0d090; margin-left: 6px; white-space: nowrap;
 }
+.tag-differe .icon { width: .9em; height: .9em; }
 
 /* ════════════════════════════════
    TARIF CARDS
@@ -210,16 +295,19 @@ progress:not([value])::-moz-progress-bar {
 .tarif-label { font-size: 0.72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
 .tarif-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .tarif-card {
-    border: 2px solid var(--border); border-radius: 10px; padding: 14px 12px; cursor: pointer; transition: all 0.18s; background: #fafbfc; text-align: center; user-select: none;
+    border: 2px solid var(--border); border-radius: 10px; padding: 12px 10px; cursor: pointer; transition: all 0.18s; background: #fafbfc; text-align: center; user-select: none;
 }
 .tarif-card:hover { border-color: var(--primary); background: var(--blue-bg); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,58,92,0.08); }
 .tarif-card.sel   { border-color: var(--primary); background: var(--blue-bg); box-shadow: 0 0 0 3px rgba(26,58,92,0.13); }
-.tarif-emoji { font-size: 1.6rem; display: block; margin-bottom: 6px; }
-.tarif-nom   { font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-.tarif-prix  { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
+.tarif-card .icon { width: 1.3em; height: 1.3em; display: block; margin: 0 auto 6px; color: var(--primary); }
+.tarif-nom   { font-size: 0.8rem; font-weight: 700; color: var(--text); margin-bottom: 3px; line-height: 1.25; }
+.tarif-prix  { font-size: 1rem; font-weight: 800; color: var(--accent); }
 .tarif-card.sel .tarif-prix { color: var(--primary); }
-.tarif-sub   { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
-.tarif-card.full { grid-column: 1 / -1; }
+.tarif-sub   { font-size: 0.66rem; color: var(--muted); margin-top: 2px; }
+.tarif-card.full { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; text-align: left; padding: 12px 14px; }
+.tarif-card.full .icon { margin: 0; }
+.tarif-card.full .tarif-nom { margin-bottom: 0; }
+.tarif-card.full .tarif-prix { margin-left: auto; }
 .consult-choices { display: flex; gap: 8px; margin-top: 10px; }
 .consult-btn {
     flex: 1; padding: 8px; border: 1.5px solid var(--border); border-radius: 7px; font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
@@ -232,37 +320,48 @@ progress:not([value])::-moz-progress-bar {
    RECAP & MONNAIE BOX
 ════════════════════════════════ */
 .recap-box { border: 1.5px dashed var(--border); border-radius: 10px; padding: 14px 16px; background: #fafbfc; margin: 16px 0; }
+.recap-patient { font-size: 0.95rem; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
+.recap-patient .sub { display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-top: 1px; }
 .recap-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; padding: 5px 0; }
 .recap-row + .recap-row { border-top: 1px dashed var(--border); }
 .recap-lbl  { color: var(--muted); }
 .recap-val  { font-weight: 800; color: var(--primary); }
 .recap-big  { font-size: 1.15rem; font-weight: 800; color: var(--accent); }
 
-.monnaie-box { background: var(--gold-bg); border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
-.monnaie-title { font-size: 0.72rem; font-weight: 800; color: var(--gold); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+/* ── Calcul de la monnaie : compact, avec raccourcis de billets ── */
+.monnaie-box { background: #fafbfc; border: 1.5px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+.monnaie-title { font-size: 0.72rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 .monnaie-row   { display: flex; gap: 10px; align-items: flex-end; }
 .monnaie-field { flex: 1; }
 .monnaie-field label { font-size: 0.72rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 4px; }
 .monnaie-result {
-    background: white; border: 2px solid var(--gold); border-radius: 8px; padding: 9px 12px; font-size: 1.05rem; font-weight: 800; color: var(--gold); text-align: center; min-width: 110px;
+    background: white; border: 2px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 1.05rem; font-weight: 800; color: var(--primary); text-align: center; min-width: 110px;
 }
 .monnaie-result.neg { color: var(--danger); border-color: var(--danger); background: var(--danger-bg); }
 .monnaie-hint { font-size: 0.66rem; color: var(--muted); text-align: center; margin-top: 3px; }
+.montant-rapide { display: flex; gap: 6px; margin-top: 10px; }
+.montant-rapide-btn {
+    flex: 1 1 0; min-width: 0; padding: 8px 4px; border: 1.5px solid var(--border); border-radius: 8px; background: white;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; color: var(--primary); cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.montant-rapide-btn:hover { border-color: var(--primary); background: var(--blue-bg); }
 
 /* ════════════════════════════════
    BUTTONS
 ════════════════════════════════ */
 .btn {
-    width: 100%; padding: 13px; border: none; border-radius: 9px; font-family: inherit; font-size: 0.92rem; font-weight: 800;
-    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.18s; letter-spacing: 0.2px;
+    width: 100%; padding: 14px; border: none; border-radius: 10px; font-family: inherit; font-size: 0.95rem; font-weight: 800;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; transition: all 0.18s; letter-spacing: 0.2px;
 }
+.btn .btn-row { display: flex; align-items: center; gap: 8px; }
+.btn .btn-sub { font-size: 0.72rem; font-weight: 600; opacity: 0.85; letter-spacing: 0.3px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 .btn:not(:disabled):hover { transform: translateY(-1px); }
 .btn-blue   { background: var(--primary); color: white; }
 .btn-blue:not(:disabled):hover   { background: var(--primary-light); box-shadow: 0 4px 14px rgba(26,58,92,0.25); }
-.btn-green  { background: var(--accent); color: white; }
-.btn-green:not(:disabled):hover  { background: #0c9266; box-shadow: 0 4px 14px rgba(14,164,114,0.3); }
-.btn-purple { background: var(--purple); color: white; }
+.btn-green  { background: var(--accent-dark); color: white; box-shadow: 0 2px 10px rgba(11,125,84,0.25); }
+.btn-green:not(:disabled):hover  { background: #086a48; box-shadow: 0 4px 16px rgba(11,125,84,0.35); }
+.btn-purple { background: var(--purple); color: white; box-shadow: 0 2px 10px rgba(123,94,167,0.22); }
 .btn-purple:not(:disabled):hover { background: #6b4f95; box-shadow: 0 4px 14px rgba(123,94,167,0.3); }
 
 /* ════════════════════════════════
@@ -297,17 +396,52 @@ progress:not([value])::-moz-progress-bar {
 .tbadge { font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: var(--blue-bg); color: var(--primary); white-space: nowrap; }
 .tbadge.ordo { background: var(--purple-bg); color: var(--purple); }
 .hist-empty { text-align: center; color: var(--muted); padding: 28px; font-size: 0.86rem; }
+.hist-empty .icon { width: 1.8rem; height: 1.8rem; color: var(--border); display: block; margin: 0 auto 10px; }
 .hist-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .btn-annuler {
+    display: flex; align-items: center; gap: 6px;
     font-size: 0.7rem; font-weight: 700; padding: 5px 10px; border-radius: 7px; cursor: pointer;
     background: var(--danger-bg); border: 1.5px solid var(--danger); color: var(--danger); white-space: nowrap;
 }
 .btn-annuler:hover { background: var(--danger); color: white; }
 .btn-modifier {
+    display: flex; align-items: center; gap: 6px;
     font-size: 0.7rem; font-weight: 700; padding: 5px 10px; border-radius: 7px; cursor: pointer;
     background: var(--purple-bg); border: 1.5px solid var(--purple); color: var(--purple); white-space: nowrap;
 }
 .btn-modifier:hover { background: var(--purple); color: white; }
+.hist-table .icon, .btn-annuler .icon, .btn-modifier .icon, .btn-reprint .icon { width: .95em; height: .95em; }
+
+/* ════════════════════════════════
+   HISTORIQUE — CARTES (mobile)
+   Remplace le tableau à défilement horizontal : plus aucun scroll
+   latéral pour consulter un ticket ou une vente.
+════════════════════════════════ */
+.hist-cards { display: none; flex-direction: column; gap: 10px; max-height: 640px; overflow-y: auto; padding: 2px; }
+.hist-card {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.03);
+}
+.hist-card.cancelled { opacity: .6; }
+.hist-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.hist-card-ref { font-size: .78rem; font-weight: 800; color: var(--muted); }
+.hist-card-amount { font-size: 1.05rem; font-weight: 800; color: var(--primary); }
+.hist-card-amount.struck { text-decoration: line-through; color: var(--muted); font-weight: 700; }
+.hist-card-patient { font-size: .92rem; font-weight: 700; color: var(--text); }
+.hist-card-meta { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+.hist-card-date { font-size: .74rem; color: var(--muted); margin-top: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hist-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #f0f2f5; flex-wrap: wrap; }
+.hist-card-foot .btn-reprint { flex-shrink: 0; }
+.hist-card .btn-kebab {
+    background: none; border: 1.5px solid var(--border); width: 30px; height: 30px; flex-shrink: 0;
+    border-radius: 7px; cursor: pointer; color: var(--muted); position: relative;
+    display: inline-flex; align-items: center; justify-content: center; transition: all .2s;
+}
+.hist-card .btn-kebab .icon { width: 1em; height: 1em; }
+.hist-card .btn-kebab:hover, .hist-card .btn-kebab.open { border-color: var(--primary); color: var(--primary); }
+.hist-card .dropdown-menu { min-width: 200px; }
+.hist-card .dropdown-item.danger { color: var(--danger); }
+.hist-card .dropdown-item.danger .icon { color: var(--danger); }
 
 /* ════════════════════════════════
    MODALE D'ANNULATION / RETOUR
@@ -330,9 +464,10 @@ progress:not([value])::-moz-progress-bar {
 .confirm-hint.ok { color: var(--accent); font-weight: 700; }
 .modal-head { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
 .modal-head .m-icon {
-    width: 38px; height: 38px; border-radius: 10px; background: var(--danger-bg);
+    width: 38px; height: 38px; border-radius: 10px; background: var(--danger-bg); color: var(--danger);
     display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
 }
+.modal-head .m-icon .icon { width: 1.15em; height: 1.15em; }
 .modal-head h3 { font-size: 0.98rem; color: var(--primary); font-weight: 800; }
 .modal-head p  { font-size: 0.76rem; color: var(--muted); margin-top: 1px; }
 .modal-body { padding: 18px 20px; }
@@ -456,44 +591,25 @@ progress:not([value])::-moz-progress-bar {
 ════════════════════════════════ */
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 
-/* Bouton de bascule, dans la barre supérieure */
-#view-switch {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 10px; border-radius: 8px; cursor: pointer;
-    border: 1.5px solid rgba(255,255,255,0.35);
-    background: rgba(255,255,255,0.12); color: #fff;
-    font-family: inherit; font-size: 0.72rem; font-weight: 700;
-    white-space: nowrap; transition: background 0.18s, border-color 0.18s;
-}
-#view-switch:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.6); }
-
 html[data-view="mobile"] .two-col    { grid-template-columns: 1fr; }
 html[data-view="mobile"] .stats-grid { grid-template-columns: 1fr; }
 html[data-view="mobile"] .page       { padding: 12px; max-width: 560px; }
-html[data-view="mobile"] .topbar     { min-height: 56px; padding: 8px 12px; }
-html[data-view="mobile"] .topbar-title h1  { font-size: 0.88rem; }
-html[data-view="mobile"] .topbar-title p    { display: none; }
-html[data-view="mobile"] .topbar-right { width: 100%; justify-content: flex-start; gap: 6px; }
-html[data-view="mobile"] .topbar-right #print-method { flex: 1 1 120px; min-width: 0; }
+html[data-view="mobile"] .topbar-title h1  { font-size: 0.9rem; }
 html[data-view="mobile"] .form-row-2 { grid-template-columns: 1fr; }
 html[data-view="mobile"] .back-btn span.txt { display: none; }
-html[data-view="mobile"] #view-switch .vs-txt { display: none; }
 html[data-view="mobile"] .stat-card  { padding: 11px 12px; gap: 9px; }
 html[data-view="mobile"] .stat-value { font-size: 1.25rem; }
 html[data-view="mobile"] .tab-btn    { font-size: 0.78rem; padding: 12px 10px; gap: 4px; }
 html[data-view="mobile"] .tab-body   { padding: 14px; }
-html[data-view="mobile"] .tarif-grid { grid-template-columns: 1fr; gap: 8px; }
-html[data-view="mobile"] .tarif-card { padding: 11px 8px; }
-html[data-view="mobile"] .tarif-emoji { font-size: 1.3rem; }
-html[data-view="mobile"] .tarif-prix  { font-size: 0.95rem; }
+html[data-view="mobile"] .tarif-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+html[data-view="mobile"] .tarif-card { padding: 10px 6px; }
+html[data-view="mobile"] .tarif-prix  { font-size: 0.9rem; }
 html[data-view="mobile"] .btn         { font-size: 0.86rem; padding: 12px; }
 html[data-view="mobile"] .monnaie-row    { flex-direction: column; }
 html[data-view="mobile"] .monnaie-result { width: 100%; }
 
 /* Très petits écrans : uniquement pertinent en vue mobile réelle. */
 @media (max-width: 380px) {
-    html[data-view="mobile"] .tarif-grid      { grid-template-columns: 1fr; }
-    html[data-view="mobile"] .tarif-card.full { grid-column: 1; }
     html[data-view="mobile"] .consult-choices { flex-direction: column; }
 }
 
@@ -522,36 +638,17 @@ html[data-view="mobile"] .monnaie-result { width: 100%; }
     .page        { padding: 12px; }
     .form-row-2  { grid-template-columns: 1fr; }
     .stats-grid  { grid-template-columns: 1fr 1fr; }
-    .tarif-grid  { grid-template-columns: 1fr; gap: 8px; }
-    .tarif-card.full { grid-column: 1; }
+    .tarif-grid  { grid-template-columns: 1fr 1fr; gap: 8px; }
     .consult-choices { flex-direction: column; }
     .monnaie-row     { flex-direction: column; align-items: stretch; }
     .monnaie-result  { width: 100%; }
-    .topbar          { min-height: 56px; padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
-    .topbar-title p  { display: none; }
-    .topbar-right    { width: 100%; justify-content: flex-start; gap: 6px; }
+    .topbar          { padding: 0 12px; }
     .tab-btn         { padding: 12px 8px; font-size: 0.8rem; gap: 4px; }
 }
 
 @media (max-width: 400px) {
     .stats-grid { grid-template-columns: 1fr; }
 }
-
-/* Bouton de bascule d'affichage (Auto / Mobile / PC). */
-.view-switch {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(255,255,255,0.14); color: #fff;
-    border: 1px solid rgba(255,255,255,0.28); border-radius: 8px;
-    padding: 7px 11px; font: inherit; font-size: 0.78rem; font-weight: 700;
-    cursor: pointer; white-space: nowrap; transition: background 0.16s, border-color 0.16s;
-}
-.view-switch:hover { background: rgba(255,255,255,0.24); border-color: rgba(255,255,255,0.45); }
-.view-switch .vs-ico { font-size: 0.95rem; line-height: 1; }
-.view-switch[data-mode="auto"] { opacity: 0.85; }
-
-/* Vue PC forcée sur un téléphone : la barre supérieure doit rester
-   utilisable une fois la page dézoomée. */
-html[data-view="desktop"] .topbar-right { flex-wrap: wrap; row-gap: 6px; }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -580,17 +677,31 @@ html[data-view="desktop"] .topbar-right { flex-wrap: wrap; row-gap: 6px; }
 .med-grid-hint { text-align:center; font-size:0.7rem; color:var(--muted); padding:4px 0 2px; letter-spacing:0.02em; }
 .med-empty { text-align: center; color: var(--muted); padding: 20px; font-size: 0.85rem; }
 .med-item {
-    display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #fafbfc; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; background: #fafbfc; border: 1.5px solid var(--border);
     border-radius: 9px; cursor: pointer; transition: all 0.18s;
 }
 .med-item:hover { border-color: var(--accent); background: var(--accent-bg); }
 .med-item.added { border-color: var(--accent); background: var(--accent-bg); opacity: 0.7; cursor: not-allowed; }
-.med-item-left { display: flex; flex-direction: column; gap: 2px; }
-.med-nom   { font-size: 0.88rem; font-weight: 700; color: var(--text); }
+.med-item.out { cursor: not-allowed; border-color: var(--border); background: #fafbfc; opacity: .7; }
+.med-item-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* Maximum deux lignes : les longues dénominations pharmaceutiques ne
+   font jamais exploser la hauteur de la liste. */
+.med-nom   {
+    font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .med-meta  { font-size: 0.7rem; color: var(--muted); }
 .med-perim { color: var(--danger); }
 .med-prix  { font-size: 1rem; font-weight: 800; color: var(--accent); white-space: nowrap; }
 .med-stock-low { color: var(--warning); font-weight: 700; }
+.med-item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.med-add-btn {
+    font-size: 0.72rem; font-weight: 700; padding: 5px 10px; border-radius: 7px; white-space: nowrap;
+    background: var(--primary); color: white; border: none; font-family: inherit;
+}
+.med-add-btn.disabled { background: var(--border); color: var(--muted); }
+.med-added-tag { font-size: 0.72rem; font-weight: 700; color: var(--accent-dark); display: flex; align-items: center; gap: 4px; }
+.med-added-tag .icon { width: 1em; height: 1em; }
 
 /* ════════════════════════════════
    PANIER ET BOUTONS DE QUANTITÉ
@@ -610,4 +721,28 @@ html[data-view="desktop"] .topbar-right { flex-wrap: wrap; row-gap: 6px; }
 }
 .panier-del:hover { background: var(--danger); color: white; }
 .panier-qte-ctrl { display: flex; align-items: center; gap: 6px; background: var(--bg); border-radius: 6px; padding: 2px; }
-.panier-btn { border: none; background: white; width: 24px; height: 
+.panier-btn {
+    border: none; background: white; width: 24px; height: 24px; border-radius: 5px; cursor: pointer;
+    font-size: 1rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08); transition: background .15s;
+}
+.panier-btn:hover { background: var(--blue-bg); }
+.panier-qte-val { min-width: 18px; text-align: center; font-size: 0.85rem; font-weight: 800; color: var(--text); }
+
+/* ════════════════════════════════
+   RESPONSIVE — compléments propres à la refonte de la caisse
+════════════════════════════════ */
+@media (max-width: 640px) { .stats-grid { max-width: none; } }
+@media (max-width: 380px) { .tarif-card.full { flex-direction: column; align-items: flex-start; gap: 4px; } .tarif-card.full .tarif-prix { margin-left: 0; } }
+
+html[data-view="mobile"] .hist-wrap { display: none; }
+html[data-view="mobile"] .hist-cards { display: flex; }
+@media (max-width: 900px) {
+    .hist-wrap  { display: none; }
+    .hist-cards { display: flex; }
+}
+@media (min-width: 901px) {
+    html:not([data-view="mobile"]) .hist-cards { display: none; }
+}
+html[data-view="desktop"] .hist-cards { display: none; }
+html[data-view="desktop"] .hist-wrap  { display: block; }
