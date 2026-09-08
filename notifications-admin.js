@@ -135,12 +135,12 @@ export function initNotifCaisseAdmin() {
 
 // ── Abonnement push « application fermée » ──────────────────────────────
 // Enregistre un jeton FCM lié à cet appareil/navigateur dans le nœud
-// "fcm_tokens_admin". Un Cloudflare Worker (voir cloudflare-worker/) lit ce
-// nœud pour envoyer une vraie notification push (barre de statut du
-// téléphone) à chaque nouvelle entrée de "notifications_caisse" — cela
-// fonctionne même si l'application est totalement fermée, contrairement au
-// chemin temps réel ci-dessous qui exige que le Service Worker soit encore
-// actif en mémoire.
+// "fcm_tokens_admin". Une Cloud Function (voir functions/) lit ce nœud pour
+// envoyer une vraie notification push (barre de statut du téléphone) à
+// chaque nouvelle entrée de "notifications_caisse" — cela fonctionne même
+// si l'application est totalement fermée, contrairement au chemin temps
+// réel ci-dessous qui exige que le Service Worker soit encore actif en
+// mémoire.
 async function activerNotificationsAppFermee(monEmail, monUid) {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (!VAPID_KEY || VAPID_KEY.startsWith('REMPLACE_')) {
@@ -157,7 +157,7 @@ async function activerNotificationsAppFermee(monEmail, monUid) {
         // doublon en se reconnectant) — on neutralise les rares caractères
         // interdits par Firebase dans une clé ('.', '#', '$', '[', ']', '/').
         // Le jeton exact est aussi stocké comme champ "token" : c'est LUI que
-        // le Cloudflare Worker utilise pour l'envoi FCM (la clé n'est qu'un
+        // la Cloud Function utilise pour l'envoi FCM (la clé n'est qu'un
         // identifiant d'entrée, pas forcément identique au jeton d'origine).
         const cle = token.replace(/[.#$[\]/]/g, '_');
         await update(ref(db, 'fcm_tokens_admin/' + cle), {
