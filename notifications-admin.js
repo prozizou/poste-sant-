@@ -27,13 +27,10 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/fi
 // domaine bloqué, navigateur non supporté) ferait échouer TOUT ce module —
 // y compris la cloche/le panneau temps réel, qui eux fonctionnent partout.
 
-// ⚠️ À renseigner avant que les notifications « application fermée »
-// fonctionnent : Firebase Console → ⚙️ Paramètres du projet → onglet
-// Cloud Messaging → section « Certificats Web Push » → Générer une paire
-// de clés. Colle ici la clé publique générée (une longue chaîne unique).
-// Tant que cette valeur n'est pas remplacée, le reste de l'app continue
-// de fonctionner normalement (seule cette fonctionnalité reste inactive).
-const VAPID_KEY = 'REMPLACE_PAR_TA_CLE_VAPID_PUBLIQUE';
+// Clé publique VAPID (Firebase Console → Paramètres du projet → Cloud
+// Messaging → Certificats Web Push) — permet au navigateur de s'abonner au
+// push FCM pour les notifications « application fermée ».
+const VAPID_KEY = 'BGMhZ7XD4n7XAzfZd1JqMsS5ORZneRD7fzvCnJ23EJSHcxHuryzRr07hPAAqcn-MFVJr_IZSpPZPFg58Cv2iV8Q';
 
 const ICON_BELL = '<svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 const ICON_TICKET = '<svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>';
