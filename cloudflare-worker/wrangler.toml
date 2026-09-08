@@ -1,6 +1,7 @@
 name = "ps-diandioly-notif-relais"
 main = "src/index.js"
 compatibility_date = "2024-11-01"
+account_id = "f81be70e520f424bc5bc7ad1f3992976"
 
 # Toutes les minutes — voir README.md pour les limites du forfait gratuit.
 [triggers]
