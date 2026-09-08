@@ -18,10 +18,22 @@
 //  concernent que l'administration.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { db, auth } from './firebase-config.js';
+import { app, db, auth } from './firebase-config.js';
 import { ref, query, orderByChild, limitToLast, onValue, update }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+// firebase-messaging.js est chargé dynamiquement (voir activerNotificationsAppFermee)
+// et non importé ici statiquement : un import statique qui échoue (réseau,
+// domaine bloqué, navigateur non supporté) ferait échouer TOUT ce module —
+// y compris la cloche/le panneau temps réel, qui eux fonctionnent partout.
+
+// ⚠️ À renseigner avant que les notifications « application fermée »
+// fonctionnent : Firebase Console → ⚙️ Paramètres du projet → onglet
+// Cloud Messaging → section « Certificats Web Push » → Générer une paire
+// de clés. Colle ici la clé publique générée (une longue chaîne unique).
+// Tant que cette valeur n'est pas remplacée, le reste de l'app continue
+// de fonctionner normalement (seule cette fonctionnalité reste inactive).
+const VAPID_KEY = 'REMPLACE_PAR_TA_CLE_VAPID_PUBLIQUE';
 
 const ICON_BELL = '<svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
 const ICON_TICKET = '<svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 1 0 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 1 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>';
@@ -120,11 +132,46 @@ export function initNotifCaisseAdmin() {
         if (!user) return;
         const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
         if (role !== 'admin') return; // notifications réservées à l'administration
-        demarrer(user.email || '');
+        demarrer(user.email || '', user.uid);
     });
 }
 
-function demarrer(monEmail) {
+// ── Abonnement push « application fermée » ──────────────────────────────
+// Enregistre un jeton FCM lié à cet appareil/navigateur dans le nœud
+// "fcm_tokens_admin". Un Cloudflare Worker (voir cloudflare-worker/) lit ce
+// nœud pour envoyer une vraie notification push (barre de statut du
+// téléphone) à chaque nouvelle entrée de "notifications_caisse" — cela
+// fonctionne même si l'application est totalement fermée, contrairement au
+// chemin temps réel ci-dessous qui exige que le Service Worker soit encore
+// actif en mémoire.
+async function activerNotificationsAppFermee(monEmail, monUid) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!VAPID_KEY || VAPID_KEY.startsWith('REMPLACE_')) {
+        console.warn('[notif] Clé VAPID non configurée — notifications « application fermée » désactivées pour le moment.');
+        return;
+    }
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const { getMessaging, getToken } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js");
+        const messaging = getMessaging(app);
+        const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+        if (!token) return;
+        // Le jeton sert de base à la clé RTDB (un jeton = un appareil, pas de
+        // doublon en se reconnectant) — on neutralise les rares caractères
+        // interdits par Firebase dans une clé ('.', '#', '$', '[', ']', '/').
+        // Le jeton exact est aussi stocké comme champ "token" : c'est LUI que
+        // le Cloudflare Worker utilise pour l'envoi FCM (la clé n'est qu'un
+        // identifiant d'entrée, pas forcément identique au jeton d'origine).
+        const cle = token.replace(/[.#$[\]/]/g, '_');
+        await update(ref(db, 'fcm_tokens_admin/' + cle), {
+            token, email: monEmail, uid: monUid || null, ts: Date.now(), ua: navigator.userAgent.slice(0, 120),
+        });
+    } catch (e) {
+        console.warn('[notif] Abonnement push (application fermée) impossible :', e?.message || e);
+    }
+}
+
+function demarrer(monEmail, monUid) {
     // Cible en priorité la zone d'actions de la topbar (".topbar-right"),
     // où la cloche s'insère en premier élément (avant conn-badge / menu).
     // À défaut (page sans ".topbar-right", ex. menu_admin.html), on
@@ -142,10 +189,19 @@ function demarrer(monEmail) {
     const badgeEl = wrap.querySelector('#ncx-badge');
     const panel   = wrap.querySelector('#ncx-panel');
 
-    // Demande la permission de notification système une seule fois, sans bloquer.
-    if ('Notification' in window && Notification.permission === 'default') {
-        // Laisse l'utilisateur voir l'écran avant de solliciter la permission.
-        setTimeout(() => { Notification.requestPermission().catch(() => {}); }, 1500);
+    // Demande la permission de notification système une seule fois, sans bloquer,
+    // puis abonne l'appareil au push « application fermée » si accordée.
+    if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+            activerNotificationsAppFermee(monEmail, monUid);
+        } else if (Notification.permission === 'default') {
+            // Laisse l'utilisateur voir l'écran avant de solliciter la permission.
+            setTimeout(() => {
+                Notification.requestPermission().then((perm) => {
+                    if (perm === 'granted') activerNotificationsAppFermee(monEmail, monUid);
+                }).catch(() => {});
+            }, 1500);
+        }
     }
 
     const sessionStartTs = Date.now();
