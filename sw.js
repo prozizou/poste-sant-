@@ -17,7 +17,7 @@ const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
 // En cas d'échec (hors-ligne à l'installation, navigateur trop ancien…),
 // le reste du Service Worker (cache PWA) continue de fonctionner : voir
 // notifications-admin.js pour le chemin temps réel (app ouverte), et
-// cloudflare-worker/ pour l'envoi effectif de ces messages FCM.
+// functions/ pour l'envoi effectif de ces messages FCM (Cloud Function).
 try {
   importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
   importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
@@ -32,9 +32,9 @@ try {
   });
   const messaging = firebase.messaging();
 
-  // Le Cloudflare Worker envoie des messages « data-only » (jamais de champ
-  // "notification" côté FCM) : c'est ce gestionnaire qui construit et
-  // affiche lui-même la notification, avec les mêmes boutons d'action que
+  // La Cloud Function (functions/) envoie des messages « data-only » (jamais
+  // de champ "notification" côté FCM) : c'est ce gestionnaire qui construit
+  // et affiche lui-même la notification, avec les mêmes boutons d'action que
   // le chemin temps réel — le même "tag" (voir notifications-admin.js) évite
   // un doublon si les deux chemins se déclenchent pour le même événement.
   messaging.onBackgroundMessage((payload) => {
