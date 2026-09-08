@@ -54,6 +54,12 @@
 //        "db_depenses": {
 //          ".read":  "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier')",
 //          ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier'"
+//        },
+//
+//        "notifications_caisse": {
+//          ".indexOn": "ts",
+//          ".read":  "auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin'",
+//          ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')"
 //        }
 //      }
 //    }
@@ -124,5 +130,8 @@ const auth = getAuth(app);            // Authentification
 //   db_consultations      → consultations médicales
 //   db_suivi_vulnerables  → suivis CPN / Vaccination / Planning familial
 //   db_agenda             → rendez-vous
+//   notifications_caisse  → notifications temps réel vers l'administration à
+//                           chaque encaissement de ticket/médicaments (voir
+//                           notifications-admin.js et facturation/script.js)
 
 export { app, db, auth, analytics };

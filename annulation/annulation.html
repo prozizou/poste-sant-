@@ -438,6 +438,8 @@
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { ref, onValue, update, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { initNotifCaisseAdmin } from '../notifications-admin.js';
+initNotifCaisseAdmin();
 
 // ── Auth guard : réservé à l'administration ─────────────────────
 // Le rôle est cherché dans sessionStorage puis, à défaut, dans localStorage
@@ -535,6 +537,28 @@ function checkLoad() {
         const b = document.getElementById('conn-badge');
         b.classList.add('online');
     }
+    traiterDeepLinkNotif();
+}
+
+// ── Ouverture directe depuis une notification de caisse ────────────────
+// Liens générés par notifications-admin.js / sw.js :
+//   annulation.html?annuler=ticket|med&key=XXX  → ouvre la modale d'annulation
+//   annulation.html?voir=ticket|med&key=XXX     → ouvre le détail (lecture seule)
+let deepLinkTraite = false;
+function traiterDeepLinkNotif() {
+    if (deepLinkTraite || !loadedT || !loadedM) return;
+    deepLinkTraite = true;
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('key');
+    if (!key) return;
+    const annulerType = params.get('annuler');
+    const voirType = params.get('voir');
+    if (annulerType === 'ticket')      { switchTab('ticket'); ouvrirModalTicket(key); }
+    else if (annulerType === 'med')    { switchTab('med');    ouvrirModalMed(key); }
+    else if (voirType === 'ticket')    { switchTab('ticket'); ouvrirDetail('ticket', key); }
+    else if (voirType === 'med')       { switchTab('med');    ouvrirDetail('med', key); }
+    // Nettoie l'URL pour éviter de rouvrir la modale à un rafraîchissement.
+    history.replaceState(null, '', window.location.pathname);
 }
 
 onValue(ticketRef, snap => {

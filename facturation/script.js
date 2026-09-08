@@ -4,6 +4,8 @@ import { ref, push, onValue, off, get, update, runTransaction }
 import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import * as printer from './escpos-printer.js';
+import { initNotifCaisseAdmin } from '../notifications-admin.js';
+initNotifCaisseAdmin(); // no-op si l'utilisateur connecté n'est pas administrateur
 
 // ── AUTH GUARD ──────────────────────────────────
 // Admin ET caissier(ère) partagent cette page : l'admin peut notamment s'en
@@ -697,6 +699,17 @@ window.encaisserTicket = async function() {
         const refNum='TK-'+newRef.key.substring(0,6).toUpperCase();
         const dateStr=dateISO(opTs);
 
+        // Notifie l'administration en temps réel (voir notifications-admin.js).
+        // Best-effort : un échec ici ne doit jamais remettre en cause le
+        // ticket, déjà enregistré avec succès.
+        push(ref(db, 'notifications_caisse'), {
+            type: 'ticket', ref_key: newRef.key, ref_num: refNum,
+            patient_nom: prenom+' '+nom, num_attente: numAttente,
+            montant: prixActuel, detail: choix,
+            caissier_email: auth.currentUser?.email || '',
+            ts: Date.now(), lu: false
+        }).catch(e => console.warn('[notif caisse] échec envoi :', e));
+
         const ticketData = {
             refNum, dateStr, prenom, nom, age, choix, numAttente,
             total: fmt(prixActuel),
@@ -1098,6 +1111,17 @@ window.encaisserMedicaments = async function() {
         const newRef=await push(medVenteRef, payload);
         const refNum='MED-'+newRef.key.substring(0,6).toUpperCase();
         const dateStr=dateISO(opTs);
+
+        // Notifie l'administration en temps réel (voir notifications-admin.js).
+        // Best-effort : un échec ici ne doit jamais remettre en cause la
+        // vente, déjà enregistrée avec succès.
+        push(ref(db, 'notifications_caisse'), {
+            type: 'med', ref_key: newRef.key, ref_num: refNum,
+            patient_nom: patientNom, num_attente: patientAtt,
+            montant: total, detail: panier.map(p=>`${p.qte}× ${p.nom}`).join(', '),
+            caissier_email: auth.currentUser?.email || '',
+            ts: Date.now(), lu: false
+        }).catch(e => console.warn('[notif caisse] échec envoi :', e));
 
         const medData = {
             refNum, dateStr, patientNom, patientAtt,

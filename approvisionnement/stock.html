@@ -1157,6 +1157,8 @@
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { initNotifCaisseAdmin } from '../notifications-admin.js';
+initNotifCaisseAdmin();
 import { exporterPDF, fcfa } from '../planif_rapport/rapport-lib.js';
 
 // ── Auth guard ──────────────────────────────────────────────────

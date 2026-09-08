@@ -4,7 +4,7 @@
 //  Stratégie : Cache-First pour assets statiques, Network-First pour données
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v34';
+const APP_VERSION     = 'v35';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
@@ -15,6 +15,7 @@ const STATIC_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/firebase-config.js',
+  '/notifications-admin.js',
   '/accueil/menu_admin.html',
   '/accueil/menu_caissier.html',
   '/accueil/menu_tresorier.html',
@@ -147,4 +148,34 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+});
+
+// ── Notifications caisse : clic sur la notification ou sur une action ──
+// Émises par notifications-admin.js (reg.showNotification) à chaque
+// encaissement de ticket/médicaments. Le bouton d'action « Annuler et
+// retourner » ouvre directement la fiche d'annulation correspondante ;
+// un clic simple sur la notification ouvre le détail en lecture seule.
+self.addEventListener('notificationclick', (event) => {
+  const notif = event.notification;
+  const data  = notif.data || {};
+  notif.close();
+
+  let url = '/accueil/menu_admin.html';
+  if (data.type && data.key) {
+    const param = event.action === 'annuler' ? 'annuler' : 'voir';
+    url = `/annulation/annulation.html?${param}=${encodeURIComponent(data.type)}&key=${encodeURIComponent(data.key)}`;
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client) return client.navigate(url);
+          return;
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
 });
