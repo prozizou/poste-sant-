@@ -1,0 +1,19 @@
+name = "ps-diandioly-notif-relais"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Toutes les minutes — voir README.md pour les limites du forfait gratuit.
+[triggers]
+crons = ["* * * * *"]
+
+# Créée avec : wrangler kv namespace create NOTIF_STATE
+# Remplace ensuite "id" ci-dessous par l'identifiant retourné.
+[[kv_namespaces]]
+binding = "NOTIF_STATE"
+id = "REMPLACE_PAR_ID_KV"
+
+# Variables non secrètes (les secrets se définissent avec `wrangler secret put`,
+# voir README.md — ne jamais mettre de clé privée dans ce fichier versionné).
+[vars]
+FIREBASE_PROJECT_ID = "poste-sante-280b2"
+FIREBASE_DB_HOST = "poste-sante-280b2-default-rtdb.firebaseio.com"

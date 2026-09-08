@@ -70,9 +70,9 @@
 //    }
 //
 //  ⚠️ "fcm_tokens_admin" n'est lisible par personne via les règles ci-dessus
-//  (".read": false) : seule la Cloud Function (functions/) y a accès, via le
-//  SDK Admin qui CONTOURNE les règles RTDB — c'est voulu, ces jetons ne
-//  doivent pas être exposés à un client normal.
+//  (".read": false) : seul le Cloudflare Worker (cloudflare-worker/) y a
+//  accès, via un compte de service Google qui CONTOURNE les règles RTDB —
+//  c'est voulu, ces jetons ne doivent pas être exposés à un client normal.
 //
 //  Étape préalable (manuelle, une fois par compte, pas d'écran dédié dans
 //  l'app) : pour chaque utilisateur déjà créé, ajouter dans la Console
@@ -145,7 +145,7 @@ const auth = getAuth(app);            // Authentification
 //                           notifications-admin.js et facturation/script.js)
 //   fcm_tokens_admin      → jetons de notification push (application fermée)
 //                           d'un(e) administrateur(rice), un par appareil ;
-//                           lus uniquement par la Cloud Function (voir
-//                           functions/) via le SDK Admin
+//                           lus uniquement par le Cloudflare Worker (voir
+//                           cloudflare-worker/) via un compte de service
 
 export { app, db, auth, analytics };
