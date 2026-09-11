@@ -265,6 +265,7 @@
         .rank-bar{height:9px;background:#eef2f6;border-radius:5px;overflow:hidden;margin-bottom:5px;}
         .rank-bar span{display:block;height:100%;border-radius:5px;background:var(--accent);}
         .rank-bar.purple span{background:var(--purple);}
+        .rank-bar.danger span{background:var(--danger);}
         .rk-sub{color:var(--muted);font-weight:600;font-size:.76rem;}
         .rank-row--clickable{cursor:pointer;border-radius:8px;padding:6px;margin:-6px;transition:background .15s;}
         .rank-row--clickable:hover,.rank-row--clickable:focus-visible{background:var(--purple-bg);}
@@ -678,6 +679,7 @@
                 <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Caisse &amp; contrôle</h2><p id="caisse-periode">—</p></div>
             </div>
             <div class="panel-body">
+                <div id="caisse-anomalie" hidden style="margin-bottom:14px;"></div>
                 <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px;">
                     <div class="kpi-card">
                         <div class="kpi-icon" style="background:var(--danger-bg);color:var(--danger);"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>
@@ -693,10 +695,29 @@
                         <div class="kpi-sub">Taux d'annulation : <span id="r-taux-annulation">—</span></div>
                     </div>
                 </div>
-                <button type="button" class="panel-link" id="btn-caisse-detail" onclick="window.location.href='../annulation/annulation.html'">
+                <div class="act-row"><span class="al">Heure la plus fréquente</span><span class="av" id="caisse-heure-pointe">—</span></div>
+                <button type="button" class="panel-link" id="btn-caisse-detail" onclick="window.location.href='../annulation/annulation.html'" style="margin-top:10px;">
                     <span id="btn-caisse-detail-txt">Voir les opérations</span>
                     <svg class="icon" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
                 </button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head" style="border-left:4px solid var(--danger);">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>Motif des annulations</h2><p>Pourquoi les opérations sont annulées</p></div>
+            </div>
+            <div class="panel-body">
+                <div id="caisse-motif-rank" class="rank-list"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head" style="border-left:4px solid var(--danger);">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Comptes ayant annulé</h2><p>Qui a effectué les annulations</p></div>
+            </div>
+            <div class="panel-body">
+                <div id="caisse-compte-rank" class="rank-list"></div>
             </div>
         </div>
 
@@ -1100,6 +1121,10 @@ function render() {
         ? `Voir les ${fmt(nbAnnules)} opération${nbAnnules > 1 ? 's' : ''}` : 'Voir les opérations';
     renderDelta('kdr-annulations', 'kd-annulations', prec?.nbAnnules, nbAnnules, true);
 
+    // ── Motifs / comptes / heures / anomalies (mêmes annulations que
+    // ci-dessus, décomposées) ──
+    const anomalieCompte = renderCaisseDetail([...tkAnnules, ...mdAnnules]);
+
     // ── État du stock (indépendant de la période) ──
     const stock = statsStock();
     document.getElementById('sk-faible').textContent = fmt(stock.faible);
@@ -1131,7 +1156,7 @@ function render() {
     renderScoreSante({ marge, pctRecettes, tauxRupture, tauxAnnulation, tauxFaible });
 
     // ── Insights : un seul calcul, deux affichages (aperçu + liste complète). ──
-    const insightItems = calculerInsights({ recettes, depenses, solde, tauxAnnulation }, prec, stock, tk);
+    const insightItems = calculerInsights({ recettes, depenses, solde, tauxAnnulation }, prec, stock, tk, anomalieCompte);
     renderInsights(insightItems);
     renderInsightsTeaser(insightItems);
 }
@@ -1303,7 +1328,89 @@ function jourLePlusActif(tk) {
     return { jour: JOURS_SEMAINE[maxI], pct: Math.round(counts[maxI] / tk.length * 100) };
 }
 
-function calculerInsights(cour, prec, stock, tk) {
+// ── CAISSE & CONTRÔLE : motifs, comptes, heures, anomalies ──────────
+// Un ticket et une vente n'ont pas le même champ de montant (prix / total) :
+// ce helper unifie les deux pour toute agrégation sur des annulations mixtes.
+const montantAnnule = x => Number(x.prix ?? x.total ?? 0);
+
+function parMotif(annules) {
+    const m = new Map();
+    for (const x of annules) {
+        const k = x.annule_motif || 'Motif non précisé';
+        const e = m.get(k) || { nom: k, nb: 0, montant: 0 };
+        e.nb++; e.montant += montantAnnule(x);
+        m.set(k, e);
+    }
+    return [...m.values()].sort((a, b) => b.nb - a.nb);
+}
+function parCompte(annules) {
+    const m = new Map();
+    for (const x of annules) {
+        const k = (x.annule_par || '').split('@')[0] || 'Compte inconnu';
+        const e = m.get(k) || { nom: k, nb: 0, montant: 0 };
+        e.nb++; e.montant += montantAnnule(x);
+        m.set(k, e);
+    }
+    return [...m.values()].sort((a, b) => b.nb - a.nb);
+}
+function heurePointeAnnulations(annules) {
+    if (annules.length < 2) return null;
+    const counts = new Array(24).fill(0);
+    annules.forEach(x => counts[new Date(x.annule_ts || x._ts).getHours()]++);
+    let maxI = 0; counts.forEach((c, i) => { if (c > counts[maxI]) maxI = i; });
+    if (counts[maxI] === 0) return null;
+    return { heure: maxI, pct: Math.round(counts[maxI] / annules.length * 100) };
+}
+// Anomalie : un seul compte concentre la majorité des annulations de la
+// période. Seuils volontairement simples (60 %, à partir de 3 annulations
+// pour éviter tout signal sur un échantillon trop petit pour être parlant).
+const SEUIL_ANOMALIE_COMPTE = 60;
+const MIN_ANNULATIONS_ANOMALIE = 3;
+function detecterAnomalieCompte(comptes, total) {
+    if (total < MIN_ANNULATIONS_ANOMALIE || !comptes.length) return null;
+    const top = comptes[0];
+    const pct = Math.round(top.nb / total * 100);
+    if (pct < SEUIL_ANOMALIE_COMPTE) return null;
+    return { compte: top.nom, pct, nb: top.nb };
+}
+// Rendu de la décomposition + détection d'anomalie ; retourne l'anomalie
+// (ou null) pour que calculerInsights() la réutilise telle quelle plutôt
+// que de la recalculer séparément.
+function renderCaisseDetail(annules) {
+    const motifs = parMotif(annules);
+    const comptes = parCompte(annules);
+    const heure = heurePointeAnnulations(annules);
+
+    document.getElementById('caisse-heure-pointe').textContent = heure
+        ? `${heure.heure}h (${heure.pct} % des annulations)` : '—';
+
+    renderRank('caisse-motif-rank', motifs.map(m => ({
+        nom: m.nom, val: m.nb, valDisplay: `${fmt(m.nb)} fois`, sub: `${fcfa(m.montant)} retourné(s)`,
+    })), 'danger', { emptyMsg: 'Aucune annulation sur cette période.' });
+    renderRank('caisse-compte-rank', comptes.map(c => ({
+        nom: c.nom, val: c.nb, valDisplay: `${fmt(c.nb)} fois`, sub: `${fcfa(c.montant)} retourné(s)`,
+    })), 'danger', { emptyMsg: 'Aucune annulation sur cette période.' });
+
+    const anomalie = detecterAnomalieCompte(comptes, annules.length);
+    const host = document.getElementById('caisse-anomalie');
+    if (anomalie) {
+        host.hidden = false;
+        host.innerHTML = `<div class="insight-card critique">
+            <div class="ins-icon">${ICON_INSIGHT_WARN}</div>
+            <div>
+                <span class="insight-cat critique">Critique</span>
+                <div class="ins-title">Annulations concentrées sur un compte</div>
+                <div class="ins-text">${esc(anomalie.compte)} est à l'origine de ${anomalie.pct} % des annulations de la période (${fmt(anomalie.nb)} opération${anomalie.nb > 1 ? 's' : ''}).</div>
+            </div>
+        </div>`;
+    } else {
+        host.hidden = true;
+        host.innerHTML = '';
+    }
+    return anomalie;
+}
+
+function calculerInsights(cour, prec, stock, tk, anomalieCompte) {
     const items = [];
 
     if (stock.rupture > 0) {
@@ -1355,6 +1462,13 @@ function calculerInsights(cour, prec, stock, tk) {
             cat: 'attention', titre: "Taux d'annulation élevé",
             texte: `${cour.tauxAnnulation.toFixed(1)} % des opérations ont été annulées sur cette période.`,
             actionLabel: 'Voir les annulations', actionHref: '../annulation/annulation.html',
+        });
+    }
+    if (anomalieCompte) {
+        items.push({
+            cat: 'critique', titre: 'Annulations concentrées sur un compte',
+            texte: `${anomalieCompte.compte} est à l'origine de ${anomalieCompte.pct} % des annulations de la période (${fmt(anomalieCompte.nb)} opération${anomalieCompte.nb > 1 ? 's' : ''}).`,
+            actionLabel: 'Voir la caisse', actionOnclick: "switchSection('caisse')",
         });
     }
 
@@ -1726,7 +1840,7 @@ function renderVentesTable(md, total) {
 // ── CLASSEMENTS (nom sur sa propre ligne, jamais tronqué ; #1/#2/#3) ──
 function renderRank(id, items, variante, opts = {}) {
     const c = document.getElementById(id);
-    if (!items.length) { c.innerHTML = `<div class="empty-state">Rien à classer sur cette période.</div>`; return; }
+    if (!items.length) { c.innerHTML = `<div class="empty-state">${esc(opts.emptyMsg || 'Rien à classer sur cette période.')}</div>`; return; }
     const max = items[0].val || 1;
     c.innerHTML = items.map((i, idx) => `
       <div class="rank-row${opts.clickable ? ' rank-row--clickable' : ''}"${opts.clickable ? ` data-nom="${esc(i.nom)}" tabindex="0" role="button"` : ''}>
