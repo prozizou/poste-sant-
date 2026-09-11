@@ -4,10 +4,56 @@
 //  Stratégie : Cache-First pour assets statiques, Network-First pour données
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v34';
+const APP_VERSION     = 'v37';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
+
+// ── Firebase Cloud Messaging : notifications même application fermée ───
+// Un Service Worker « classique » (non-module) ne peut pas importer le
+// module ES firebase-config.js — on duplique donc ici sa configuration
+// publique (ces clés sont de toute façon exposées côté client ; la
+// sécurité réelle repose sur les règles RTDB, voir firebase-config.js).
+// En cas d'échec (hors-ligne à l'installation, navigateur trop ancien…),
+// le reste du Service Worker (cache PWA) continue de fonctionner : voir
+// notifications-admin.js pour le chemin temps réel (app ouverte), et
+// functions/ pour l'envoi effectif de ces messages FCM (Cloud Function).
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
+  firebase.initializeApp({
+    apiKey:            "AIzaSyAN_XP-qqacK5P0HZZ-VWaqpEHHaCXvqOI",
+    authDomain:        "poste-sante-280b2.firebaseapp.com",
+    databaseURL:       "https://poste-sante-280b2-default-rtdb.firebaseio.com",
+    projectId:         "poste-sante-280b2",
+    storageBucket:     "poste-sante-280b2.firebasestorage.app",
+    messagingSenderId: "204790038326",
+    appId:             "1:204790038326:web:8a24c27204e296de577d97",
+  });
+  const messaging = firebase.messaging();
+
+  // La Cloud Function (functions/) envoie des messages « data-only » (jamais
+  // de champ "notification" côté FCM) : c'est ce gestionnaire qui construit
+  // et affiche lui-même la notification, avec les mêmes boutons d'action que
+  // le chemin temps réel — le même "tag" (voir notifications-admin.js) évite
+  // un doublon si les deux chemins se déclenchent pour le même événement.
+  messaging.onBackgroundMessage((payload) => {
+    const d = payload.data || {};
+    self.registration.showNotification(d.title || 'Poste de Santé de Diandioly', {
+      body: d.body || '',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-96x96.png',
+      tag: d.tag || ('caisse-' + (d.nkey || Date.now())),
+      data: { type: d.type, key: d.key, nkey: d.nkey },
+      actions: [
+        { action: 'annuler', title: 'Annuler et retourner' },
+        { action: 'voir',    title: 'Voir le détail' },
+      ],
+    });
+  });
+} catch (e) {
+  console.warn('[SW] Firebase Messaging indisponible :', e);
+}
 
 // Assets statiques à pré-cacher lors de l'installation
 const STATIC_ASSETS = [
@@ -15,6 +61,7 @@ const STATIC_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/firebase-config.js',
+  '/notifications-admin.js',
   '/accueil/menu_admin.html',
   '/accueil/menu_caissier.html',
   '/accueil/menu_tresorier.html',
@@ -147,4 +194,34 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+});
+
+// ── Notifications caisse : clic sur la notification ou sur une action ──
+// Émises par notifications-admin.js (reg.showNotification) à chaque
+// encaissement de ticket/médicaments. Le bouton d'action « Annuler et
+// retourner » ouvre directement la fiche d'annulation correspondante ;
+// un clic simple sur la notification ouvre le détail en lecture seule.
+self.addEventListener('notificationclick', (event) => {
+  const notif = event.notification;
+  const data  = notif.data || {};
+  notif.close();
+
+  let url = '/accueil/menu_admin.html';
+  if (data.type && data.key) {
+    const param = event.action === 'annuler' ? 'annuler' : 'voir';
+    url = `/annulation/annulation.html?${param}=${encodeURIComponent(data.type)}&key=${encodeURIComponent(data.key)}`;
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client) return client.navigate(url);
+          return;
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
 });

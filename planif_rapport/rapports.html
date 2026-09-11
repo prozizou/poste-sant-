@@ -644,6 +644,8 @@
 import { db, auth } from '../firebase-config.js';
 import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { initNotifCaisseAdmin } from '../notifications-admin.js';
+initNotifCaisseAdmin();
 import {
     esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
     totalTickets, totalVentes, totalDepenses, parPrestation, parMedicament, exporterPDF
@@ -659,6 +661,10 @@ onAuthStateChanged(auth, user => {
     if (role) sessionStorage.setItem('userRole', role);
     if (role === 'caissier') {
         window.location.href = '../accueil/menu_caissier.html';
+        return;
+    }
+    if (role === 'icp') {
+        window.location.href = '../accueil/menu_icp.html';
     }
 });
 

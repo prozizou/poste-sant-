@@ -1,0 +1,60 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "db_users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('db_users').child(auth.uid).child('role').val() === 'admin')",
+        ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'",
+        ".validate": "newData.child('role').val() === 'admin' || newData.child('role').val() === 'caissier' || newData.child('role').val() === 'tresorier' || newData.child('role').val() === 'icp'"
+      }
+    },
+
+    "administration": {
+      "auth_db": {
+        ".indexOn": "email",
+        ".read": "auth != null && query.orderByChild === 'email' && query.equalTo === auth.token.email",
+        ".write": false
+      }
+    },
+
+    "ticket_dbase": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')"
+    },
+    "vente_medicaments": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')"
+    },
+    "db_pharmacie_stock": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')"
+    },
+    "compteurs": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')"
+    },
+
+    "db_pharmacie_reappro": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin'"
+    },
+
+    "db_depenses": {
+      ".read": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier' || root.child('db_users').child(auth.uid).child('role').val() === 'icp')",
+      ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier')"
+    },
+
+    "notifications_caisse": {
+      ".indexOn": "ts",
+      ".read": "auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')"
+    },
+
+    "fcm_tokens_admin": {
+      ".read": false,
+      ".write": "auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin'"
+    }
+  }
+}
