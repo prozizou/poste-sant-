@@ -154,10 +154,12 @@
         /* ── SPLIT recettes ── */
         .split-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:10px 0 8px;background:#eef2f6;}
         .split-bar span{display:block;height:100%;}
-        .split-leg{display:flex;justify-content:space-between;gap:12px;font-size:.74rem;}
-        .split-leg .li{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:600;}
+        .split-leg{display:flex;flex-direction:column;gap:8px;font-size:.79rem;}
+        .split-leg .li{display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:600;}
         .split-leg .li .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-        .split-leg .li b{color:var(--text);font-weight:800;}
+        .split-leg .li .li-nom{flex:1;color:var(--text);font-weight:700;}
+        .split-leg .li b{color:var(--text);font-weight:800;white-space:nowrap;}
+        .split-leg .li .li-pct{color:var(--muted);font-weight:700;font-size:.72rem;white-space:nowrap;min-width:36px;text-align:right;}
 
         /* ── BARRES HORIZONTALES (dépenses) ── */
         .hbar-row{margin-bottom:12px;}
@@ -1060,9 +1062,12 @@ function render() {
     if (totalRecettes > 0) {
         const pc = caTk / totalRecettes * 100;
         splitBar.innerHTML = `<span style="width:${pc}%;background:var(--chart-blue);"></span><span style="width:${100-pc}%;background:var(--accent);"></span>`;
+        // Somme réellement vendue sur la période sélectionnée (tickets et
+        // médicaments), pas seulement une part relative — c'est la réponse
+        // directe à « combien a-t-on vendu de tickets / de médicaments ? ».
         splitLeg.innerHTML = `
-            <span class="li"><span class="dot" style="background:var(--chart-blue);"></span>Consultations <b>${Math.round(pc)}%</b></span>
-            <span class="li"><span class="dot" style="background:var(--accent);"></span>Pharmacie <b>${Math.round(100-pc)}%</b></span>`;
+            <span class="li"><span class="dot" style="background:var(--chart-blue);"></span><span class="li-nom">Consultations</span><b>${fcfa(caTk)}</b><span class="li-pct">${Math.round(pc)}%</span></span>
+            <span class="li"><span class="dot" style="background:var(--accent);"></span><span class="li-nom">Pharmacie</span><b>${fcfa(caMd)}</b><span class="li-pct">${Math.round(100-pc)}%</span></span>`;
     } else {
         splitBar.innerHTML = '<span style="width:100%;background:#eef2f6;"></span>';
         splitLeg.innerHTML = '<span class="li">Aucune recette sur la période</span>';
