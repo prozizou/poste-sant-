@@ -671,10 +671,22 @@
         let dejaTraite = false;
         onAuthStateChanged(auth, async (user) => {
             if (!user || dejaTraite) return;
+            const emailCourant = (user.email || '').toLowerCase();
+            const emailMemorise = (sessionStorage.getItem('userEmail') || localStorage.getItem('savedEmail') || '').toLowerCase();
             const roleMemorise = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole');
-            if (ROLE_HOME[roleMemorise]) { dejaTraite = true; allerVersEspace(roleMemorise); return; }
-            // Rôle non mémorisé (ex. connexion faite sur une ancienne version,
-            // ou nouvel appareil) : on le détermine depuis la base.
+            // Le rôle mémorisé n'est fiable que s'il correspond bien au COMPTE
+            // actuellement authentifié — sinon (ex. un compte admin déjà
+            // connecté sur cet appareil, puis un(e) ICP se connecte avec ses
+            // propres identifiants sans passer par « Déconnexion » avant) le
+            // cache appartient au compte précédent et redirigerait vers le
+            // mauvais espace. On l'ignore alors et on re-détermine le rôle
+            // depuis la base, comme pour un appareil jamais utilisé.
+            if (roleMemorise && emailMemorise && emailMemorise === emailCourant && ROLE_HOME[roleMemorise]) {
+                dejaTraite = true; allerVersEspace(roleMemorise); return;
+            }
+            // Rôle non mémorisé, ou mémorisé pour un autre compte (ex. nouvel
+            // appareil, ou changement de compte sans déconnexion explicite) :
+            // on le détermine depuis la base.
             try {
                 const roles = await rolesPourEmail((user.email || '').toLowerCase());
                 if (roles.length === 1) {
