@@ -90,7 +90,7 @@
         /* ── CARTES KPI ── */
         .kpi-grid{display:grid;gap:9px;}
         .kpi-grid.g4{grid-template-columns:1fr 1fr;}
-        .kpi-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px 13px;box-shadow:0 1px 4px rgba(0,0,0,.03);}
+        .kpi-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:10px 12px;box-shadow:0 1px 4px rgba(0,0,0,.03);}
         .kpi-label{font-size:.66rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
         .kpi-value{font-size:1.22rem;font-weight:800;color:var(--primary);line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums;}
         .kpi-card.danger .kpi-value{color:var(--danger);}
@@ -105,8 +105,10 @@
         .delta-ref{font-size:.64rem;color:var(--muted);font-weight:600;}
 
         /* ── BANNIÈRE PERFORMANCE ── */
-        .perf-banner{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:11px;border:1px solid;margin-top:9px;font-size:.83rem;font-weight:700;}
-        .perf-banner .pb-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;}
+        .perf-banner{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border-radius:11px;border:1px solid;margin-top:9px;}
+        .perf-banner .pb-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+        .perf-banner .pb-title{font-size:.85rem;font-weight:800;}
+        .perf-banner .pb-sub{font-size:.76rem;font-weight:600;margin-top:2px;opacity:.9;}
         .perf-banner.ok{background:var(--accent-bg);border-color:#bfe8d7;color:var(--accent-dark);}
         .perf-banner.ok .pb-dot{background:var(--accent);}
         .perf-banner.bad{background:var(--danger-bg);border-color:#f0c4bd;color:var(--danger);}
@@ -115,14 +117,21 @@
         .perf-banner.flat .pb-dot{background:var(--primary);}
 
         /* ── PANEL ── */
-        .panel{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:15px;box-shadow:0 1px 4px rgba(0,0,0,.03);}
+        .panel{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:13px 14px;box-shadow:0 1px 4px rgba(0,0,0,.03);}
         .panel + .panel{margin-top:9px;}
         .panel-title{font-size:.76rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 
-        /* ── POINTS D'ATTENTION ── */
-        .attn-row{display:flex;align-items:flex-start;gap:9px;padding:8px 0;font-size:.81rem;font-weight:600;color:var(--text);border-bottom:1px solid #f4f6f8;}
-        .attn-row:last-child{border-bottom:none;}
-        .attn-row .ar-ico{flex-shrink:0;font-size:1rem;line-height:1.3;}
+        /* ── POINTS D'ATTENTION (hiérarchisés par gravité) ── */
+        .attn-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;border:1px solid;margin-bottom:7px;}
+        .attn-row:last-child{margin-bottom:0;}
+        .attn-row .ar-ico{flex-shrink:0;font-size:.95rem;}
+        .attn-row .ar-txt{flex:1;font-size:.8rem;font-weight:600;color:var(--text);}
+        .attn-row .ar-tag{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0;text-align:right;}
+        .attn-row.crit{background:var(--danger-bg);border-color:#f0c4bd;} .attn-row.crit .ar-tag{color:var(--danger);}
+        .attn-row.imp{background:var(--warning-bg);border-color:#f5df9f;} .attn-row.imp .ar-tag{color:var(--warning-dark);}
+        .attn-row.todo{background:#fff8ec;border-color:#f2e2bf;} .attn-row.todo .ar-tag{color:#a07a1f;}
+        .attn-row.watch{background:#fffdf5;border-color:#f0e6c2;} .attn-row.watch .ar-tag{color:#8a7409;}
+        .attn-row.ok{background:var(--accent-bg);border-color:#bfe8d7;} .attn-row.ok .ar-tag{color:var(--accent-dark);}
 
         /* ── LIGNE (courbe) + TOOLTIP ── */
         .chart-wrap{position:relative;}
@@ -134,6 +143,10 @@
         .chart-tooltip .tt-rec{color:#8ff0cf;} .chart-tooltip .tt-dep{color:#ffb4a8;}
         .chart-tooltip .tt-sol{font-weight:800;border-top:1px solid rgba(255,255,255,.25);margin-top:3px;padding-top:3px;}
         .chart-hint{text-align:center;font-size:.68rem;color:var(--muted);margin-top:8px;}
+        .chart-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid #eef1f4;}
+        .chart-summary .cs-item{display:flex;flex-direction:column;gap:2px;}
+        .chart-summary .cs-label{font-size:.66rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+        .chart-summary .cs-val{font-size:.79rem;font-weight:700;color:var(--text);}
         .chart-legend{display:flex;gap:16px;justify-content:center;margin-top:10px;flex-wrap:wrap;}
         .chart-legend .li{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;color:var(--text);}
         .chart-legend .li .dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
@@ -177,6 +190,8 @@
         .alert-row .a-count{font-size:1rem;font-weight:800;flex-shrink:0;min-width:22px;}
         .alert-row .a-txt{flex:1;font-size:.79rem;font-weight:600;color:var(--text);}
         .alert-row .a-tag{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0;text-align:right;}
+        .alert-row[data-clic]{cursor:pointer;}
+        .alert-row[data-clic]:hover{filter:brightness(.97);}
         .alert-row.crit{background:var(--danger-bg);border-color:#f0c4bd;}
         .alert-row.crit .a-dot{background:var(--danger);} .alert-row.crit .a-count,.alert-row.crit .a-tag{color:var(--danger);}
         .alert-row.warn{background:var(--warning-bg);border-color:#f5df9f;}
@@ -186,9 +201,8 @@
         .alert-row.ok{background:var(--accent-bg);border-color:#bfe8d7;}
         .alert-row.ok .a-dot{background:var(--accent);} .alert-row.ok .a-count,.alert-row.ok .a-tag{color:var(--accent-dark);}
 
-        .med-filters{display:flex;gap:6px;margin:13px 0 10px;overflow-x:auto;scrollbar-width:none;}
-        .med-filters::-webkit-scrollbar{display:none;}
-        .med-chip{flex-shrink:0;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fafbfc;font-family:inherit;font-size:.73rem;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;}
+        .med-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:13px 0 10px;}
+        .med-chip{width:100%;padding:7px 6px;border-radius:9px;border:1.5px solid var(--border);background:#fafbfc;font-family:inherit;font-size:.73rem;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .15s;}
         .med-chip.active{background:var(--primary);border-color:var(--primary);color:#fff;}
         .med-search-wrap{position:relative;margin-bottom:11px;}
         .med-search-wrap .icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:.95em;height:.95em;color:var(--muted);}
@@ -308,6 +322,7 @@
             <div class="panel-title"><span>Évolution recettes / dépenses</span><span id="evo-period" style="text-transform:none;font-weight:700;color:var(--muted);"></span></div>
             <div id="evo-chart"><div class="skeleton">Chargement…</div></div>
             <div class="chart-hint">Touchez un point du graphique pour le détail</div>
+            <div class="chart-summary" id="chart-summary" hidden></div>
         </div>
     </section>
 
@@ -334,9 +349,9 @@
                 <div class="kpi-sub" id="k-unites-ratio">—</div>
             </div>
             <div class="kpi-card">
-                <div class="kpi-label">Panier moyen</div>
+                <div class="kpi-label">Recette moy. / opération</div>
                 <div class="kpi-value" id="k-ticket-moy">—</div>
-                <div class="kpi-sub">Toutes opérations</div>
+                <div class="kpi-sub">Consultations + ventes confondues</div>
             </div>
         </div>
         <div class="panel" style="margin-top:9px;">
@@ -450,6 +465,23 @@ function dateStrFR(dateStr) {
     const d = new Date(dateStr);
     return d.toLocaleDateString('fr-FR');
 }
+// Date courte MAIS toujours contextualisée (jamais un nombre seul) — sert
+// aux libellés de l'axe du graphique et à son résumé (meilleur jour, etc.).
+function dateCourte(ts, granularite) {
+    const d = new Date(ts);
+    if (granularite === 'heure') return d.getHours() + 'h';
+    if (granularite === 'jour')  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    if (granularite === 'mois')  return maj1(d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }));
+    if (granularite === 'annee') return String(d.getFullYear());
+    return d.toLocaleDateString('fr-FR');
+}
+function libelleUnite(granularite) {
+    if (granularite === 'heure') return 'heure';
+    if (granularite === 'jour')  return 'jour';
+    if (granularite === 'mois')  return 'mois';
+    if (granularite === 'annee') return 'année';
+    return 'période';
+}
 
 // Fermeture de l'infobulle du graphique au clic en dehors.
 document.addEventListener('click', (e) => {
@@ -533,7 +565,12 @@ function setDelta(elId, cur, prev, sens) {
     if (periode === 'tout') { el.innerHTML = '<span class="delta flat">période complète</span>'; return; }
     if (prev <= 0) {
         if (cur <= 0) { el.innerHTML = '<span class="delta flat">— pas de comparaison</span>'; return; }
-        el.innerHTML = '<span class="delta up">↑ nouveau</span><span class="delta-ref">vs période préc.</span>';
+        // Pour une charge, une augmentation n'est jamais « bonne » : on ne
+        // peut pas non plus parler de « nouveau » puisqu'il n'y avait
+        // simplement rien à comparer sur la période précédente.
+        el.innerHTML = sens === 'charge'
+            ? '<span class="delta flat">Nouvelles dépenses sur la période</span>'
+            : '<span class="delta up">↑ nouveau</span><span class="delta-ref">vs période préc.</span>';
         return;
     }
     const p = (cur - prev) / prev * 100;
@@ -605,7 +642,10 @@ function construireBuckets() {
     } else if (periode === 'mois') {
         granularite = 'jour';
         const y = now.getFullYear(), m = now.getMonth(), jours = now.getDate();
-        for (let d = 1; d <= jours; d++) { buckets.push({ start: new Date(y,m,d).getTime(), end: new Date(y,m,d+1).getTime(), label: (d === 1 || d % 5 === 0 || d === jours) ? String(d) : '' }); }
+        for (let d = 1; d <= jours; d++) {
+            const ts = new Date(y,m,d).getTime();
+            buckets.push({ start: ts, end: new Date(y,m,d+1).getTime(), label: (d === 1 || d % 5 === 0 || d === jours) ? dateCourte(ts, 'jour') : '' });
+        }
     } else if (periode === 'annee') {
         granularite = 'mois';
         const y = now.getFullYear();
@@ -622,7 +662,7 @@ function construireBuckets() {
             let d = new Date(debut); d.setHours(0,0,0,0);
             const totalJ = Math.max(1, Math.ceil(spanJours));
             let i = 0;
-            while (d.getTime() <= fin) { buckets.push({ start: d.getTime(), end: d.getTime() + 86400000, label: (i === 0 || i === totalJ - 1 || i % Math.max(1, Math.ceil(totalJ / 6)) === 0) ? d.getDate() + '/' + (d.getMonth()+1) : '' }); d = new Date(d.getTime() + 86400000); i++; }
+            while (d.getTime() <= fin) { buckets.push({ start: d.getTime(), end: d.getTime() + 86400000, label: (i === 0 || i === totalJ - 1 || i % Math.max(1, Math.ceil(totalJ / 6)) === 0) ? dateCourte(d.getTime(), 'jour') : '' }); d = new Date(d.getTime() + 86400000); i++; }
         } else {
             granularite = 'mois';
             let d = new Date(debut); d.setDate(1); d.setHours(0,0,0,0);
@@ -671,8 +711,10 @@ function labelComplet(b, granularite) {
 // cartes KPI, quelle que soit la granularité d'affichage retenue.
 function renderCourbe(hostId, buckets, granularite, totRec, totDep) {
     const host = document.getElementById(hostId);
+    const summaryHost = document.getElementById('chart-summary');
     if (totRec === 0 && totDep === 0) {
         host.innerHTML = `<div class="empty-state"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg><p>Aucune donnée pour cette période.</p></div>`;
+        if (summaryHost) summaryHost.hidden = true;
         return;
     }
     const max = Math.max(1, ...buckets.map(b => Math.max(b.recettes, b.depenses)));
@@ -722,6 +764,30 @@ function renderCourbe(hostId, buckets, granularite, totRec, totDep) {
             <span class="li"><span class="dot" style="background:var(--accent);"></span>Recettes · ${fcfa(totRec)}</span>
             <span class="li"><span class="dot" style="background:var(--danger);"></span>Dépenses · ${fcfa(totDep)}</span>
         </div>`;
+
+    // Résumé sous le graphique : meilleur point (solde le plus élevé) et
+    // point de plus forte dépense — mêmes buckets que la courbe, donc
+    // cohérent par construction avec ce qui est affiché.
+    if (summaryHost) {
+        let cs = '';
+        if (buckets.length > 1) {
+            let meilleur = null, pire = null;
+            buckets.forEach(b => {
+                const s = b.recettes - b.depenses;
+                if (!meilleur || s > meilleur.solde) meilleur = { b, solde: s };
+                if (!pire || b.depenses > pire.b.depenses) pire = { b };
+            });
+            const unite = libelleUnite(granularite);
+            if (meilleur && meilleur.solde > 0) {
+                cs += `<div class="cs-item"><span class="cs-label">Meilleur ${esc(unite)}</span><span class="cs-val">${esc(dateCourte(meilleur.b.start, granularite))} · +${fcfa(meilleur.solde)}</span></div>`;
+            }
+            if (pire && pire.b.depenses > 0) {
+                cs += `<div class="cs-item"><span class="cs-label">Plus forte dépense</span><span class="cs-val">${esc(dateCourte(pire.b.start, granularite))} · ${fcfa(pire.b.depenses)}</span></div>`;
+            }
+        }
+        summaryHost.innerHTML = cs;
+        summaryHost.hidden = !cs;
+    }
 
     const svgEl = document.getElementById('chart-svg');
     const tooltip = document.getElementById('chart-tooltip');
@@ -844,9 +910,13 @@ function renderMedFilters() {
 }
 function renderMedRow(m) {
     let detail, couleur;
-    if (m.cat === 'rupture') { detail = 'Stock : 0 · Rupture'; couleur = 'var(--danger)'; }
-    else if (m.cat === 'faible') { detail = `Stock : ${fmt(m.qte)} · Faible (seuil ${fmt(m.seuil)})`; couleur = 'var(--warning)'; }
-    else { detail = `Stock : ${fmt(m.qte)} · Exp. ${m.dateExp} · ${m.dj <= 0 ? 'Expiré' : 'J-' + m.dj}`; couleur = '#c99a06'; }
+    if (m.cat === 'rupture') { detail = 'Stock 0 · Rupture'; couleur = 'var(--danger)'; }
+    else if (m.cat === 'faible') {
+        const manque = Math.max(0, m.seuil - m.qte);
+        detail = `Stock ${fmt(m.qte)} · Seuil ${fmt(m.seuil)}` + (manque > 0 ? ` · Manque ${fmt(manque)} unité${manque>1?'s':''} pour atteindre le seuil` : '');
+        couleur = 'var(--warning)';
+    }
+    else { detail = `Stock ${fmt(m.qte)} · Exp. ${m.dateExp} · ${m.dj <= 0 ? 'Expiré' : 'J-' + m.dj}`; couleur = '#c99a06'; }
     return `<div class="med-item"><span class="mi-dot" style="background:${couleur};"></span>
         <div class="mi-body"><div class="mi-nom">${esc(m.nom)}</div><div class="mi-detail" style="color:${couleur};">${esc(detail)}</div></div>
     </div>`;
@@ -881,10 +951,12 @@ function render() {
     const marge = totalRecettes > 0 ? solde / totalRecettes * 100 : 0;
 
     // ── Période précédente équivalente (même durée, juste avant) ──
-    let pRec = 0, pDep = 0, pSolde = 0, pMarge = 0;
+    // pDebut/pFin sont hissés hors du bloc pour être réutilisés plus bas
+    // par l'enrichissement de la note d'anomalie de dépense.
+    let pRec = 0, pDep = 0, pSolde = 0, pMarge = 0, pDebut = null, pFin = null;
     if (periode !== 'tout') {
         const duree = fin - debut;
-        const pDebut = debut - duree, pFin = debut;
+        pDebut = debut - duree; pFin = debut;
         const pTk = enPlage(allTickets, pDebut, pFin).reduce((s,x)=>s+(Number(x.prix)||0),0);
         const pMd = enPlage(allVentes, pDebut, pFin).reduce((s,x)=>s+(Number(x.total)||0),0);
         pRec = pTk + pMd;
@@ -911,17 +983,18 @@ function render() {
     margeCard.classList.toggle('danger', marge < 0);
     setDeltaPointsSigne('d-marge', marge, pMarge);
 
-    // Bannière de performance : une phrase, une couleur, tout est dit.
+    // Bannière de performance : titre + sous-titre orientés gestion plutôt
+    // qu'un simple libellé statistique.
     const perfHost = document.getElementById('perf-banner');
     if (solde > 0) {
         perfHost.className = 'perf-banner ok';
-        perfHost.innerHTML = `<span class="pb-dot"></span><span>Performance de la période : <b>Excédentaire</b> · +${fcfa(solde)}</span>`;
+        perfHost.innerHTML = `<span class="pb-dot"></span><div><div class="pb-title">Période excédentaire</div><div class="pb-sub">Les recettes dépassent les dépenses de ${fcfa(solde)}</div></div>`;
     } else if (solde < 0) {
         perfHost.className = 'perf-banner bad';
-        perfHost.innerHTML = `<span class="pb-dot"></span><span>Performance de la période : <b>Déficitaire</b> · −${fcfa(Math.abs(solde))}</span>`;
+        perfHost.innerHTML = `<span class="pb-dot"></span><div><div class="pb-title">Période déficitaire</div><div class="pb-sub">Les dépenses dépassent les recettes de ${fcfa(Math.abs(solde))}</div></div>`;
     } else {
         perfHost.className = 'perf-banner flat';
-        perfHost.innerHTML = `<span class="pb-dot"></span><span>Performance de la période : <b>À l'équilibre</b></span>`;
+        perfHost.innerHTML = `<span class="pb-dot"></span><div><div class="pb-title">Période à l'équilibre</div><div class="pb-sub">Recettes et dépenses se compensent exactement</div></div>`;
     }
 
     // ── Analyse des dépenses (calculée ici — nécessaire aux Points d'attention) ──
@@ -953,19 +1026,18 @@ function render() {
     allAlertItems = nouveauxItems;
     const perempt = nouveauxItems.filter(m => m.cat === 'perempt').length;
 
-    // ── Points d'attention ──
+    // ── Points d'attention (hiérarchisés par gravité — ordre fixe :
+    // Critique → Important → À traiter → À surveiller) ──
     const attnHost = document.getElementById('attn-list');
-    const attnRows = [];
-    if (rupture) attnRows.push(`<div class="attn-row"><span class="ar-ico">🔴</span><span>${rupture} médicament${rupture>1?'s':''} en rupture</span></div>`);
-    if (faible)  attnRows.push(`<div class="attn-row"><span class="ar-ico">🟠</span><span>${faible} référence${faible>1?'s':''} à réapprovisionner</span></div>`);
-    if (perempt) attnRows.push(`<div class="attn-row"><span class="ar-ico">🟡</span><span>${perempt} produit${perempt>1?'s':''} proche${perempt>1?'s':''} de péremption</span></div>`);
-    if (catAnomalie) attnRows.push(`<div class="attn-row"><span class="ar-ico">🟠</span><span>${Math.round(catAnomalie[1]/totalDepenses*100)} % des dépenses concentrées sur « ${esc(catAnomalie[0])} »</span></div>`);
-    attnRows.push(solde >= 0
-        ? `<div class="attn-row"><span class="ar-ico">🟢</span><span>Solde ${solde > 0 ? 'positif' : 'à l\'équilibre'} : ${solde >= 0 ? '+' : ''}${fcfa(solde)}</span></div>`
-        : `<div class="attn-row"><span class="ar-ico">🔴</span><span>Solde négatif : −${fcfa(Math.abs(solde))}</span></div>`);
-    attnHost.innerHTML = attnRows.length
-        ? attnRows.join('')
-        : `<div class="attn-row"><span class="ar-ico">🟢</span><span>Aucun point d'attention — situation saine</span></div>`;
+    const attnDefs = [];
+    if (solde < 0)   attnDefs.push({ sev: 'crit',  tag: 'Critique',     ico: '🔴', txt: `Solde négatif : −${fcfa(Math.abs(solde))}` });
+    if (rupture)     attnDefs.push({ sev: 'crit',  tag: 'Critique',     ico: '🔴', txt: `${rupture} médicament${rupture>1?'s':''} en rupture` });
+    if (catAnomalie) attnDefs.push({ sev: 'imp',   tag: 'Important',    ico: '🟠', txt: `${Math.round(catAnomalie[1]/totalDepenses*100)} % des dépenses concentrées sur « ${esc(catAnomalie[0])} »` });
+    if (faible)      attnDefs.push({ sev: 'todo',  tag: 'À traiter',    ico: '🟡', txt: `${faible} référence${faible>1?'s':''} à réapprovisionner` });
+    if (perempt)     attnDefs.push({ sev: 'watch', tag: 'À surveiller', ico: '🟤', txt: `${perempt} produit${perempt>1?'s':''} proche${perempt>1?'s':''} de péremption` });
+    attnHost.innerHTML = attnDefs.length
+        ? attnDefs.map(a => `<div class="attn-row ${a.sev}"><span class="ar-ico">${a.ico}</span><span class="ar-txt">${a.txt}</span><span class="ar-tag">${esc(a.tag)}</span></div>`).join('')
+        : `<div class="attn-row ok"><span class="ar-ico">🟢</span><span class="ar-txt">Aucun point d'attention — situation saine</span><span class="ar-tag">OK</span></div>`;
 
     // ── Évolution ──
     document.getElementById('evo-period').textContent = periode === 'personnalise' ? (customLabel || '') : (LABELS_PERIODE[periode] || '');
@@ -1003,9 +1075,30 @@ function render() {
         depHost.innerHTML = `<div class="empty-state"><svg class="icon" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/></svg><p>Aucune dépense pour cette période.</p></div>`;
     } else {
         const maxCat = cats[0][1] || 1;
+        // Répartition par catégorie de la période précédente — sert à
+        // distinguer une catégorie structurellement élevée d'une hausse
+        // ponctuelle, en complément du seuil de concentration.
+        let prevParCat = null;
+        if (pDebut != null) {
+            prevParCat = {};
+            enPlage(allDepenses, pDebut, pFin).forEach(d => { const c = d.categorie || 'Autre'; prevParCat[c] = (prevParCat[c] || 0) + (Number(d.montant) || 0); });
+        }
         depHost.innerHTML = cats.map(([nom, val]) => {
             const pct = totalDepenses ? Math.round(val / totalDepenses * 100) : 0;
             const anomalie = pct >= SEUIL_ANOMALIE_DEP;
+            let note = '';
+            if (anomalie) {
+                note = '⚠ Part exceptionnellement élevée des dépenses';
+                if (prevParCat) {
+                    const prevVal = prevParCat[nom] || 0;
+                    if (prevVal > 0) {
+                        const variation = Math.round((val - prevVal) / prevVal * 100);
+                        note += ` · ${variation >= 0 ? '+' : ''}${variation} % par rapport à la période précédente`;
+                    } else {
+                        note += ' · nouvelle dépense sur la période';
+                    }
+                }
+            }
             return `
             <div class="hbar-row">
                 <div class="hbar-top">
@@ -1013,7 +1106,7 @@ function render() {
                     <span class="hbar-val">${fcfa(val)}<span class="pct">${pct}%</span></span>
                 </div>
                 <div class="hbar-track"><div class="hbar-fill" style="width:${Math.max(3, Math.round(val/maxCat*100))}%;background:${anomalie ? 'var(--danger)' : 'var(--chart-blue)'};"></div></div>
-                ${anomalie ? `<div class="hbar-note">⚠ Part exceptionnellement élevée des dépenses</div>` : ''}
+                ${note ? `<div class="hbar-note">${esc(note)}</div>` : ''}
             </div>`;
         }).join('');
     }
@@ -1030,11 +1123,19 @@ function render() {
         sumHost.innerHTML = `<div class="alert-row ok"><span class="a-dot"></span><span class="a-count">✓</span><span class="a-txt">Aucune alerte — stock sous contrôle</span></div>`;
     } else {
         const rows = [];
-        if (rupture) rows.push(`<div class="alert-row crit"><span class="a-dot"></span><span class="a-count">${rupture}</span><span class="a-txt">rupture${rupture>1?'s':''} de stock</span><span class="a-tag">Critique</span></div>`);
-        if (faible)  rows.push(`<div class="alert-row warn"><span class="a-dot"></span><span class="a-count">${faible}</span><span class="a-txt">stock${faible>1?'s':''} faible${faible>1?'s':''}</span><span class="a-tag">À réapprovisionner</span></div>`);
-        if (perempt) rows.push(`<div class="alert-row surv"><span class="a-dot"></span><span class="a-count">${perempt}</span><span class="a-txt">péremption${perempt>1?'s':''} &lt; 90 j</span><span class="a-tag">À surveiller</span></div>`);
+        if (rupture) rows.push(`<div class="alert-row crit" data-clic data-k="rupture"><span class="a-dot"></span><span class="a-count">${rupture}</span><span class="a-txt">rupture${rupture>1?'s':''} de stock</span><span class="a-tag">Critique</span></div>`);
+        if (faible)  rows.push(`<div class="alert-row warn" data-clic data-k="faible"><span class="a-dot"></span><span class="a-count">${faible}</span><span class="a-txt">stock${faible>1?'s':''} faible${faible>1?'s':''}</span><span class="a-tag">À réapprovisionner</span></div>`);
+        if (perempt) rows.push(`<div class="alert-row surv" data-clic data-k="perempt"><span class="a-dot"></span><span class="a-count">${perempt}</span><span class="a-txt">péremption${perempt>1?'s':''} &lt; 90 j</span><span class="a-tag">À surveiller</span></div>`);
         sumHost.innerHTML = rows.join('');
     }
+    // Chaque ligne d'alerte saute directement vers la liste filtrée
+    // correspondante — évite de faire défiler manuellement + rechercher.
+    sumHost.querySelectorAll('[data-clic]').forEach(r => r.addEventListener('click', () => {
+        medFiltreActif = r.dataset.k;
+        renderMedFilters();
+        renderAlertMeds();
+        document.getElementById('alert-meds').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
 
     // Liste des médicaments (filtres + recherche) — reconstruite à partir
     // de allAlertItems, seule source de vérité pour ces compteurs.
