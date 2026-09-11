@@ -51,6 +51,7 @@
         /* ── NOTICE LECTURE SEULE ── */
         .notice{display:flex;align-items:center;gap:10px;background:var(--primary-bg);border:1px solid #c7d6e5;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.8rem;color:var(--primary);line-height:1.4;}
         .notice .icon{width:1.2em;height:1.2em;flex-shrink:0;}
+        .notice.err{background:var(--danger-bg);border-color:#f0c4bd;color:var(--danger);white-space:pre-line;}
 
         /* ── PÉRIODE ── */
         .period-seg{display:inline-flex;background:var(--card-bg);border:1px solid var(--border);border-radius:20px;padding:3px;gap:2px;margin-bottom:20px;flex-wrap:wrap;}
@@ -131,6 +132,8 @@
         <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span>Accès Infirmier(ère) Chef de Poste — <strong>lecture seule</strong>. Aucune modification, ajout ou suppression n'est possible depuis ce compte.</span>
     </div>
+
+    <div class="notice err" id="err-banner" hidden></div>
 
     <div class="period-seg" id="period-tabs">
         <button class="period-btn" data-p="jour">Aujourd'hui</button>
@@ -347,26 +350,38 @@ function renderDonut(hostId, segments, centerLabel, opts = {}) {
 let allTickets = [], allVentes = [], allDepenses = [], allStock = [];
 let loadedT = false, loadedV = false, loadedD = false, loadedS = false;
 
+// Écoute échouée (le plus souvent : règles de sécurité RTDB qui refusent la
+// lecture au rôle "icp") → affiche l'erreur exacte au lieu de rester
+// silencieusement bloqué sur "—" sans aucune explication.
+const erreurs = {};
+function afficherErreur(noeud, err) {
+    erreurs[noeud] = err?.message || String(err);
+    const banner = document.getElementById('err-banner');
+    const lignes = Object.entries(erreurs).map(([n, m]) => `• ${n} : ${m}`);
+    banner.textContent = "Erreur de lecture Firebase — les règles de sécurité RTDB refusent probablement l'accès à ce rôle (\"icp\") :\n" + lignes.join('\n');
+    banner.hidden = false;
+}
+
 onValue(ref(db, 'ticket_dbase'), snap => {
     allTickets = [];
     snap.forEach(c => { const v = c.val(); if (!v.annule) allTickets.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
     loadedT = true; render();
-});
+}, err => afficherErreur('ticket_dbase', err));
 onValue(ref(db, 'vente_medicaments'), snap => {
     allVentes = [];
     snap.forEach(c => { const v = c.val(); if (!v.annule) allVentes.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
     loadedV = true; render();
-});
+}, err => afficherErreur('vente_medicaments', err));
 onValue(ref(db, 'db_depenses'), snap => {
     allDepenses = [];
     snap.forEach(c => { const v = c.val(); allDepenses.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
     loadedD = true; render();
-});
+}, err => afficherErreur('db_depenses', err));
 onValue(ref(db, 'db_pharmacie_stock'), snap => {
     allStock = [];
     snap.forEach(c => { allStock.push({ _key: c.key, ...c.val() }); });
     loadedS = true; render();
-});
+}, err => afficherErreur('db_pharmacie_stock', err));
 
 function render() {
     if (!(loadedT && loadedV && loadedD && loadedS)) return;
