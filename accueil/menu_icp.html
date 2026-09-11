@@ -64,6 +64,17 @@
         .period-btn:hover{color:var(--primary);}
         .period-btn.active{background:var(--primary);color:#fff;}
 
+        /* ── PLAGE PERSONNALISÉE ── */
+        .custom-range-bar{display:none;align-items:flex-end;gap:10px;flex-wrap:wrap;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:13px 14px;margin:-9px 0 18px;}
+        .custom-range-bar.visible{display:flex;}
+        .custom-range-bar .fg{display:flex;flex-direction:column;gap:4px;}
+        .custom-range-bar label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+        .custom-range-bar input[type=date]{padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.8rem;color:var(--text);background:#fafbfc;}
+        .custom-range-bar input[type=date]:focus{outline:none;border-color:var(--primary);}
+        .btn-apply-range{padding:8px 16px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .2s;}
+        .btn-apply-range:hover{background:var(--primary-light);}
+        .custom-range-hint{font-size:.7rem;color:var(--muted);flex-basis:100%;line-height:1.4;}
+
         /* ── SECTIONS ── */
         .section{margin-bottom:18px;}
         .section-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
@@ -202,6 +213,20 @@
         <button class="period-btn active" data-p="mois">Mois</button>
         <button class="period-btn" data-p="annee">Année</button>
         <button class="period-btn" data-p="tout">Tout</button>
+        <button class="period-btn" data-p="personnalise">Personnalisé</button>
+    </div>
+
+    <div class="custom-range-bar" id="custom-range-bar">
+        <div class="fg">
+            <label for="date-debut">Du</label>
+            <input type="date" id="date-debut">
+        </div>
+        <div class="fg">
+            <label for="date-fin">Au (facultatif)</label>
+            <input type="date" id="date-fin">
+        </div>
+        <button class="btn-apply-range" id="btn-apply-range">Appliquer</button>
+        <span class="custom-range-hint">Laissez « Au » vide (ou identique à « Du ») pour consulter une seule date.</span>
     </div>
 
     <!-- ═══ RÉSUMÉ EXÉCUTIF ═══ -->
@@ -371,27 +396,61 @@ const LABELS_PERIODE = { jour: "aujourd'hui", semaine: '7 derniers jours', mois:
 
 // ── Filtre de période ────────────────────────────────────────────────────
 let periode = 'mois';
-function debutPeriode() {
-    const now = new Date();
-    if (periode === 'jour') { const d = new Date(now); d.setHours(0,0,0,0); return d.getTime(); }
-    if (periode === 'semaine') { return now.getTime() - 7*86400000; }
-    if (periode === 'mois') { return new Date(now.getFullYear(), now.getMonth(), 1).getTime(); }
-    if (periode === 'annee') { return new Date(now.getFullYear(), 0, 1).getTime(); }
-    return 0; // 'tout'
+let customDebut = null, customFin = null, customLabel = '';
+
+// [début, fin[ de la période active, toujours ouverte sur « maintenant »
+// sauf plage personnalisée (bornes fixes choisies par l'utilisateur).
+function bornesPeriode() {
+    const now = Date.now();
+    if (periode === 'personnalise') {
+        return customDebut != null ? { debut: customDebut, fin: customFin + 1 } : { debut: 0, fin: now };
+    }
+    if (periode === 'jour') { const d = new Date(); d.setHours(0,0,0,0); return { debut: d.getTime(), fin: now }; }
+    if (periode === 'semaine') { return { debut: now - 7*86400000, fin: now }; }
+    if (periode === 'mois') { const n = new Date(); return { debut: new Date(n.getFullYear(), n.getMonth(), 1).getTime(), fin: now }; }
+    if (periode === 'annee') { const n = new Date(); return { debut: new Date(n.getFullYear(), 0, 1).getTime(), fin: now }; }
+    return { debut: 0, fin: now }; // 'tout'
 }
 function enPlage(list, a, b) { return list.filter(x => x._ts >= a && x._ts < b); }
 function filtrePeriode(list) {
-    const debut = debutPeriode();
-    return debut === 0 ? list : list.filter(x => x._ts >= debut);
+    const { debut, fin } = bornesPeriode();
+    return list.filter(x => x._ts >= debut && x._ts < fin);
 }
 
-document.querySelectorAll('.period-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        periode = btn.dataset.p;
-        render();
-    });
+document.getElementById('period-tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.period-btn');
+    if (!btn) return;
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b === btn));
+    periode = btn.dataset.p;
+    document.getElementById('custom-range-bar').classList.toggle('visible', periode === 'personnalise');
+    // Une plage personnalisée pas encore choisie : on attend « Appliquer »
+    // plutôt que de recalculer sur des bornes vides.
+    if (periode !== 'personnalise' || customDebut != null) render();
+});
+
+function formatISOtoFR(iso) { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function appliquerPlagePersonnalisee() {
+    const dEl = document.getElementById('date-debut');
+    const fEl = document.getElementById('date-fin');
+    let dStr = dEl.value;
+    let fStr = fEl.value || dStr;
+    if (!dStr) return;
+    if (fStr < dStr) { [dStr, fStr] = [fStr, dStr]; }
+    dEl.value = dStr; fEl.value = fStr;
+
+    const [ya, ma, da] = dStr.split('-').map(Number);
+    const [yb, mb, dbb] = fStr.split('-').map(Number);
+    customDebut = new Date(ya, ma - 1, da, 0, 0, 0, 0).getTime();
+    customFin   = new Date(yb, mb - 1, dbb, 23, 59, 59, 999).getTime();
+    customLabel = (dStr === fStr) ? `Le ${formatISOtoFR(dStr)}` : `Du ${formatISOtoFR(dStr)} au ${formatISOtoFR(fStr)}`;
+
+    periode = 'personnalise';
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.dataset.p === 'personnalise'));
+    render();
+}
+document.getElementById('btn-apply-range').addEventListener('click', appliquerPlagePersonnalisee);
+['date-debut', 'date-fin'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') appliquerPlagePersonnalisee(); });
 });
 
 // ── Deltas période-sur-période ─────────────────────────────────────────────
@@ -439,6 +498,22 @@ function construireBuckets() {
     } else if (periode === 'annee') {
         const y = now.getFullYear();
         for (let m = 0; m <= now.getMonth(); m++) { buckets.push({ start: new Date(y,m,1).getTime(), end: new Date(y,m+1,1).getTime(), label: new Date(y,m,1).toLocaleDateString('fr-FR', { month: 'short' }).slice(0,4) }); }
+    } else if (periode === 'personnalise' && customDebut != null) {
+        // Granularité adaptée à la durée de la plage choisie.
+        const debut = customDebut, fin = customFin;
+        const spanJours = (fin - debut) / 86400000;
+        if (spanJours <= 2) {
+            let h = new Date(debut); h.setMinutes(0,0,0);
+            while (h.getTime() <= fin) { const s = h.getTime(); buckets.push({ start: s, end: s + 3600000, label: h.getHours() % 3 === 0 ? h.getHours() + 'h' : '' }); h = new Date(h.getTime() + 3600000); }
+        } else if (spanJours <= 62) {
+            let d = new Date(debut); d.setHours(0,0,0,0);
+            const totalJ = Math.max(1, Math.ceil(spanJours));
+            let i = 0;
+            while (d.getTime() <= fin) { buckets.push({ start: d.getTime(), end: d.getTime() + 86400000, label: (i === 0 || i === totalJ - 1 || i % Math.max(1, Math.ceil(totalJ / 6)) === 0) ? d.getDate() + '/' + (d.getMonth()+1) : '' }); d = new Date(d.getTime() + 86400000); i++; }
+        } else {
+            let d = new Date(debut); d.setDate(1); d.setHours(0,0,0,0);
+            while (d.getTime() <= fin) { const nx = new Date(d.getFullYear(), d.getMonth()+1, 1); buckets.push({ start: d.getTime(), end: nx.getTime(), label: d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }) }); d = nx; }
+        }
     } else {
         const allTs = [...allTickets, ...allVentes, ...allDepenses].map(x => x._ts).filter(Boolean);
         const min = allTs.length ? Math.min(...allTs) : now.getTime();
@@ -572,8 +647,7 @@ onValue(ref(db, 'db_pharmacie_stock'), snap => {
 function render() {
     if (!(loadedT && loadedV && loadedD && loadedS)) return;
 
-    const debut = debutPeriode();
-    const fin = Date.now();
+    const { debut, fin } = bornesPeriode();
     const tk = filtrePeriode(allTickets);
     const md = filtrePeriode(allVentes);
     const dep = filtrePeriode(allDepenses);
@@ -616,7 +690,7 @@ function render() {
     setDeltaPoints('d-marge', marge, pMarge);
 
     // ── Évolution ──
-    document.getElementById('evo-period').textContent = LABELS_PERIODE[periode] || '';
+    document.getElementById('evo-period').textContent = periode === 'personnalise' ? (customLabel || '') : (LABELS_PERIODE[periode] || '');
     renderCourbe('evo-chart', construireBuckets());
 
     // ── Activité ──
