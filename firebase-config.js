@@ -32,7 +32,7 @@
 //          "$uid": {
 //            ".read":  "auth != null && (auth.uid === $uid || root.child('db_users').child(auth.uid).child('role').val() === 'admin')",
 //            ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'",
-//            ".validate": "newData.child('role').val() === 'admin' || newData.child('role').val() === 'caissier' || newData.child('role').val() === 'tresorier'"
+//            ".validate": "newData.child('role').val() === 'admin' || newData.child('role').val() === 'caissier' || newData.child('role').val() === 'tresorier' || newData.child('role').val() === 'icp'"
 //          }
 //        },
 //
@@ -52,7 +52,7 @@
 //        "db_pharmacie_reappro": { ".read": "auth != null", ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'" },
 //
 //        "db_depenses": {
-//          ".read":  "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier')",
+//          ".read":  "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier' || root.child('db_users').child(auth.uid).child('role').val() === 'icp')",
 //          ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier'"
 //        },
 //
@@ -77,8 +77,14 @@
 //  Étape préalable (manuelle, une fois par compte, pas d'écran dédié dans
 //  l'app) : pour chaque utilisateur déjà créé, ajouter dans la Console
 //  Firebase → Realtime Database le nœud "db_users/{UID}/role" avec la
-//  valeur "admin", "caissier" ou "tresorier" — l'UID se trouve dans
+//  valeur "admin", "caissier", "tresorier" ou "icp" — l'UID se trouve dans
 //  Authentication > Users. Répéter à chaque nouveau compte créé.
+//
+//  ⚠️ RÔLE "icp" (Infirmier(ère) Chef de Poste) : lecture seule par
+//  construction — aucune règle ".write" ci-dessus ne lui est jamais
+//  accordée, sur aucun nœud. Il voit un résumé (cartes + graphiques) des
+//  mêmes données que l'administration, sans jamais pouvoir les modifier :
+//  voir accueil/menu_icp.html, sa seule page.
 //
 //  Tout nœud non listé ci-dessus (db_patients, db_consultations,
 //  db_suivi_vulnerables, db_agenda — pas encore utilisés par le code) reste

@@ -21,6 +21,7 @@ onAuthStateChanged(auth, u => {
     const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
     if (role) sessionStorage.setItem('userRole', role);
     if (role === 'tresorier') { window.location.href = '../accueil/menu_tresorier.html'; return; }
+    if (role === 'icp') { window.location.href = '../accueil/menu_icp.html'; return; }
     const back = document.querySelector('.back-btn');
     if (back) back.href = (role === 'admin') ? '../accueil/menu_admin.html' : '../accueil/menu_caissier.html';
 });

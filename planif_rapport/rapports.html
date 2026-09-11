@@ -661,6 +661,10 @@ onAuthStateChanged(auth, user => {
     if (role) sessionStorage.setItem('userRole', role);
     if (role === 'caissier') {
         window.location.href = '../accueil/menu_caissier.html';
+        return;
+    }
+    if (role === 'icp') {
+        window.location.href = '../accueil/menu_icp.html';
     }
 });
 

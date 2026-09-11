@@ -158,7 +158,8 @@
         if (role) sessionStorage.setItem('userRole', role);
         // Réservé au trésorier (l'admin garde son propre tableau de bord)
         if (role !== 'tresorier') {
-            window.location.href = role === 'admin' ? 'menu_admin.html' : 'menu_caissier.html';
+            const AUTRES = { admin: 'menu_admin.html', icp: 'menu_icp.html' };
+            window.location.href = AUTRES[role] || 'menu_caissier.html';
             return;
         }
         const email = user.email || '';

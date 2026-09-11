@@ -425,6 +425,7 @@ document.getElementById('info-modal').addEventListener('click', (e) => {
         const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
         if (role) sessionStorage.setItem('userRole', role);
         if (role === 'caissier') { window.location.href = 'menu_caissier.html'; return; }
+        if (role === 'icp') { window.location.href = 'menu_icp.html'; return; }
         const email = user.email || '';
         document.getElementById('user-email-display').textContent = email;
         document.getElementById('user-initials').textContent = email.slice(0, 2).toUpperCase();
