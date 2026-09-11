@@ -18,73 +18,35 @@
 //
 //  RECOMMANDATION : stocker le rôle de chaque utilisateur côté serveur, dans
 //  un nœud "db_users/{uid}/role" écrit UNIQUEMENT par un administrateur (ou
-//  via des "custom claims" Firebase Auth), puis écrire des règles RTDB du
-//  type ci-dessous. Ce jeu de règles reflète les nœuds RÉELLEMENT utilisés
-//  par le code (facturation, stock, dépenses, compteur d'attente) et le
-//  modèle de rôles déjà appliqué côté UI (admin / caissier / trésorier) :
+//  via des "custom claims" Firebase Auth), puis déployer les règles RTDB du
+//  fichier database.rules.json à la racine du dépôt (source de vérité — ce
+//  commentaire n'en est qu'un résumé, toujours se référer au fichier réel).
+//  Ce jeu de règles reflète les nœuds RÉELLEMENT utilisés par le code
+//  (facturation, stock, dépenses, compteur d'attente, notifications) et le
+//  modèle de rôles déjà appliqué côté UI (admin / caissier / trésorier / icp).
 //
-//    {
-//      "rules": {
-//        ".read": false,
-//        ".write": false,
+//  ⚠️ IMPORTANT — "db_users/{uid}/role" (utilisé par TOUTES les règles
+//  ci-dessus) est un nœud DIFFÉRENT de "administration/auth_db" (utilisé
+//  par index.html pour la connexion, indexé par email). L'app n'écrit
+//  jamais automatiquement dans "db_users" : tant qu'il n'est pas rempli
+//  pour un compte, TOUTES ses écritures échouent une fois ces règles
+//  déployées, même avec un rôle valide dans "administration/auth_db".
+//  → Avant de déployer database.rules.json, exécuter UNE FOIS
+//  scripts/migrate-roles-to-db-users.js (recopie automatiquement chaque
+//  entrée de "administration/auth_db" vers "db_users/{uid}/role", en
+//  résolvant l'UID par email) — voir ce script pour les instructions.
+//  Le refaire (ou ajouter l'entrée à la main) à chaque nouveau compte créé.
 //
-//        "db_users": {
-//          "$uid": {
-//            ".read":  "auth != null && (auth.uid === $uid || root.child('db_users').child(auth.uid).child('role').val() === 'admin')",
-//            ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'",
-//            ".validate": "newData.child('role').val() === 'admin' || newData.child('role').val() === 'caissier' || newData.child('role').val() === 'tresorier' || newData.child('role').val() === 'icp'"
-//          }
-//        },
-//
-//        "administration": {
-//          "auth_db": {
-//            ".indexOn": "email",
-//            ".read":  "auth != null && query.orderByChild === 'email' && query.equalTo === auth.token.email",
-//            ".write": false
-//          }
-//        },
-//
-//        "ticket_dbase":      { ".read": "auth != null", ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')" },
-//        "vente_medicaments": { ".read": "auth != null", ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')" },
-//        "db_pharmacie_stock":{ ".read": "auth != null", ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')" },
-//        "compteurs":         { ".read": "auth != null", ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')" },
-//
-//        "db_pharmacie_reappro": { ".read": "auth != null", ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin'" },
-//
-//        "db_depenses": {
-//          ".read":  "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier' || root.child('db_users').child(auth.uid).child('role').val() === 'icp')",
-//          ".write": "root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier'"
-//        },
-//
-//        "notifications_caisse": {
-//          ".indexOn": "ts",
-//          ".read":  "auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin'",
-//          ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')"
-//        },
-//
-//        "fcm_tokens_admin": {
-//          ".read": false,
-//          ".write": "auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin'"
-//        }
-//      }
-//    }
-//
-//  ⚠️ "fcm_tokens_admin" n'est lisible par personne via les règles ci-dessus
+//  ⚠️ "fcm_tokens_admin" n'est lisible par personne via ces règles
 //  (".read": false) : seule la Cloud Function (functions/) y a accès, via le
 //  SDK Admin qui CONTOURNE les règles RTDB — c'est voulu, ces jetons ne
 //  doivent pas être exposés à un client normal.
 //
-//  Étape préalable (manuelle, une fois par compte, pas d'écran dédié dans
-//  l'app) : pour chaque utilisateur déjà créé, ajouter dans la Console
-//  Firebase → Realtime Database le nœud "db_users/{UID}/role" avec la
-//  valeur "admin", "caissier", "tresorier" ou "icp" — l'UID se trouve dans
-//  Authentication > Users. Répéter à chaque nouveau compte créé.
-//
 //  ⚠️ RÔLE "icp" (Infirmier(ère) Chef de Poste) : lecture seule par
-//  construction — aucune règle ".write" ci-dessus ne lui est jamais
-//  accordée, sur aucun nœud. Il voit un résumé (cartes + graphiques) des
-//  mêmes données que l'administration, sans jamais pouvoir les modifier :
-//  voir accueil/menu_icp.html, sa seule page.
+//  construction — aucune règle ".write" ne lui est jamais accordée, sur
+//  aucun nœud. Il voit un résumé (cartes + graphiques) des mêmes données
+//  que l'administration, sans jamais pouvoir les modifier : voir
+//  accueil/menu_icp.html, sa seule page.
 //
 //  Tout nœud non listé ci-dessus (db_patients, db_consultations,
 //  db_suivi_vulnerables, db_agenda — pas encore utilisés par le code) reste

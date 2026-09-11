@@ -1,0 +1,8 @@
+{
+  "name": "ps-diandioly-scripts",
+  "private": true,
+  "description": "Scripts d'administration ponctuels (hors app, hors Cloud Functions)",
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}
