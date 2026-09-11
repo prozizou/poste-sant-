@@ -42,7 +42,7 @@
     },
 
     "db_depenses": {
-      ".read": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier' || root.child('db_users').child(auth.uid).child('role').val() === 'icp')",
+      ".read": "auth != null",
       ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier')"
     },
 
