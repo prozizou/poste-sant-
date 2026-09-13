@@ -807,15 +807,15 @@
 
         <div class="panel">
             <div class="panel-head">
-                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M20 21H4a1 1 0 0 1-1-1v-4"/></svg>Export &amp; partage</h2><p>Génère un document imprimable, hors-ligne</p></div>
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M20 21H4a1 1 0 0 1-1-1v-4"/></svg>Export &amp; partage</h2><p>PDF, Excel ou CSV — générés hors-ligne, sans dépendance réseau</p></div>
             </div>
             <div class="panel-body">
                 <button type="button" class="btn-export" id="btn-export-bottom">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M20 21H4a1 1 0 0 1-1-1v-4"/></svg>
-                    Exporter le rapport PDF
+                    Choisir le format et exporter
                 </button>
                 <p style="font-size:.78rem;color:var(--muted);margin-top:12px;line-height:1.5;">
-                    Export Excel, CSV et partage direct arrivent dans un prochain passage — générés localement, sans dépendance réseau, comme le PDF actuel.
+                    Sur mobile, le fichier s'ouvre directement dans le menu de partage (WhatsApp, e-mail…) quand l'appareil le permet ; sinon il est simplement téléchargé.
                 </p>
             </div>
         </div>
@@ -856,11 +856,20 @@
             <label class="check-row"><input type="checkbox" id="exp-inc-md" checked><span>Détail des ventes de médicaments</span></label>
             <label class="check-row"><input type="checkbox" id="exp-inc-top" checked><span>Top médicaments</span></label>
         </div>
-        <div class="modal-foot">
+        <div class="modal-foot" style="display:flex;flex-direction:column;gap:8px;">
             <button type="button" class="btn-export" id="btn-pdf">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
                 Générer le PDF
             </button>
+            <button type="button" class="btn-export" id="btn-excel">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+                Générer le Excel
+            </button>
+            <button type="button" class="btn-export" id="btn-csv">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+                Générer le CSV
+            </button>
+            <p style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:2px;">Sur mobile, le partage direct (WhatsApp, etc.) s'ouvre automatiquement quand l'appareil le permet.</p>
         </div>
     </div>
 </div>
@@ -875,7 +884,8 @@ import { initNotifCaisseAdmin } from '../notifications-admin.js';
 initNotifCaisseAdmin();
 import {
     esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
-    totalTickets, totalVentes, totalDepenses, parPrestation, parMedicament, exporterPDF
+    totalTickets, totalVentes, totalDepenses, parPrestation, parMedicament,
+    exporterPDF, exporterCSV, exporterExcel
 } from './rapport-lib.js';
 
 // Le rôle est cherché dans sessionStorage puis, à défaut, dans localStorage
@@ -2185,7 +2195,10 @@ document.getElementById('export-modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('visible');
 });
 
-document.getElementById('btn-pdf').addEventListener('click', () => {
+// Construit les données d'export (période + sections cochées) une seule
+// fois — PDF, Excel et CSV partent exactement des mêmes chiffres, jamais
+// recalculés séparément pour chaque format.
+function construireDonneesExport() {
     const expPeriode = document.querySelector('input[name="exp-periode"]:checked').value;
 
     let tkSrc, mdSrc, depSrc, periodeLabelExport, courtExport;
@@ -2295,7 +2308,7 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
         });
     }
 
-    exporterPDF({
+    return {
         titre: "Rapport d'activité — Consultations et pharmacie",
         periodeLabel: periodeLabelExport,
         meta: [
@@ -2314,8 +2327,22 @@ document.getElementById('btn-pdf').addEventListener('click', () => {
         ],
         sections,
         note: "Le solde net correspond aux recettes encaissées diminuées des dépenses enregistrées sur la même période.",
-    });
+    };
+}
+
+document.getElementById('btn-pdf').addEventListener('click', () => {
+    exporterPDF(construireDonneesExport());
     document.getElementById('export-modal').classList.remove('visible');
+});
+document.getElementById('btn-excel').addEventListener('click', () => {
+    exporterExcel(construireDonneesExport());
+    document.getElementById('export-modal').classList.remove('visible');
+    toast('Fichier Excel prêt.');
+});
+document.getElementById('btn-csv').addEventListener('click', () => {
+    exporterCSV(construireDonneesExport());
+    document.getElementById('export-modal').classList.remove('visible');
+    toast('Fichier CSV prêt.');
 });
 
 // ── NETTOYAGE ───────────────────────────────────
