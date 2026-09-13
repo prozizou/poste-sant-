@@ -162,6 +162,7 @@
         .stock-kpi.accent .icon{color:var(--accent-dark);}
         .sk-val{font-size:1.1rem;font-weight:800;color:var(--primary);}
         .sk-lbl{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+        .stock-kpi-row.cols3{grid-template-columns:repeat(3,1fr);}
         @media(max-width:600px){.stock-kpi-row{grid-template-columns:repeat(2,1fr);}}
 
         /* ── INSIGHTS AUTOMATIQUES ── */
@@ -629,18 +630,52 @@
         </div>
 
         <div class="panel">
+            <div class="panel-head">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>Rotation &amp; marge</h2><p>Vélocité et rentabilité de la pharmacie sur la période</p></div>
+            </div>
+            <div class="panel-body">
+                <div class="stock-kpi-row cols3">
+                    <div class="stock-kpi info">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                        <div><div class="sk-val" id="ph-rotation">—</div><div class="sk-lbl">Rotation du stock</div></div>
+                    </div>
+                    <div class="stock-kpi info">
+                        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        <div><div class="sk-val" id="ph-couverture">—</div><div class="sk-lbl">Couverture</div></div>
+                    </div>
+                    <div class="stock-kpi accent">
+                        <svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                        <div><div class="sk-val" id="ph-marge">—</div><div class="sk-lbl">Marge pharmacie</div></div>
+                    </div>
+                </div>
+                <p id="ph-marge-note" style="font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.5;"></p>
+            </div>
+        </div>
+
+        <div class="panel">
             <div class="panel-head" style="border-left:4px solid var(--purple);">
                 <div><h2><svg class="icon" viewBox="0 0 24 24"><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/><circle cx="12" cy="8" r="7"/></svg>Top médicaments</h2><p>Unités vendues, chiffre d'affaires, classement</p></div>
                 <div class="sort-control" id="medrank-sort">
                     <label>Trier par</label>
-                    <div class="subtabs" style="margin:0;min-width:220px;">
+                    <div class="subtabs" style="margin:0;min-width:280px;">
                         <button type="button" class="subtab-btn active" data-k="montant">Chiffre d'affaires</button>
                         <button type="button" class="subtab-btn" data-k="qte">Quantité</button>
+                        <button type="button" class="subtab-btn" data-k="marge">Marge</button>
                     </div>
                 </div>
             </div>
             <div class="panel-body">
                 <div id="med-rank" class="rank-list"></div>
+                <p id="medrank-note" style="font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.5;"></p>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head" style="border-left:4px solid var(--purple);">
+                <div><h2><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 15h8"/><path d="M8 9h.01"/><path d="M16 9h.01"/></svg>Produits sans mouvement</h2><p>En stock, aucune vente sur la période</p></div>
+            </div>
+            <div class="panel-body">
+                <div id="ph-sans-mouvement" class="rank-list"></div>
             </div>
         </div>
 
@@ -1138,6 +1173,7 @@ function render() {
     renderRepartitionDonut(rTk, rMd, prec);
     renderActivite(tk, md);
     renderMedRankTop(md);
+    renderPharmacieDetail(md, nbJoursPeriode());
 
     renderTicketsTable(trier(tk, 'tk', sortTk), rTk);
     renderVentesTable(trier(md, 'md', sortMd), rMd);
@@ -1768,7 +1804,107 @@ function renderActivite(tk, md) {
     }
 }
 
-// ── TOP MÉDICAMENTS (classement unique, triable CA / quantité) ──
+// ── PHARMACIE : marge, rotation, couverture, produits sans mouvement ──
+// Le coût (prix_achat) n'est pas historisé ligne par ligne dans les ventes
+// — on utilise donc le prix_achat ACTUELLEMENT enregistré en stock pour ce
+// produit (via stock_key, ou à défaut le nom). C'est une approximation
+// assumée : si le prix d'achat a changé depuis la vente, la marge affichée
+// reflète le coût d'aujourd'hui, pas celui du jour de la vente. Quand le
+// produit ne correspond à aucune entrée du stock, le coût est inconnu — la
+// ligne n'entre alors dans aucun calcul de marge plutôt que d'inventer un
+// chiffre.
+function coutAchat(li) {
+    let s = null;
+    if (li.stock_key) s = allStock.find(x => x._key === li.stock_key);
+    if (!s && li.nom) s = allStock.find(x => (x.nom || '') === li.nom);
+    // Dans approvisionnement/stock.html, prix_achat vaut 0 par défaut dès
+    // qu'il n'a pas été saisi (parseFloat(...) || 0) — un 0 signifie donc
+    // presque toujours « non renseigné », pas « acquis gratuitement ». On
+    // traite les deux cas comme un coût inconnu plutôt que d'afficher une
+    // marge de 100 % trompeuse.
+    const achat = s ? Number(s.prix_achat || 0) : 0;
+    return achat > 0 ? achat : null;
+}
+function parMedicamentAvecMarge(ventes) {
+    const m = new Map();
+    for (const v of ventes) {
+        for (const li of (v.medicaments || [])) {
+            const k = li.nom || '(sans nom)';
+            const e = m.get(k) || { nom: k, qte: 0, montant: 0, marge: 0, margeConnue: true };
+            const qte = Number(li.qte || 0), prix = Number(li.prix || 0);
+            e.qte += qte; e.montant += prix * qte;
+            const achat = coutAchat(li);
+            if (achat == null) e.margeConnue = false;
+            else e.marge += (prix - achat) * qte;
+            m.set(k, e);
+        }
+    }
+    return [...m.values()];
+}
+function statsMargePharmacie(md) {
+    let totalVentes = 0, totalMarge = 0, ligneInconnues = 0, ligneTotal = 0;
+    md.forEach(v => (v.medicaments || []).forEach(li => {
+        ligneTotal++;
+        const qte = Number(li.qte || 0), prix = Number(li.prix || 0);
+        totalVentes += prix * qte;
+        const achat = coutAchat(li);
+        if (achat == null) { ligneInconnues++; return; }
+        totalMarge += (prix - achat) * qte;
+    }));
+    return { totalMarge, margePct: totalVentes > 0 ? totalMarge / totalVentes * 100 : 0, ligneInconnues, ligneTotal };
+}
+// Rotation/couverture calculées sur le stock ACTUEL (pas de stock moyen
+// historisé disponible) — un proxy simple plutôt qu'un chiffre inexistant.
+function statsRotationCouverture(md, nbJours) {
+    const uniteVendues = md.reduce((s, v) => s + (v.medicaments || []).reduce((n, l) => n + Number(l.qte || 0), 0), 0);
+    const stockActuel = allStock.reduce((s, m) => s + Number(m.quantite || 0), 0);
+    const rotation = stockActuel > 0 ? uniteVendues / stockActuel : null;
+    const consoJour = nbJours > 0 ? uniteVendues / nbJours : 0;
+    const couvertureJours = consoJour > 0 ? stockActuel / consoJour : null;
+    return { rotation, couvertureJours };
+}
+function produitsSansMouvement(md) {
+    const vendusNoms = new Set();
+    md.forEach(v => (v.medicaments || []).forEach(li => vendusNoms.add(li.nom)));
+    return allStock
+        .filter(m => Number(m.quantite || 0) > 0 && !vendusNoms.has(m.nom))
+        .map(m => ({ nom: m.nom || m.libelle || 'Sans nom', qte: Number(m.quantite || 0), valeur: Number(m.quantite || 0) * Number(m.prix_unitaire || 0) }))
+        .sort((a, b) => b.valeur - a.valeur);
+}
+function renderPharmacieDetail(md, nbJours) {
+    const { rotation, couvertureJours } = statsRotationCouverture(md, nbJours);
+    document.getElementById('ph-rotation').textContent = rotation == null ? '—' : rotation.toFixed(1).replace('.', ',') + ' ×';
+    document.getElementById('ph-couverture').textContent = couvertureJours == null ? 'Aucune vente récente' : Math.round(couvertureJours) + ' j';
+
+    const marge = statsMargePharmacie(md);
+    const margeConnueLignes = marge.ligneTotal - marge.ligneInconnues;
+    // « 0 FCFA » serait trompeur si c'est en réalité « rien n'a pu être
+    // calculé » — on distingue explicitement une marge nulle connue d'une
+    // marge totalement inconnue.
+    document.getElementById('ph-marge').textContent = margeConnueLignes > 0 ? fcfa(marge.totalMarge) : '—';
+    const noteHost = document.getElementById('ph-marge-note');
+    if (marge.ligneTotal && margeConnueLignes === 0) {
+        noteHost.textContent = "Marge non calculable : prix d'achat non renseigné pour les produits vendus sur cette période.";
+    } else if (marge.ligneTotal && marge.ligneInconnues > 0) {
+        noteHost.textContent = `Marge calculée sur ${margeConnueLignes}/${marge.ligneTotal} ligne(s) de vente — prix d'achat non renseigné pour les autres.`;
+    } else if (marge.ligneTotal) {
+        noteHost.textContent = `Soit ${marge.margePct.toFixed(1).replace('.', ',')} % du chiffre d'affaires pharmacie de la période.`;
+    } else {
+        noteHost.textContent = '';
+    }
+
+    const sansMouvement = produitsSansMouvement(md);
+    const LIMITE = 15;
+    renderRank('ph-sans-mouvement', sansMouvement.slice(0, LIMITE).map(m => ({
+        nom: m.nom, val: m.valeur, valDisplay: fcfa(m.valeur), sub: `${fmt(m.qte)} unité(s) en stock`,
+    })), 'purple', { emptyMsg: 'Tous les produits en stock ont été vendus au moins une fois sur cette période.' });
+    if (sansMouvement.length > LIMITE) {
+        document.getElementById('ph-sans-mouvement').insertAdjacentHTML('beforeend',
+            `<p style="font-size:.74rem;color:var(--muted);margin-top:8px;">+ ${fmt(sansMouvement.length - LIMITE)} autre(s) produit(s) sans mouvement (triés par valeur immobilisée).</p>`);
+    }
+}
+
+// ── TOP MÉDICAMENTS (classement unique, triable CA / quantité / marge) ──
 let medRankSort = 'montant';
 document.getElementById('medrank-sort').addEventListener('click', e => {
     const btn = e.target.closest('.subtab-btn');
@@ -1778,14 +1914,26 @@ document.getElementById('medrank-sort').addEventListener('click', e => {
     renderMedRankTop(currentMdPeriode);
 });
 function renderMedRankTop(md) {
-    const sorted = parMedicament(md).slice().sort((a, b) => medRankSort === 'qte' ? b.qte - a.qte : b.montant - a.montant).slice(0, 10);
-    const items = sorted.map(p => ({
-        nom: p.nom,
-        val: medRankSort === 'qte' ? p.qte : p.montant,
-        valDisplay: medRankSort === 'qte' ? `${fmt(p.qte)} u.` : fcfa(p.montant),
-        sub: medRankSort === 'qte' ? `${fcfa(p.montant)} de chiffre d'affaires` : `${fmt(p.qte)} unité(s) vendue(s)`,
-    }));
+    const data = parMedicamentAvecMarge(md);
+    let list = data, exclus = 0;
+    if (medRankSort === 'marge') {
+        list = data.filter(p => p.margeConnue);
+        exclus = data.length - list.length;
+    }
+    const sorted = list.slice().sort((a, b) => {
+        if (medRankSort === 'qte') return b.qte - a.qte;
+        if (medRankSort === 'marge') return b.marge - a.marge;
+        return b.montant - a.montant;
+    }).slice(0, 10);
+    const items = sorted.map(p => {
+        if (medRankSort === 'qte') return { nom: p.nom, val: p.qte, valDisplay: `${fmt(p.qte)} u.`, sub: `${fcfa(p.montant)} de chiffre d'affaires` };
+        if (medRankSort === 'marge') return { nom: p.nom, val: p.marge, valDisplay: fcfa(p.marge), sub: `${fmt(p.qte)} unité(s) vendue(s)` };
+        return { nom: p.nom, val: p.montant, valDisplay: fcfa(p.montant), sub: `${fmt(p.qte)} unité(s) vendue(s)` };
+    });
     renderRank('med-rank', items, 'purple', { clickable: true });
+    document.getElementById('medrank-note').textContent = (medRankSort === 'marge' && exclus > 0)
+        ? `${exclus} médicament(s) exclu(s) du tri par marge : prix d'achat non renseigné dans la fiche stock.`
+        : '';
 }
 
 // ── TABLEAUX DÉTAILLÉS ──
