@@ -567,6 +567,12 @@
                     </button>
                 </div>
                 <div class="activite-rows" id="activite-rows"></div>
+                <div class="divider"></div>
+                <div class="panel-head" style="padding:0 0 12px;border:none;"><h2 style="font-size:.85rem;"><svg class="icon" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Nouveaux vs récurrents</h2></div>
+                <div id="activite-nr-rows"></div>
+                <div class="divider"></div>
+                <div class="panel-head" style="padding:0 0 12px;border:none;"><h2 style="font-size:.85rem;"><svg class="icon" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16h8"/><path d="M7 11h12"/><path d="M7 6h3"/></svg>Par jour de la semaine</h2></div>
+                <div id="activite-jour-chart" class="rank-list"></div>
             </div>
         </div>
 
@@ -1171,7 +1177,7 @@ function render() {
 
     renderEvoChartMulti(buckets, series);
     renderRepartitionDonut(rTk, rMd, prec);
-    renderActivite(tk, md);
+    renderActivite(tk, md, b ? b[0] : null);
     renderMedRankTop(md);
     renderPharmacieDetail(md, nbJoursPeriode());
 
@@ -1769,18 +1775,79 @@ function renderRepartitionDonut(rTk, rMd, prec) {
 }
 
 // ── ACTIVITÉ (sous-onglets Consultations / Médicaments, avec dimension
-// temporelle : rythme quotidien et jour le plus actif) ──
-let lastTk = [], lastMd = [];
+// temporelle : rythme quotidien, jour le plus actif, heure de pointe) ──
+const JOURS_SEMAINE_COURT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+function distributionJourSemaine(list) {
+    const counts = new Array(7).fill(0);
+    list.forEach(x => counts[new Date(x._ts).getDay()]++);
+    return counts;
+}
+function heurePointe(list) {
+    if (list.length < 2) return null;
+    const counts = new Array(24).fill(0);
+    list.forEach(x => counts[new Date(x._ts).getHours()]++);
+    let maxI = 0; counts.forEach((c, i) => { if (c > counts[maxI]) maxI = i; });
+    if (counts[maxI] === 0) return null;
+    return { heure: maxI, pct: Math.round(counts[maxI] / list.length * 100) };
+}
+function renderJourSemaineChart(list) {
+    const counts = distributionJourSemaine(list);
+    const total = counts.reduce((a, b) => a + b, 0);
+    if (!total) { renderRank('activite-jour-chart', [], '', { emptyMsg: msgVide('Pas assez de données pour cette période.') }); return; }
+    const items = JOURS_SEMAINE_COURT.map((nom, i) => ({
+        nom, val: counts[i], valDisplay: fmt(counts[i]), sub: Math.round(counts[i] / total * 100) + " % de l'activité de la période",
+    })).sort((a, b) => b.val - a.val);
+    renderRank('activite-jour-chart', items, '');
+}
+// « Nouveau » vs « récurrent » se base sur le nom du patient (aucun
+// identifiant stable n'existe dans les tickets) — deux patients homonymes
+// seraient donc comptés comme un seul. Approximation assumée, faute de
+// mieux dans le modèle de données actuel.
+function clePatient(t) {
+    const nom = (t.name || `${t.prenom || ''} ${t.nom || ''}`).trim().toLowerCase().replace(/\s+/g, ' ');
+    return nom || null;
+}
+function statsNouveauxRecurrents(tk, debut) {
+    if (debut == null) return null;
+    const avantPeriode = new Set();
+    allTickets.forEach(t => {
+        if (t.annule || t._ts >= debut) return;
+        const k = clePatient(t);
+        if (k) avantPeriode.add(k);
+    });
+    const patientsPeriode = new Set();
+    tk.forEach(t => { const k = clePatient(t); if (k) patientsPeriode.add(k); });
+    let nouveaux = 0, recurrents = 0;
+    patientsPeriode.forEach(k => { if (avantPeriode.has(k)) recurrents++; else nouveaux++; });
+    return { nouveaux, recurrents, total: patientsPeriode.size };
+}
+function renderNouveauxRecurrents(tk, debut) {
+    const host = document.getElementById('activite-nr-rows');
+    const s = statsNouveauxRecurrents(tk, debut);
+    if (!s || !s.total) {
+        host.innerHTML = `<div class="empty-state" style="padding:14px 4px;">${esc(msgVide('Aucune consultation sur cette période.'))}</div>`;
+        return;
+    }
+    const pctNouveaux = Math.round(s.nouveaux / s.total * 100);
+    host.innerHTML = `
+        <div class="act-row"><span class="al">Patients uniques</span><span class="av">${esc(fmt(s.total))}</span></div>
+        <div class="act-row"><span class="al">Nouveaux patients</span><span class="av">${esc(fmt(s.nouveaux))} (${pctNouveaux} %)</span></div>
+        <div class="act-row"><span class="al">Patients récurrents</span><span class="av">${esc(fmt(s.recurrents))} (${100 - pctNouveaux} %)</span></div>`;
+}
+
+let lastTk = [], lastMd = [], lastDebutPeriode = null;
 window.switchActivite = function (t) {
     activiteType = t;
     document.getElementById('actbtn-tk').classList.toggle('active', t === 'tk');
     document.getElementById('actbtn-md').classList.toggle('active', t === 'md');
-    renderActivite(lastTk, lastMd);
+    renderActivite(lastTk, lastMd, lastDebutPeriode);
 };
-function renderActivite(tk, md) {
-    lastTk = tk; lastMd = md;
+function renderActivite(tk, md, debutPeriode) {
+    lastTk = tk; lastMd = md; lastDebutPeriode = debutPeriode;
     const host = document.getElementById('activite-rows');
     const nbJours = nbJoursPeriode();
+    const listActive = activiteType === 'tk' ? tk : md;
+    const pointe = heurePointe(listActive);
     if (activiteType === 'tk') {
         const total = totalTickets(tk);
         const panier = tk.length ? Math.round(total / tk.length) : 0;
@@ -1791,7 +1858,8 @@ function renderActivite(tk, md) {
             <div class="act-row"><span class="al">Chiffre d'affaires</span><span class="av">${esc(fcfa(total))}</span></div>
             <div class="act-row"><span class="al">Ticket moyen</span><span class="av">${esc(fcfa(panier))}</span></div>
             <div class="act-row"><span class="al">Consultations / jour</span><span class="av">${esc(parJour)}</span></div>
-            <div class="act-row"><span class="al">Journée la plus active</span><span class="av">${actif ? esc(actif.jour.charAt(0).toUpperCase() + actif.jour.slice(1)) : '—'}</span></div>`;
+            <div class="act-row"><span class="al">Journée la plus active</span><span class="av">${actif ? esc(actif.jour.charAt(0).toUpperCase() + actif.jour.slice(1)) : '—'}</span></div>
+            <div class="act-row"><span class="al">Heure de pointe</span><span class="av">${pointe ? pointe.heure + 'h (' + pointe.pct + ' %)' : '—'}</span></div>`;
     } else {
         const total = totalVentes(md);
         const panier = md.length ? Math.round(total / md.length) : 0;
@@ -1800,8 +1868,11 @@ function renderActivite(tk, md) {
             <div class="act-row"><span class="al">Ventes</span><span class="av">${esc(fmt(md.length))}</span></div>
             <div class="act-row"><span class="al">Chiffre d'affaires</span><span class="av">${esc(fcfa(total))}</span></div>
             <div class="act-row"><span class="al">Panier moyen</span><span class="av">${esc(fcfa(panier))}</span></div>
-            <div class="act-row"><span class="al">Unités vendues</span><span class="av">${esc(fmt(unites))}</span></div>`;
+            <div class="act-row"><span class="al">Unités vendues</span><span class="av">${esc(fmt(unites))}</span></div>
+            <div class="act-row"><span class="al">Heure de pointe</span><span class="av">${pointe ? pointe.heure + 'h (' + pointe.pct + ' %)' : '—'}</span></div>`;
     }
+    renderJourSemaineChart(listActive);
+    renderNouveauxRecurrents(tk, debutPeriode);
 }
 
 // ── PHARMACIE : marge, rotation, couverture, produits sans mouvement ──
