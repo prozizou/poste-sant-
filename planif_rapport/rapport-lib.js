@@ -246,3 +246,145 @@ export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], secti
         setTimeout(() => document.body.classList.remove('printing-sheet'), 800);
     }));
 }
+
+// ═══════════════════════════════════════════════════
+//   EXPORT CSV / EXCEL / PARTAGE (hors-ligne, sans librairie)
+//
+//   Même contrainte que le PDF : PWA hors-ligne, donc pas de dépendance
+//   CDN. Le CSV est du texte pur. L'Excel utilise le format SpreadsheetML
+//   (XML « Excel 2003 ») — un simple fichier XML texte que Excel, LibreOffice
+//   et Google Sheets (import) ouvrent nativement en plusieurs feuilles,
+//   sans le message d'avertissement qu'affiche l'astuce « table HTML
+//   renommée .xls ». Aucune librairie, aucun réseau.
+// ═══════════════════════════════════════════════════
+
+function nomFichierExport(titre, ext) {
+    const slug = String(titre).toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    return `${slug || 'rapport'}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+}
+
+// Partage natif (WhatsApp, etc.) quand l'appareil le permet — repli
+// automatique sur un téléchargement classique sinon. Une annulation du
+// partage par l'utilisateur (AbortError) n'est pas un échec à rattraper.
+export async function telechargerOuPartager(blob, filename, mimeType) {
+    try {
+        const file = new File([blob], filename, { type: mimeType });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+            return;
+        }
+    } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        // Échec du partage (non supporté en pratique malgré canShare, etc.) :
+        // on retente en téléchargement classique ci-dessous.
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+// ── CSV ───────────────────────────────────────────
+// Point-virgule (locale FR : la virgule est déjà le séparateur décimal),
+// BOM UTF-8 en tête pour que les accents s'affichent correctement dans
+// Excel (qui, sans BOM, suppose du Latin-1 pour les CSV).
+export function exporterCSV({ titre, periodeLabel, meta = [], resume = [], sections = [] }) {
+    const lignes = [];
+    const q = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
+    lignes.push(q(titre));
+    lignes.push(q(periodeLabel));
+    lignes.push('');
+    if (meta.length) {
+        meta.forEach(m => lignes.push([q(m.k), q(m.v)].join(';')));
+        lignes.push('');
+    }
+    if (resume.length) {
+        lignes.push(q('Résumé'));
+        resume.forEach(r => lignes.push([q(r.label), q(r.valeur)].join(';')));
+        lignes.push('');
+    }
+    sections.forEach(sec => {
+        lignes.push(q(sec.titre));
+        lignes.push(sec.cols.map(c => q(c.t)).join(';'));
+        if (sec.rows.length) {
+            sec.rows.forEach(row => lignes.push(sec.cols.map(c => q(row[c.k])).join(';')));
+        } else {
+            lignes.push(q(sec.vide || 'Aucune donnée.'));
+        }
+        if (sec.totalLabel) {
+            const rowArr = new Array(sec.cols.length).fill('');
+            rowArr[0] = sec.totalLabel;
+            rowArr[rowArr.length - 1] = sec.totalValue;
+            lignes.push(rowArr.map(q).join(';'));
+        }
+        lignes.push('');
+    });
+    const blob = new Blob(['﻿' + lignes.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    return telechargerOuPartager(blob, nomFichierExport(titre, 'csv'), 'text/csv');
+}
+
+// ── EXCEL (SpreadsheetML) ─────────────────────────
+const escXml = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Noms de feuille : 31 caractères max, certains caractères interdits, pas
+// de doublon — Excel refuse d'ouvrir le classeur sinon.
+function nomFeuille(s, dejaUtilises) {
+    let base = String(s).replace(/[:\\/\?\*\[\]]/g, ' ').trim().slice(0, 31) || 'Feuille';
+    let nom = base, i = 2;
+    while (dejaUtilises.has(nom)) { nom = (base.slice(0, 28) + ' ' + i).slice(0, 31); i++; }
+    dejaUtilises.add(nom);
+    return nom;
+}
+function ligneExcel(cellules, styleId) {
+    const attr = styleId ? ` ss:StyleID="${styleId}"` : '';
+    return `<Row${attr}>` + cellules.map(c => `<Cell${styleId ? ` ss:StyleID="${styleId}"` : ''}><Data ss:Type="String">${escXml(c)}</Data></Cell>`).join('') + '</Row>';
+}
+function tableExcel(cols, rows, totalLabel, totalValue, vide) {
+    if (!rows.length) return ligneExcel([vide || 'Aucune donnée.']);
+    const entete = ligneExcel(cols.map(c => c.t), 'Header');
+    const corps = rows.map(r => ligneExcel(cols.map(c => r[c.k] ?? ''))).join('');
+    let total = '';
+    if (totalLabel) {
+        const cellules = new Array(cols.length).fill('');
+        cellules[0] = totalLabel; cellules[cellules.length - 1] = totalValue;
+        total = ligneExcel(cellules, 'Total');
+    }
+    return entete + corps + total;
+}
+export function exporterExcel({ titre, periodeLabel, meta = [], resume = [], sections = [] }) {
+    const dejaUtilises = new Set();
+    const feuilles = [];
+
+    const resumeLignes = [
+        ligneExcel([titre], 'Header'),
+        ligneExcel([periodeLabel]),
+        ligneExcel([]),
+        ...meta.map(m => ligneExcel([m.k, m.v])),
+        ligneExcel([]),
+        ...resume.map(r => ligneExcel([r.label, r.valeur])),
+    ].join('');
+    feuilles.push(`<Worksheet ss:Name="${nomFeuille('Résumé', dejaUtilises)}"><Table>${resumeLignes}</Table></Worksheet>`);
+
+    sections.forEach(sec => {
+        const table = tableExcel(sec.cols, sec.rows, sec.totalLabel, sec.totalValue, sec.vide);
+        feuilles.push(`<Worksheet ss:Name="${nomFeuille(sec.titre, dejaUtilises)}"><Table>${table}</Table></Worksheet>`);
+    });
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Styles>
+  <Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1A3A5C" ss:Pattern="Solid"/></Style>
+  <Style ss:ID="Total"><Font ss:Bold="1"/><Borders><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>
+ </Styles>
+ ${feuilles.join('\n ')}
+</Workbook>`;
+
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+    return telechargerOuPartager(blob, nomFichierExport(titre, 'xls'), 'application/vnd.ms-excel');
+}
