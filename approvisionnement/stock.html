@@ -115,18 +115,40 @@
         .plist{display:grid;grid-template-columns:1fr;gap:6px;}
         @media(min-width:640px){.plist{grid-template-columns:1fr 1fr;}}
         @media(min-width:1000px){.plist{grid-template-columns:1fr 1fr 1fr;}}
-        .pc{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 11px 9px 12px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:10px;text-align:left;width:100%;min-width:0;}
-        .pc:hover{border-color:var(--primary-line);}
-        .pc.st-low{border-left-color:var(--warn);} .pc.st-soon{border-left-color:var(--soon);}
-        .pc.st-expired,.pc.st-rupture{border-left-color:var(--danger);}
-        .pc-name{font-size:.86rem;font-weight:700;color:var(--text);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;}
-        .pc-meta{font-size:.71rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;grid-column:1;}
-        .pc-qty{grid-row:1/3;grid-column:2;text-align:right;align-self:center;}
-        .pc-qty b{display:block;font-size:1.05rem;font-weight:800;color:var(--primary);line-height:1.1;}
+        /* Carte : vignette carrée à gauche, informations à droite, hauteur régulière */
+        .pc{display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-rows:auto auto auto;column-gap:11px;row-gap:2px;align-items:center;min-height:82px;padding:10px 12px 10px 10px;background:var(--card);border:1px solid var(--line);border-radius:12px;text-align:left;width:100%;min-width:0;box-shadow:0 1px 2px rgba(26,58,92,.04);transition:border-color .15s,box-shadow .15s;}
+        .pc:hover{border-color:var(--primary-line);box-shadow:0 4px 14px rgba(26,58,92,.08);}
+        .pc:active{transform:scale(.995);}
+        .pc > .thumb{grid-row:1/4;grid-column:1;align-self:center;}
+        .pc-name{grid-column:2;grid-row:1;font-size:.86rem;font-weight:700;color:var(--text);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;align-self:end;}
+        .pc-meta{grid-column:2;grid-row:2;font-size:.71rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .pc-qty{grid-column:3;grid-row:1/3;text-align:right;align-self:center;}
+        .pc-qty b{display:block;font-size:1.08rem;font-weight:800;color:var(--primary);line-height:1.1;}
         .pc-qty span{font-size:.66rem;color:var(--muted);}
-        .pc-foot{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:5px;font-size:.71rem;color:var(--muted);min-width:0;}
+        .pc.st-rupture .pc-qty b,.pc.st-expired .pc-qty b{color:var(--danger);}
+        .pc.st-low .pc-qty b{color:var(--warn);}
+        .pc-foot{grid-column:2/4;grid-row:3;display:flex;align-items:center;gap:7px;margin-top:4px;font-size:.7rem;color:var(--muted);min-width:0;}
         .pc-foot .grow{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .pc-foot .price{font-weight:700;color:var(--text);white-space:nowrap;}
+        /* Vignette : photo (Commons ou prise sur place) ou pictogramme de la forme */
+        .thumb{position:relative;width:56px;height:56px;border-radius:12px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#f4f8fc 0%,#e2ebf5 100%);border:1px solid #e1e9f2;}
+        .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff;}
+        .thumb svg{width:26px;height:26px;fill:none;stroke:#5a7ea4;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.85;}
+        .thumb.sm{width:36px;height:36px;border-radius:9px;} .thumb.sm svg{width:18px;height:18px;}
+        .thumb.lg{width:64px;height:64px;border-radius:14px;} .thumb.lg svg{width:28px;height:28px;}
+        .thumb.xl{width:100%;height:auto;aspect-ratio:1;border-radius:14px;} .thumb.xl svg{width:40%;height:40%;}
+        .img-box{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;margin-bottom:10px;}
+        .img-box .src{font-size:.7rem;color:var(--muted);line-height:1.45;}
+        .img-box .src a{color:var(--primary-2);}
+        .img-box .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+        .cand{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+        @media(min-width:460px){.cand{grid-template-columns:repeat(4,1fr);}}
+        .cand button{border:2px solid transparent;border-radius:12px;padding:0;background:none;overflow:hidden;}
+        .cand button:hover,.cand button:focus-visible{border-color:var(--primary-2);outline:none;}
+        .cand img{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:var(--bg);}
+        .img-status{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:6px;}
+        .spin{width:12px;height:12px;border:2px solid var(--primary-line);border-top-color:var(--primary-2);border-radius:50%;animation:sp 1s linear infinite;}
+        @keyframes sp{to{transform:rotate(360deg);}}
 
         /* ── ÉTATS ── */
         .badge{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;border:1px solid;}
@@ -339,7 +361,7 @@
             </select>
         </div>
         <div class="list-head">
-            <span class="cnt" id="cnt">—</span>
+            <span><span class="cnt" id="cnt">—</span> <span class="img-status" id="img-status" hidden></span></span>
             <button type="button" class="btn btn-p btn-sm" data-act="nouveau"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Nouveau produit</button>
         </div>
         <div class="plist" id="plist"><div class="empty">Chargement du stock…</div></div>
@@ -491,6 +513,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { ref, push, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
 import { exporterPDF } from '../planif_rapport/rapport-lib.js';
+import { analyser, libelleForme, chercherImage, vignetteHTML, imageDe } from './medoc-image.js';
 initNotifCaisseAdmin();
 
 // ════════════════════════════════════════════════════════════════════════
@@ -666,6 +689,7 @@ onValue(ref(db, 'db_pharmacie_stock'), (snap) => {
     charge.s = true; synchro(true);
     resynchroniserPeremptions();
     toutRendre();
+    planifierImages();
 }, () => synchro(false));
 onValue(ref(db, 'db_pharmacie_reappro'), (snap) => {
     journalLog = [];
@@ -698,6 +722,115 @@ function resynchroniserPeremptions() {
         update(ref(db, `db_pharmacie_stock/${m.id}`), { date_peremption: date, lot })
             .catch(() => {}).finally(() => enCoursSync.delete(m.id));
     });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  MINIATURES — image enregistrée, sinon recherche automatique (une seule
+//  fois, résultat enregistré sur le produit pour tous les appareils)
+// ════════════════════════════════════════════════════════════════════════
+const RE_ESSAI = 30 * 86400000;      // nouvelle tentative après 30 jours
+const rechercheImages = { file: [], enCours: new Set(), tentes: new Set(), actif: false, faits: 0 };
+function planifierImages() {
+    Object.values(allStock).forEach(m => {
+        if (imageDe(m) || m.image_aucune || rechercheImages.tentes.has(m.id)) return;
+        if (m.image_recherche_ts && Date.now() - m.image_recherche_ts < RE_ESSAI) return;
+        if (!analyser(m).q) return;                 // pas un médicament identifiable
+        rechercheImages.tentes.add(m.id); rechercheImages.file.push(m.id);
+    });
+    if (!rechercheImages.actif && rechercheImages.file.length) traiterImages();
+}
+function statutImages() {
+    const el = document.getElementById('img-status');
+    const reste = rechercheImages.file.length + rechercheImages.enCours.size;
+    el.hidden = !reste;
+    el.innerHTML = reste ? `<span class="spin"></span>Recherche d'images · ${reste} restante${reste > 1 ? 's' : ''}` : '';
+}
+async function traiterImages() {
+    rechercheImages.actif = true;
+    while (rechercheImages.file.length) {
+        const id = rechercheImages.file.shift(), m = allStock[id];
+        if (!m || imageDe(m) || m.image_aucune) continue;
+        rechercheImages.enCours.add(id); statutImages();
+        try {
+            const r = await chercherImage(m);
+            if (r) await update(ref(db, `db_pharmacie_stock/${id}`), {
+                image_url: r.thumb, image_page: r.page || '', image_titre: r.title, image_source: 'commons', image_auto: true,
+                image_score: r.score, image_ts: Date.now(), image_par: moi(), image_data: null, image_recherche_ts: null,
+            });
+            else await update(ref(db, `db_pharmacie_stock/${id}`), { image_recherche_ts: Date.now() });
+        } catch (e) {
+            // Réseau ou limite de débit : on réessaiera à la prochaine ouverture.
+            rechercheImages.tentes.delete(id);
+            if (/429|Failed to fetch|NetworkError/i.test(e.message)) { rechercheImages.file.length = 0; }
+        }
+        rechercheImages.enCours.delete(id); statutImages();
+        await new Promise(r => setTimeout(r, 1200));     // ménage l'API Wikimedia
+    }
+    rechercheImages.actif = false; statutImages();
+}
+
+async function enregistrerImage(id, img) {
+    const m = allStock[id]; if (!m) return;
+    const base = { image_url: null, image_page: null, image_titre: null, image_score: null, image_data: null, image_auto: null, image_recherche_ts: null, image_ts: Date.now(), image_par: moi() };
+    const maj = !img ? { ...base, image_source: null, image_aucune: true }
+        : img.data ? { ...base, image_data: img.data, image_source: 'photo', image_aucune: null }
+        : { ...base, image_url: img.thumb, image_page: img.page || '', image_titre: img.title || '', image_source: 'commons', image_auto: false, image_aucune: null };
+    try { await update(ref(db, `db_pharmacie_stock/${id}`), maj); toast(img ? 'Image enregistrée.' : 'Image retirée.', 'ok'); fermer2(); }
+    catch (err) { toast('Erreur : ' + err.message, 'err'); }
+}
+
+// Photo prise sur place : réduite à 192 px (≈ 8 Ko) avant d'être enregistrée.
+function photoProduit(id, file) {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+        const T = 192, c = document.createElement('canvas'); c.width = c.height = T;
+        const k = Math.max(T / img.width, T / img.height), w = img.width * k, h = img.height * k;
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, T, T);
+        ctx.drawImage(img, (T - w) / 2, (T - h) / 2, w, h);
+        URL.revokeObjectURL(url);
+        enregistrerImage(id, { data: c.toDataURL('image/jpeg', 0.72) });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); toast('Image illisible.', 'err'); };
+    img.src = url;
+}
+
+function dialogueImage(id) {
+    const m = allStock[id]; if (!m) return;
+    const a = analyser(m);
+    ouvrir2(`
+        <div class="sh-head"><div class="h"><h2>Choisir une image</h2><div class="s">${esc(m.nom)}</div></div>
+            <button type="button" class="x" data-d="fermer" aria-label="Fermer">${I.x}</button></div>
+        <div class="sh-body">
+            <div class="bar" style="flex-wrap:nowrap;">
+                <div class="search" style="flex-basis:auto;"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="search" id="ci-q" value="${esc(a.forme ? `${a.q} ${a.forme.en}` : a.q)}" placeholder="Ex : amoxicillin capsules"></div>
+                <button type="button" class="btn btn-p" data-d="chercher">Chercher</button>
+            </div>
+            <div id="ci-res"><div class="img-status"><span class="spin"></span>Recherche…</div></div>
+            <p class="note">Images libres de droits (Wikimedia Commons), classées par pertinence. Recherche en anglais conseillée (tablets, capsules, syrup, injection…).</p>
+        </div>
+        <div class="sh-foot"><label class="btn btn-s" style="cursor:pointer;">Prendre une photo<input type="file" accept="image/*" capture="environment" hidden id="ci-photo"></label></div>`);
+    let cands = [];
+    const lancer = async () => {
+        const host = sheet2.querySelector('#ci-res'); if (!host) return;
+        host.innerHTML = '<div class="img-status"><span class="spin"></span>Recherche…</div>';
+        try {
+            const q = sheet2.querySelector('#ci-q').value.trim();
+            cands = await chercherImage(m, { tous: true, requete: q && q !== (a.forme ? `${a.q} ${a.forme.en}` : a.q) ? q : '' });
+            host.innerHTML = cands.length
+                ? `<div class="cand">${cands.slice(0, 16).map((c, i) => `<button type="button" data-ci="${i}" title="${esc(c.title.replace(/^File:/, ''))}"><img src="${esc(c.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>`
+                : '<div class="empty">Aucune image trouvée. Essayez un autre terme ou prenez une photo.</div>';
+        } catch (e) { host.innerHTML = '<div class="empty">Recherche impossible (connexion). Réessayez plus tard.</div>'; }
+    };
+    sheet2.onclick = (ev) => {
+        const b = ev.target.closest('[data-d],[data-ci]'); if (!b) return;
+        if (b.dataset.d === 'fermer') return fermer2();
+        if (b.dataset.d === 'chercher') return lancer();
+        if (b.dataset.ci) enregistrerImage(id, cands[+b.dataset.ci]);
+    };
+    sheet2.querySelector('#ci-q').addEventListener('keydown', e => { if (e.key === 'Enter') lancer(); });
+    sheet2.querySelector('#ci-photo').addEventListener('change', e => { if (e.target.files[0]) photoProduit(id, e.target.files[0]); });
+    lancer();
 }
 
 // ── Écritures traçables ─────────────────────────────────────────────────
@@ -863,10 +996,11 @@ function rendreInventaire() {
         return;
     }
     host.innerHTML = arr.slice(0, MAX_CARTES).map(({ m, e }) => {
-        const meta = [m.forme, m.dosage, m.categorie].filter(Boolean).join(' · ') || '—';
+        const meta = libelleForme(m) || m.categorie || '—';
         const exp = e.prochain ? `Exp. ${dateFR(e.prochain.date_peremption)}` : 'Sans date';
         const nl = e.lots.filter(l => l.restant > 0 && !l.hors).length;
         return `<button type="button" class="pc st-${e.cls}" data-fiche="${esc(m.id)}">
+            ${vignetteHTML(m)}
             <div class="pc-name">${esc(m.nom || 'Sans nom')}</div>
             <div class="pc-meta">${esc(meta)}</div>
             <div class="pc-qty num"><b>${fmt(e.Q)}</b><span>${esc(uniteCourte(m.unite))}</span></div>
@@ -941,9 +1075,10 @@ function rendreFiche() {
     const scroll = sheet.querySelector('.sh-body')?.scrollTop || 0;
     sheet.innerHTML = `
         <div class="sh-head">
+            ${vignetteHTML(m, 'thumb lg')}
             <div class="h">
                 <h2>${esc(m.nom || 'Sans nom')}</h2>
-                <div class="s"><span class="badge ${e.cls}">${esc(e.txt)}</span>${esc([m.forme, m.dosage].filter(Boolean).join(' · '))}</div>
+                <div class="s"><span class="badge ${e.cls}">${esc(e.txt)}</span>${esc(libelleForme(m))}</div>
             </div>
             <button type="button" class="x" data-f="fermer" aria-label="Fermer">${I.x}</button>
         </div>
@@ -963,7 +1098,21 @@ function ongletDetails(m, e) {
     const kv = (k, v, full) => `<div${full ? ' class="full"' : ''}><span>${k}</span><b>${v}</b></div>`;
     const prixAchat = num(m.prix_achat);
     const marge = prixAchat > 0 && num(m.prix_unitaire) > 0 ? Math.round((num(m.prix_unitaire) - prixAchat) / num(m.prix_unitaire) * 100) + ' %' : '—';
+    const src = imageDe(m);
+    const origine = m.image_source === 'photo' ? 'Photo prise sur place'
+        : m.image_source === 'commons' ? `Wikimedia Commons${m.image_auto ? ' (choix automatique)' : ''}${m.image_page ? ` · <a href="${esc(m.image_page)}" target="_blank" rel="noopener">source</a>` : ''}`
+        : src ? 'Image enregistrée' : (m.image_aucune ? 'Aucune image (choix manuel)' : (rechercheImages.enCours.has(m.id) ? 'Recherche d\'image en cours…' : 'Aucune image pertinente trouvée'));
     return `
+        <div class="img-box">
+            ${vignetteHTML(m, 'thumb xl')}
+            <div><div class="src">${origine}</div>
+                <div class="acts">
+                    <button type="button" class="btn btn-s btn-sm" data-f="img-choisir">Choisir une image</button>
+                    <label class="btn btn-s btn-sm" style="cursor:pointer;">Photo<input type="file" accept="image/*" capture="environment" hidden data-f-photo></label>
+                    ${src ? '<button type="button" class="btn btn-d btn-sm" data-f="img-retirer">Retirer</button>' : ''}
+                </div>
+            </div>
+        </div>
         <div class="stockline">
             <div class="sq num"><b>${fmt(e.Q)}</b><span>${esc(uniteCourte(m.unite))}</span></div>
             <div class="grow" style="font-size:.74rem;color:var(--muted);">Seuil minimum : <b style="color:var(--text)">${fmt(e.seuil)}</b><br>Prochaine péremption : <b style="color:var(--text)">${e.prochain ? dateFR(e.prochain.date_peremption) : '—'}</b></div>
@@ -1048,6 +1197,11 @@ sheet.addEventListener('click', (ev) => {
     else if (f === 'lot-retirer') dialogueRetirerLot(ficheId, b.dataset.lot);
     else if (f === 'lot-modif') dialogueModifierLot(ficheId, b.dataset.lot);
     else if (f === 'retour') { ficheMode = 'fiche'; rendreFiche(); }
+    else if (f === 'img-choisir') dialogueImage(ficheId);
+    else if (f === 'img-retirer') enregistrerImage(ficheId, null);
+});
+sheet.addEventListener('change', (ev) => {
+    if (ev.target.matches('[data-f-photo]') && ev.target.files[0]) photoProduit(ficheId, ev.target.files[0]);
 });
 
 // ── Ajustement d'inventaire (comptage physique) ─────────────────────────
@@ -1320,7 +1474,8 @@ function choisirReappro(id) {
 function rendreChoisi() {
     const m = allStock[rSel], e = etat(m);
     document.getElementById('r-chosen').innerHTML = `
-        <div class="c-n"><b>${esc(m.nom)}</b><small>${esc([m.forme, m.dosage].filter(Boolean).join(' · '))} · Stock ${fmt(e.Q)} · <span class="badge ${e.cls}">${esc(e.txt)}</span></small></div>
+        ${vignetteHTML(m, 'thumb sm')}
+        <div class="c-n"><b>${esc(m.nom)}</b><small>${esc(libelleForme(m))} · Stock ${fmt(e.Q)} · <span class="badge ${e.cls}">${esc(e.txt)}</span></small></div>
         <button type="button" class="btn btn-s btn-sm" id="r-change">Changer</button>`;
     document.getElementById('r-change').onclick = () => { choisirReappro(null); rSearch.focus(); };
 }
@@ -1334,7 +1489,8 @@ function resultatsRecherche() {
         .slice(0, 8);
     rRes.innerHTML = arr.length ? arr.map(({ m, e }, i) => `
         <button type="button" data-pick="${esc(m.id)}" class="${i === 0 ? 'hl' : ''}">
-            <span class="pr-n">${esc(m.nom)}<small>${esc([m.forme, m.dosage].filter(Boolean).join(' · ') || '—')}</small></span>
+            ${vignetteHTML(m, 'thumb sm')}
+            <span class="pr-n">${esc(m.nom)}<small>${esc(libelleForme(m) || '—')}</small></span>
             <span class="badge ${e.cls}">${esc(LIB_ETAT[e.cls])}</span>
             <span class="pr-q num">${fmt(e.Q)}</span>
         </button>`).join('') : '<div class="empty" style="border:none;">Aucun médicament trouvé.</div>';
