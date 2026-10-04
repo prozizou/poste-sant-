@@ -148,19 +148,6 @@
         .txn-card-bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #f0f2f5;}
         .txn-card-date{font-size:.74rem;color:var(--muted);}
 
-        /* ── MENU DÉROULANT (kebab) ── */
-        .menu-wrap{position:relative;display:inline-flex;}
-        .btn-kebab{background:none;border:1.5px solid var(--border);width:30px;height:30px;flex-shrink:0;border-radius:7px;cursor:pointer;color:var(--muted);position:relative;display:inline-flex;align-items:center;justify-content:center;transition:all .2s;}
-        .btn-kebab .icon{width:1em;height:1em;}
-        .btn-kebab:hover,.btn-kebab.open{border-color:var(--danger);color:var(--danger);}
-        .dropdown-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:180px;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(20,30,45,.18);padding:6px;z-index:60;display:none;}
-        .dropdown-menu.open{display:block;}
-        .dropdown-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 10px;border-radius:7px;border:none;background:none;font-family:inherit;font-size:.84rem;font-weight:600;color:var(--text);cursor:pointer;transition:background .15s;}
-        .dropdown-item .icon{width:1em;height:1em;flex-shrink:0;color:var(--muted);}
-        .dropdown-item:hover{background:var(--bg);}
-        .dropdown-item.danger{color:var(--danger);}
-        .dropdown-item.danger .icon{color:var(--danger);}
-
         /* ── MODALE : NOUVELLE DÉPENSE ── */
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,32,.55);z-index:500;align-items:flex-end;justify-content:center;padding:0;}
         .modal-overlay.visible{display:flex;}
@@ -377,7 +364,7 @@
 
 <script type="module">
 import { db, auth } from '../firebase-config.js';
-import { ref, push, onValue, off, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { ref, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
 initNotifCaisseAdmin();
@@ -417,28 +404,10 @@ window.addEventListener('storage', (e) => {
 });
 
 // ── Bibliothèque d'icônes SVG partagée (trait 2px cohérent) ──────
-const ICON_TRASH = '<svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
-const ICON_DOTS  = '<svg class="icon dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
 const ICON_BOX   = '<svg class="icon" viewBox="0 0 24 24"><path d="m16.5 9.4-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>';
 const ICON_UP    = '<svg class="icon" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
 const ICON_DOWN  = '<svg class="icon" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>';
 const ICON_INFO  = '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
-
-// ── Menus déroulants génériques (kebab) ──────────────────────────
-window.toggleDropdown = function (id, btn) {
-    const menu = document.getElementById(id);
-    if (!menu) return;
-    const wasOpen = menu.classList.contains('open');
-    closeAllDropdowns();
-    if (!wasOpen) { menu.classList.add('open'); btn?.classList.add('open'); }
-};
-window.closeAllDropdowns = function () {
-    document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
-    document.querySelectorAll('.btn-kebab.open').forEach(b => b.classList.remove('open'));
-};
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.menu-wrap')) closeAllDropdowns();
-});
 
 // ── MODALE FORMULAIRE ────────────────────────────
 window.openFormModal = function () {
@@ -755,25 +724,17 @@ function renderJournal(dep) {
     tblHost.innerHTML = `<table class="data">
         <thead><tr>
             <th>Date</th><th>Libellé</th><th>Catégorie</th>
-            <th class="num">Montant</th><th></th>
+            <th class="num">Montant</th>
         </tr></thead>
         <tbody>${dep.map(d => `<tr>
             <td style="white-space:nowrap;color:var(--muted);font-size:.8rem;">${esc(dateHeure(d._ts))}</td>
             <td style="font-weight:600;">${esc(d.libelle)}</td>
             <td><span class="cat-tag">${esc(d.categorie)}</span></td>
             <td class="num">− ${esc(fcfa(d.montant))}</td>
-            <td>
-                <div class="menu-wrap">
-                    <button type="button" class="btn-kebab" onclick="toggleDropdown('jm-${esc(d._key)}', this)" aria-label="Plus d'actions">${ICON_DOTS}</button>
-                    <div class="dropdown-menu" id="jm-${esc(d._key)}" style="right:0;">
-                        <button type="button" class="dropdown-item danger" data-key="${esc(d._key)}" onclick="closeAllDropdowns();supprimerDepense(this.dataset.key)">${ICON_TRASH}Supprimer</button>
-                    </div>
-                </div>
-            </td>
         </tr>`).join('')}</tbody>
         <tfoot><tr>
             <td colspan="3" style="font-weight:800;padding-top:14px;">TOTAL DES DÉPENSES</td>
-            <td class="num" style="font-size:1rem;padding-top:14px;">${esc(fcfa(total))}</td><td style="padding-top:14px;"></td>
+            <td class="num" style="font-size:1rem;padding-top:14px;">${esc(fcfa(total))}</td>
         </tr></tfoot>
     </table>`;
 
@@ -788,21 +749,12 @@ function renderJournal(dep) {
             </div>
             <div class="txn-card-bottom">
                 <span class="txn-card-date">${esc(dateCompacte(d._ts))}</span>
-                <div class="menu-wrap">
-                    <button type="button" class="btn-kebab" onclick="toggleDropdown('cm-${esc(d._key)}', this)" aria-label="Plus d'actions">${ICON_DOTS}</button>
-                    <div class="dropdown-menu" id="cm-${esc(d._key)}" style="right:0;">
-                        <button type="button" class="dropdown-item danger" data-key="${esc(d._key)}" onclick="closeAllDropdowns();supprimerDepense(this.dataset.key)">${ICON_TRASH}Supprimer</button>
-                    </div>
-                </div>
             </div>
         </div>`).join('');
 }
 
-window.supprimerDepense = async function (key) {
-    if (!confirm('Supprimer cette dépense ? Cette action est irréversible.')) return;
-    try { await remove(ref(db, DEPENSES_NODE + '/' + key)); toast('Dépense supprimée.', 'ok'); }
-    catch (err) { toast('Erreur : ' + err.message, 'err'); }
-};
+// Pas de suppression ici : la correction / suppression d'une dépense se
+// fait uniquement par l'administration, dans Planification & Rapports.
 
 function renderCategories(dep, total) {
     const c = document.getElementById('cat-container');

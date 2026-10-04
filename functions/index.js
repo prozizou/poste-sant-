@@ -4,8 +4,8 @@
 //
 //  Rôle : se déclenche automatiquement (quasi instantané, pas de polling)
 //  à chaque nouvelle écriture dans "notifications_caisse" — c'est-à-dire
-//  à chaque encaissement de ticket ou de vente de médicaments (voir
-//  facturation/script.js) — et envoie une notification push (Firebase
+//  à chaque opération de caisse — encaissement, annulation ou modification
+//  (voir facturation/script.js) — et envoie une notification push (Firebase
 //  Cloud Messaging) à chaque appareil administrateur enregistré dans
 //  "fcm_tokens_admin".
 //
@@ -48,9 +48,17 @@ exports.notifierCaisseAdmin = onValueCreated(
 
         if (!cibles.length) return;
 
-        const titre = n.type === 'med' ? '💊 Vente de médicaments encaissée' : '🎫 Ticket de consultation encaissé';
+        // Même rendu que notifications-admin.js (contenuNotification) :
+        // encaissement, annulation ou modification, avec le nom du/de la
+        // caissier(ère) ayant effectué l'opération.
+        const caissier = (n.caissier_email || '').split('@')[0] || 'Caisse';
+        const quoi = n.type === 'med' ? 'Vente de médicaments' : 'Ticket de consultation';
+        let titre;
+        if (n.action === 'annulation')        titre = `❌ ${quoi} annulé${n.type === 'med' ? 'e' : ''}`;
+        else if (n.action === 'modification') titre = `✏️ ${quoi} modifié${n.type === 'med' ? 'e' : ''}`;
+        else titre = n.type === 'med' ? '💊 Vente de médicaments encaissée' : '🎫 Ticket de consultation encaissé';
         const montantFmt = Number(n.montant || 0).toLocaleString('fr-FR') + ' FCFA';
-        const corps = `${n.patient_nom || 'Patient'} · ${montantFmt}` + (n.detail ? `\n${n.detail}` : '');
+        const corps = `Par ${caissier} · ${n.patient_nom || 'Patient'} · ${montantFmt}` + (n.detail ? `\n${n.detail}` : '');
 
         // Messages "data-only" (jamais de champ "notification" côté FCM) :
         // c'est le Service Worker (sw.js → onBackgroundMessage) qui construit
@@ -59,7 +67,8 @@ exports.notifierCaisseAdmin = onValueCreated(
             token,
             data: {
                 title: titre, body: corps,
-                type: n.type || '', key: n.ref_key || '', nkey: notifId, tag: 'caisse-' + notifId,
+                type: n.type || '', action: n.action || 'encaissement',
+                key: n.ref_key || '', nkey: notifId, tag: 'caisse-' + notifId,
             },
             webpush: { headers: { Urgency: 'high' } },
         }));

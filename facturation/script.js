@@ -5,7 +5,25 @@ import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import * as printer from './escpos-printer.js';
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
+import { signalerPush } from '../push-relay.js';
 initNotifCaisseAdmin(); // no-op si l'utilisateur connecté n'est pas administrateur
+
+// Chaque opération de caisse (encaissement, annulation, modification) est
+// signalée à l'administration par une notification push (VAPID / FCM, voir
+// notifications-admin.js, push-relay.js et api/notifier.js). Best-effort : un échec
+// ici ne remet jamais en cause l'opération, déjà enregistrée.
+// La clé de l'entrée est connue tout de suite, même hors-ligne : le push
+// (api/notifier.js) est mis en file et renvoyé jusqu'à confirmation.
+function notifierAdmin(data) {
+    const r = push(ref(db, 'notifications_caisse'), {
+        action: 'encaissement',
+        ...data,
+        caissier_email: auth.currentUser?.email || '',
+        ts: Date.now()
+    });
+    r.catch(e => console.warn('[notif caisse] échec envoi :', e));
+    signalerPush(r.key);
+}
 
 // ── AUTH GUARD ──────────────────────────────────
 // Admin ET caissier(ère) partagent cette page : l'admin peut notamment s'en
@@ -700,16 +718,11 @@ window.encaisserTicket = async function() {
         const refNum='TK-'+newRef.key.substring(0,6).toUpperCase();
         const dateStr=dateISO(opTs);
 
-        // Notifie l'administration en temps réel (voir notifications-admin.js).
-        // Best-effort : un échec ici ne doit jamais remettre en cause le
-        // ticket, déjà enregistré avec succès.
-        push(ref(db, 'notifications_caisse'), {
+        notifierAdmin({
             type: 'ticket', ref_key: newRef.key, ref_num: refNum,
             patient_nom: prenom+' '+nom, num_attente: numAttente,
-            montant: prixActuel, detail: choix,
-            caissier_email: auth.currentUser?.email || '',
-            ts: Date.now(), lu: false
-        }).catch(e => console.warn('[notif caisse] échec envoi :', e));
+            montant: prixActuel, detail: choix
+        });
 
         const ticketData = {
             refNum, dateStr, prenom, nom, age, choix, numAttente,
@@ -1113,16 +1126,11 @@ window.encaisserMedicaments = async function() {
         const refNum='MED-'+newRef.key.substring(0,6).toUpperCase();
         const dateStr=dateISO(opTs);
 
-        // Notifie l'administration en temps réel (voir notifications-admin.js).
-        // Best-effort : un échec ici ne doit jamais remettre en cause la
-        // vente, déjà enregistrée avec succès.
-        push(ref(db, 'notifications_caisse'), {
+        notifierAdmin({
             type: 'med', ref_key: newRef.key, ref_num: refNum,
             patient_nom: patientNom, num_attente: patientAtt,
-            montant: total, detail: panier.map(p=>`${p.qte}× ${p.nom}`).join(', '),
-            caissier_email: auth.currentUser?.email || '',
-            ts: Date.now(), lu: false
-        }).catch(e => console.warn('[notif caisse] échec envoi :', e));
+            montant: total, detail: panier.map(p=>`${p.qte}× ${p.nom}`).join(', ')
+        });
 
         const medData = {
             refNum, dateStr, patientNom, patientAtt,
@@ -1378,6 +1386,12 @@ window.confirmerAnnulation = async function() {
     try {
         if (pendingAnnulation.type === 'ticket') {
             await update(ref(db, 'ticket_dbase/' + pendingAnnulation.key), annuleFields);
+            const tk = allTickets.find(t => t._key === pendingAnnulation.key) || {};
+            notifierAdmin({
+                action: 'annulation', type: 'ticket', ref_key: pendingAnnulation.key,
+                patient_nom: tk.name || '', num_attente: tk.num_attente || '',
+                montant: tk.prix || 0, detail: `Motif : ${motif}${obs ? ' — ' + obs : ''}`
+            });
             toast('Ticket annulé. Il est exclu du bilan.', 'ok');
         } else {
             const vente = allMedVentes.find(m => m._key === pendingAnnulation.key);
@@ -1391,6 +1405,11 @@ window.confirmerAnnulation = async function() {
                 retour_detail: retourDetail,
                 retour_stock_ok: restockOk,
                 retour_stock_echec: restockFail
+            });
+            notifierAdmin({
+                action: 'annulation', type: 'med', ref_key: pendingAnnulation.key,
+                patient_nom: vente?.patient_nom || '', num_attente: vente?.num_attente || '',
+                montant: vente?.total || 0, detail: `Motif : ${motif}${obs ? ' — ' + obs : ''}`
             });
 
             if (restockFail.length) {
@@ -1684,6 +1703,12 @@ window.confirmerModifMed = async function() {
             modifications: [...(modifVente.modifications || []), entree]
         });
 
+        notifierAdmin({
+            action: 'modification', type: 'med', ref_key: modifVente._key,
+            patient_nom: modifVente.patient_nom || '', num_attente: modifVente.num_attente || '',
+            montant: total,
+            detail: `Avant : ${fmt(modifVente.total || 0)} FCFA → après : ${fmt(total)} FCFA · Motif : ${motif}`
+        });
         toast('Vente modifiée avec succès.', 'ok');
         closeModalModifMed();
     } catch (e) {

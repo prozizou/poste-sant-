@@ -1,0 +1,8 @@
+{
+  "name": "poste-sante-diandioly",
+  "private": true,
+  "description": "PWA statique + fonction Vercel api/notifier.js (relais de notifications push).",
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

@@ -1,3 +1,9 @@
+> **⚠️ Remplacé par `api/notifier.js` (fonction Vercel, gratuite).**
+> Cette Cloud Function exige le forfait Firebase Blaze. Le projet utilise
+> désormais le relais Vercel (voir `api/notifier.js` et `push-relay.js`),
+> qui fait le même travail sur le forfait gratuit Spark. Ne déployez pas
+> les deux à la fois (les notifications seraient envoyées deux fois).
+
 # Relais de notifications push — Cloud Function
 
 Cette Cloud Function est la pièce qui manque pour que les notifications de
