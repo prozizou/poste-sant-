@@ -132,7 +132,8 @@
         .pc-foot .price{font-weight:700;color:var(--text);white-space:nowrap;}
         /* Vignette : photo (Commons ou prise sur place) ou pictogramme de la forme */
         .thumb{position:relative;width:56px;height:56px;border-radius:12px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#f4f8fc 0%,#e2ebf5 100%);border:1px solid #e1e9f2;}
-        .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff;}
+        .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;}
+        .thumb:not(.ph){background:#fff;}
         .thumb svg{width:26px;height:26px;fill:none;stroke:#5a7ea4;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.85;}
         .thumb.sm{width:36px;height:36px;border-radius:9px;} .thumb.sm svg{width:18px;height:18px;}
         .thumb.lg{width:64px;height:64px;border-radius:14px;} .thumb.lg svg{width:28px;height:28px;}
@@ -736,9 +737,10 @@ const NON_PRODUIT = /\b(cartes?|fiches?|registres?|cahiers?|formulaires?|carnets
 // À (re)chercher : aucune image, ou une image choisie automatiquement par
 // l'ancien moteur (Wikimedia Commons) — remplacée par le résultat Google.
 function aChercher(m) {
-    if (m.image_aucune || m.image_data || NON_PRODUIT.test(m.nom || '')) return false;
-    if (imageDe(m)) return rechercheImages.google && m.image_auto && m.image_source !== 'google';
-    if (m.image_recherche_ts && Date.now() - m.image_recherche_ts < RE_ESSAI
+    if (m.image_aucune || NON_PRODUIT.test(m.nom || '')) return false;
+    if (m.image_cloudinary_id) return false;                       // déjà sur Cloudinary + gallery
+    if (imageDe(m) && !(m.image_auto && rechercheImages.google)) return false;   // photo / ancien choix manuel
+    if (!imageDe(m) && m.image_recherche_ts && Date.now() - m.image_recherche_ts < RE_ESSAI
         && (m.image_recherche_moteur === 'google' || !rechercheImages.google)) return false;
     return rechercheImages.google || !!analyser(m).q;
 }
@@ -792,7 +794,6 @@ async function versCloudinary(id, corps) {
     if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
     return d;
 }
-const metaImage = (r, auto) => ({ origine: r.moteur || 'google', page: r.page || '', site: r.source || '', titre: r.title || '', requete: r.requete || '', auto });
 
 async function traiterImages() {
     rechercheImages.actif = true;
@@ -801,12 +802,16 @@ async function traiterImages() {
         if (!m || !aChercher(m)) continue;
         rechercheImages.enCours.add(id); statutImages();
         try {
-            const { r, moteur } = await meilleureImage(m);
-            if (r) {
-                const ok = await versCloudinary(id, { action: 'enregistrer', image: r.image, thumb: r.thumb, meta: metaImage({ moteur, ...r }, true) }).catch(() => null);
-                if (!ok) await update(ref(db, `db_pharmacie_stock/${id}`), champsImage({ moteur, ...r }, true));
+            // Le serveur regarde d'abord Firebase (gallery), puis Google Images,
+            // envoie sur Cloudinary et met à jour le produit + gallery.
+            const a = analyser(m);
+            const fait = await versCloudinary(id, { action: 'auto', q: requeteGoogle(m), cles: [a.dci.split(' ')[0].slice(0, 6), a.match.split(' ')[0].slice(0, 6)] });
+            if (!fait) {
+                // Repli (Cloudinary non configuré) : ancien enregistrement direct.
+                const { r, moteur } = await meilleureImage(m);
+                if (r) await update(ref(db, `db_pharmacie_stock/${id}`), champsImage({ moteur, ...r }, true));
+                else if (!imageDe(m)) await update(ref(db, `db_pharmacie_stock/${id}`), { image_recherche_ts: Date.now(), image_recherche_moteur: moteur });
             }
-            else if (!imageDe(m)) await update(ref(db, `db_pharmacie_stock/${id}`), { image_recherche_ts: Date.now(), image_recherche_moteur: moteur });
         } catch (e) {
             // Réseau ou quota : on réessaiera à la prochaine ouverture.
             rechercheImages.tentes.delete(id);
@@ -816,92 +821,6 @@ async function traiterImages() {
         await new Promise(r => setTimeout(r, rechercheImages.google ? 400 : 1200));
     }
     rechercheImages.actif = false; statutImages();
-}
-
-async function enregistrerImage(id, img) {
-    const m = allStock[id]; if (!m) return;
-    toast(img ? 'Enregistrement de l\'image…' : 'Retrait de l\'image…');
-    try {
-        // 1) Cloudinary + gallery (fonction Vercel)
-        const corps = !img ? { action: 'retirer' }
-            : img.data ? { action: 'enregistrer', data: img.hd || img.data }
-            : { action: 'enregistrer', image: img.image, thumb: img.thumb, meta: metaImage(img, false) };
-        if (await versCloudinary(id, corps)) { toast(img ? 'Image enregistrée (Cloudinary).' : 'Image retirée.', 'ok'); fermer2(); return; }
-        // 2) Repli : enregistrement direct sur le produit
-        const vide = { image_url: null, image_hd: null, image_page: null, image_titre: null, image_site: null, image_requete: null, image_score: null,
-            image_data: null, image_auto: null, image_recherche_ts: null, image_recherche_moteur: null, image_ts: Date.now(), image_par: moi() };
-        const maj = !img ? { ...vide, image_source: null, image_aucune: true }
-            : img.data ? { ...vide, image_data: img.data, image_source: 'photo', image_aucune: null }
-            : champsImage(img, false);
-        await update(ref(db, `db_pharmacie_stock/${id}`), maj);
-        toast(img ? 'Image enregistrée.' : 'Image retirée.', 'ok'); fermer2();
-    } catch (err) { toast('Erreur : ' + err.message, 'err'); }
-}
-
-// Photo prise sur place : 800 px pour Cloudinary ; repli 192 px (≈ 8 Ko)
-// stockée dans la base si Cloudinary n'est pas disponible.
-function photoProduit(id, file) {
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => {
-        const carre = (T, q) => {
-            const c = document.createElement('canvas'); c.width = c.height = T;
-            const k = Math.max(T / img.width, T / img.height), w = img.width * k, h = img.height * k;
-            const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, T, T);
-            ctx.drawImage(img, (T - w) / 2, (T - h) / 2, w, h);
-            return c.toDataURL('image/jpeg', q);
-        };
-        const hd = carre(Math.min(800, Math.max(img.width, img.height)), 0.85), petit = carre(192, 0.72);
-        URL.revokeObjectURL(url);
-        enregistrerImage(id, { data: petit, hd });
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); toast('Image illisible.', 'err'); };
-    img.src = url;
-}
-
-function dialogueImage(id) {
-    const m = allStock[id]; if (!m) return;
-    const q0 = requeteGoogle(m);
-    ouvrir2(`
-        <div class="sh-head"><div class="h"><h2>Choisir une image</h2><div class="s">${esc(m.nom)}</div></div>
-            <button type="button" class="x" data-d="fermer" aria-label="Fermer">${I.x}</button></div>
-        <div class="sh-body">
-            <div class="bar" style="flex-wrap:nowrap;">
-                <div class="search" style="flex-basis:auto;"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                    <input type="search" id="ci-q" value="${esc(q0)}" placeholder="Nom du médicament en comprimé…"></div>
-                <button type="button" class="btn btn-p" data-d="chercher">Chercher</button>
-            </div>
-            <div id="ci-res"><div class="img-status"><span class="spin"></span>Recherche…</div></div>
-            <p class="note" id="ci-note">Résultats Google Images, dans l'ordre de Google. Touchez l'image qui correspond au produit.</p>
-        </div>
-        <div class="sh-foot"><label class="btn btn-s" style="cursor:pointer;">Prendre une photo<input type="file" accept="image/*" capture="environment" hidden id="ci-photo"></label></div>`);
-    let cands = [];
-    const lancer = async () => {
-        const host = sheet2.querySelector('#ci-res'); if (!host) return;
-        host.innerHTML = '<div class="img-status"><span class="spin"></span>Recherche…</div>';
-        const q = sheet2.querySelector('#ci-q').value.trim() || q0;
-        try {
-            if (rechercheImages.google) {
-                try { cands = await chercherGoogle(m, { tous: true, requete: q, jeton }); }
-                catch (e) { if (!(e instanceof NonConfigure)) throw e; rechercheImages.google = false; }
-            }
-            if (!rechercheImages.google) {
-                sheet2.querySelector('#ci-note').textContent = 'Google Images n\'est pas encore configuré (clé SERPER_API_KEY) : résultats Wikimedia Commons.';
-                cands = (await chercherImage(m, { tous: true })).map(c => ({ ...c, moteur: 'commons' }));
-            }
-            host.innerHTML = cands.length
-                ? `<div class="cand">${cands.slice(0, 20).map((c, i) => `<button type="button" data-ci="${i}" title="${esc((c.title || '').replace(/^File:/, ''))}${c.source ? ' — ' + esc(c.source) : ''}"><img src="${esc(c.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>`
-                : '<div class="empty">Aucune image trouvée. Essayez un autre terme ou prenez une photo.</div>';
-        } catch (e) { host.innerHTML = '<div class="empty">Recherche impossible (connexion ou quota). Réessayez plus tard.</div>'; }
-    };
-    sheet2.onclick = (ev) => {
-        const b = ev.target.closest('[data-d],[data-ci]'); if (!b) return;
-        if (b.dataset.d === 'fermer') return fermer2();
-        if (b.dataset.d === 'chercher') return lancer();
-        if (b.dataset.ci) enregistrerImage(id, { ...cands[+b.dataset.ci], requete: sheet2.querySelector('#ci-q').value.trim() });
-    };
-    sheet2.querySelector('#ci-q').addEventListener('keydown', e => { if (e.key === 'Enter') lancer(); });
-    sheet2.querySelector('#ci-photo').addEventListener('change', e => { if (e.target.files[0]) photoProduit(id, e.target.files[0]); });
-    lancer();
 }
 
 // ── Écritures traçables ─────────────────────────────────────────────────
@@ -1179,11 +1098,7 @@ function ongletDetails(m, e) {
         <div class="img-box">
             ${vignetteHTML(m, 'thumb xl')}
             <div><div class="src">${origine}${heberge}</div>
-                <div class="acts">
-                    <button type="button" class="btn btn-s btn-sm" data-f="img-choisir">Choisir une image</button>
-                    <label class="btn btn-s btn-sm" style="cursor:pointer;">Photo<input type="file" accept="image/*" capture="environment" hidden data-f-photo></label>
-                    ${src ? '<button type="button" class="btn btn-d btn-sm" data-f="img-retirer">Retirer</button>' : ''}
-                </div>
+
             </div>
         </div>
         <div class="stockline">
@@ -1270,11 +1185,6 @@ sheet.addEventListener('click', (ev) => {
     else if (f === 'lot-retirer') dialogueRetirerLot(ficheId, b.dataset.lot);
     else if (f === 'lot-modif') dialogueModifierLot(ficheId, b.dataset.lot);
     else if (f === 'retour') { ficheMode = 'fiche'; rendreFiche(); }
-    else if (f === 'img-choisir') dialogueImage(ficheId);
-    else if (f === 'img-retirer') enregistrerImage(ficheId, null);
-});
-sheet.addEventListener('change', (ev) => {
-    if (ev.target.matches('[data-f-photo]') && ev.target.files[0]) photoProduit(ficheId, ev.target.files[0]);
 });
 
 // ── Ajustement d'inventaire (comptage physique) ─────────────────────────

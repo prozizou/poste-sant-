@@ -280,11 +280,12 @@ export function pictogramme(m) {
     return `<svg viewBox="0 0 24 24" aria-hidden="true">${PICTO[a.forme?.k] || PICTO.autre}</svg>`;
 }
 export function vignetteHTML(m, cls = 'thumb') {
-    // Grand format (fiche) : image d'origine, repli sur la miniature Google.
+    // Grand format (fiche) : image d'origine, repli sur la miniature.
     const grand = /\bxl\b/.test(cls) && m.image_hd && !m.image_data;
     const src = grand ? m.image_hd : imageDe(m);
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    return `<span class="${cls}${src ? '' : ' ph'}">${src
-        ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="${grand && m.image_url ? `if(this.dataset.r){this.parentNode.classList.add('ph');this.remove();}else{this.dataset.r=1;this.src='${esc(m.image_url)}';}` : `this.parentNode.classList.add('ph');this.remove();`}">`
-        : ''}${pictogramme(m)}</span>`;
+    // Image seule quand elle existe ; pictogramme uniquement sans image.
+    if (!src) return `<span class="${cls} ph">${pictogramme(m)}</span>`;
+    const repli = grand && m.image_url ? `if(!this.dataset.r){this.dataset.r=1;this.src='${esc(m.image_url)}';return;}` : '';
+    return `<span class="${cls}"><img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="${repli}this.parentNode.classList.add('vide');this.remove();"></span>`;
 }
