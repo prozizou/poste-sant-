@@ -514,7 +514,7 @@
 <script type="module">
 import { auth, db } from '../firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { ref, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { ref, onValue, update, remove, runTransaction, push } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
 initNotifCaisseAdmin();
 
@@ -1476,6 +1476,11 @@ function editerStock(key) {
     const s = allStock.find(z => z._key === key);
     if (!s) return;
     const qteInitiale = parseInt(s.quantite, 10) || 0;
+    // Produit géré par lots (page Stock) : la péremption suit le lot FEFO,
+    // elle se modifie lot par lot dans la page Stock.
+    const parLots = !!(s.lots && Object.keys(s.lots).length);
+    // Toute écriture est tracée dans le journal des mouvements de stock.
+    const journal = e => push(ref(db, 'db_pharmacie_reappro'), { date: isoDate(Date.now()), timestamp: Date.now(), par: moi(), med_id: key, nom_medicament: s.nom || '—', ...e });
     ouvrirModal({
         titre: 'Modifier le produit',
         sousTitre: [s.forme, s.dosage, s.lot ? 'Lot ' + s.lot : ''].filter(Boolean).join(' · '),
@@ -1488,9 +1493,9 @@ function editerStock(key) {
             </div>
             <div class="f-row">
                 <div class="f-group"><label for="f-sseuil">Seuil d'alerte</label><input type="number" id="f-sseuil" min="0" step="1" value="${Number(s.seuil_alerte) || 10}"></div>
-                <div class="f-group"><label for="f-sexp">Date de péremption</label><input type="date" id="f-sexp" value="${escA(s.date_peremption || '')}"></div>
+                <div class="f-group"><label for="f-sexp">Date de péremption</label><input type="date" id="f-sexp" value="${escA(s.date_peremption || '')}" ${parLots ? 'disabled title="Gérée par lots dans la page Stock"' : ''}></div>
             </div>
-            <span class="f-hint">La correction de quantité s'applique en écart : une vente encaissée pendant la saisie n'est pas écrasée.</span>`,
+            <span class="f-hint">La correction de quantité s'applique en écart : une vente encaissée pendant la saisie n'est pas écrasée.${parLots ? ' La péremption est gérée lot par lot dans la page Stock.' : ''}</span>`,
         onSave: async () => {
             const nom = val('f-snom').trim();
             const qte = entier(val('f-sqte')), prix = entier(val('f-sprix')), seuil = entier(val('f-sseuil'));
@@ -1498,20 +1503,27 @@ function editerStock(key) {
             if (!(qte >= 0) || !(prix >= 0) || !(seuil >= 0)) { toast('Quantité, prix et seuil doivent être des nombres positifs.', 'err'); return false; }
             await update(ref(db, 'db_pharmacie_stock/' + key), {
                 nom, prix_unitaire: prix, seuil_alerte: seuil,
-                date_peremption: val('f-sexp') || '',
+                ...(parLots ? {} : { date_peremption: val('f-sexp') || '' }),
                 modifie_par: moi(), modifie_ts: Date.now(),
             });
             const delta = qte - qteInitiale;
             if (delta) {
-                await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), cur => {
-                    const n = parseInt(cur, 10);
-                    return Math.max(0, (isNaN(n) ? 0 : n) + delta);
+                let avant = 0;
+                const res = await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), cur => {
+                    const n = parseInt(cur, 10); avant = isNaN(n) ? 0 : n;
+                    return Math.max(0, avant + delta);
                 });
+                const apres = Number(res.snapshot.val()) || 0;
+                await journal({ type: 'ajustement', quantite_ajoutee: apres - avant, ancienne_quantite: avant, nouvelle_quantite: apres, observations: 'Correction depuis Planification & Rapports' });
+            }
+            if (nom !== (s.nom || '') || prix !== (Number(s.prix_unitaire) || 0)) {
+                await journal({ type: 'modification', quantite_ajoutee: 0, nom_medicament: nom, observations: `Fiche modifiée depuis Rapports : prix ${Number(s.prix_unitaire) || 0} → ${prix}${nom !== s.nom ? `, nom ${s.nom} → ${nom}` : ''}` });
             }
             toast('Produit modifié.', 'ok');
         },
         onDel: async () => {
             if (!confirm(`Supprimer définitivement « ${s.nom || 'ce produit'} » du stock ?`)) return false;
+            await journal({ type: 'suppression', quantite_ajoutee: -qteInitiale, ancienne_quantite: qteInitiale, nouvelle_quantite: 0, observations: 'Produit supprimé depuis Planification & Rapports' });
             await remove(ref(db, 'db_pharmacie_stock/' + key));
             toast('Produit supprimé du stock.', 'ok');
         },
