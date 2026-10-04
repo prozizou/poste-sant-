@@ -209,6 +209,57 @@ export async function chercherImage(m, { tous = false, requete = '', signal } = 
     return tri[0] && tri[0].score >= SEUIL_SCORE ? tri[0] : null;
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  GOOGLE IMAGES (via la fonction Vercel api/image-medoc, clé côté serveur)
+//  Requête = nom du médicament tel que saisi + « en » + forme :
+//    « DEXCHLORPHENIRAMINE 2MG CP. en comprimé »
+//    « AMOXICILLINE +AC. CLAVULANIQUE (100+12.5)SP en sirop »
+//  On garde l'ordre de Google : le premier résultat qui porte la molécule
+//  dans son titre / son site, sinon le premier résultat.
+// ════════════════════════════════════════════════════════════════════════
+export const URL_GOOGLE = (typeof location !== 'undefined' && location.hostname.endsWith('.vercel.app'))
+    ? '/api/image-medoc' : 'https://poste-health.vercel.app/api/image-medoc';
+
+export function formeFr(m) {
+    const a = analyser(m);
+    if (a.forme) return a.forme.fr.split(' /')[0].toLowerCase();
+    const f = String(m.forme || '').trim();
+    return f.length > 3 && !/^[a-z]{1,3}\s?\/\s?\d+/i.test(f) && !/^autre$/i.test(f) ? f.toLowerCase() : '';
+}
+export function requeteGoogle(m) {
+    const f = formeFr(m);
+    return `${String(m.nom || '').replace(/\s+/g, ' ').trim()}${f ? ' en ' + f : ''}`;
+}
+export class NonConfigure extends Error {}
+// Google Images est-il configuré côté serveur (clé SERPER_API_KEY) ?
+export async function googleDisponible() {
+    try { const r = await fetch(URL_GOOGLE); return r.ok && !!(await r.json()).configure; } catch { return false; }
+}
+
+async function google(q, jeton, num = 10) {
+    const r = await fetch(URL_GOOGLE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await jeton() },
+        body: JSON.stringify({ q, num }),
+    });
+    if (r.status === 503) throw new NonConfigure('Google Images non configuré');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return (await r.json()).images || [];
+}
+function pertinent(x, m) {
+    const a = analyser(m);
+    const t = sansAccent(`${x.title} ${x.source} ${x.page}`);
+    if (/\.svg(\?|$)/i.test(x.image)) return false;
+    const fr = sansAccent(a.dci.split(' ')[0] || '').slice(0, 6);
+    return (fr.length >= 4 && t.includes(fr)) || (a.match && t.includes(a.match.split(' ')[0].slice(0, 6)));
+}
+export async function chercherGoogle(m, { tous = false, requete = '', jeton } = {}) {
+    const q = requete || requeteGoogle(m);
+    const res = (await google(q, jeton, tous ? 20 : 10)).map(x => ({ ...x, moteur: 'google', requete: q }));
+    if (tous) return res;
+    return res.find(x => pertinent(x, m)) || res[0] || null;
+}
+
 // ── Vignette : image enregistrée, sinon pictogramme selon la forme ──────
 const PICTO = {
     comprime: '<circle cx="9.5" cy="10" r="6"/><path d="M5.3 14.2 13.7 5.8"/><circle cx="17" cy="17" r="4"/><path d="M14.2 17h5.6"/>',
@@ -229,9 +280,11 @@ export function pictogramme(m) {
     return `<svg viewBox="0 0 24 24" aria-hidden="true">${PICTO[a.forme?.k] || PICTO.autre}</svg>`;
 }
 export function vignetteHTML(m, cls = 'thumb') {
-    const src = imageDe(m);
+    // Grand format (fiche) : image d'origine, repli sur la miniature Google.
+    const grand = /\bxl\b/.test(cls) && m.image_hd && !m.image_data;
+    const src = grand ? m.image_hd : imageDe(m);
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     return `<span class="${cls}${src ? '' : ' ph'}">${src
-        ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add('ph');this.remove();">`
+        ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="${grand && m.image_url ? `if(this.dataset.r){this.parentNode.classList.add('ph');this.remove();}else{this.dataset.r=1;this.src='${esc(m.image_url)}';}` : `this.parentNode.classList.add('ph');this.remove();`}">`
         : ''}${pictogramme(m)}</span>`;
 }

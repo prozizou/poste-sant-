@@ -513,7 +513,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { ref, push, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
 import { exporterPDF } from '../planif_rapport/rapport-lib.js';
-import { analyser, libelleForme, chercherImage, vignetteHTML, imageDe } from './medoc-image.js';
+import { analyser, libelleForme, chercherImage, chercherGoogle, requeteGoogle, NonConfigure, googleDisponible, vignetteHTML, imageDe } from './medoc-image.js';
 initNotifCaisseAdmin();
 
 // ════════════════════════════════════════════════════════════════════════
@@ -729,12 +729,24 @@ function resynchroniserPeremptions() {
 //  fois, résultat enregistré sur le produit pour tous les appareils)
 // ════════════════════════════════════════════════════════════════════════
 const RE_ESSAI = 30 * 86400000;      // nouvelle tentative après 30 jours
-const rechercheImages = { file: [], enCours: new Set(), tentes: new Set(), actif: false, faits: 0 };
-function planifierImages() {
+const rechercheImages = { file: [], enCours: new Set(), tentes: new Set(), actif: false, google: true };
+const jeton = () => auth.currentUser.getIdToken();
+// Fournitures de bureau : pas de photo de produit à chercher.
+const NON_PRODUIT = /\b(cartes?|fiches?|registres?|cahiers?|formulaires?|carnets?)\b/i;
+// À (re)chercher : aucune image, ou une image choisie automatiquement par
+// l'ancien moteur (Wikimedia Commons) — remplacée par le résultat Google.
+function aChercher(m) {
+    if (m.image_aucune || m.image_data || NON_PRODUIT.test(m.nom || '')) return false;
+    if (imageDe(m)) return rechercheImages.google && m.image_auto && m.image_source !== 'google';
+    if (m.image_recherche_ts && Date.now() - m.image_recherche_ts < RE_ESSAI
+        && (m.image_recherche_moteur === 'google' || !rechercheImages.google)) return false;
+    return rechercheImages.google || !!analyser(m).q;
+}
+const googlePret = googleDisponible().then(ok => { rechercheImages.google = ok; });
+async function planifierImages() {
+    await googlePret;
     Object.values(allStock).forEach(m => {
-        if (imageDe(m) || m.image_aucune || rechercheImages.tentes.has(m.id)) return;
-        if (m.image_recherche_ts && Date.now() - m.image_recherche_ts < RE_ESSAI) return;
-        if (!analyser(m).q) return;                 // pas un médicament identifiable
+        if (rechercheImages.tentes.has(m.id) || !aChercher(m)) return;
         rechercheImages.tentes.add(m.id); rechercheImages.file.push(m.id);
     });
     if (!rechercheImages.actif && rechercheImages.file.length) traiterImages();
@@ -745,36 +757,52 @@ function statutImages() {
     el.hidden = !reste;
     el.innerHTML = reste ? `<span class="spin"></span>Recherche d'images · ${reste} restante${reste > 1 ? 's' : ''}` : '';
 }
+function champsImage(r, auto) {
+    return {
+        image_url: r.thumb, image_hd: r.image || null, image_page: r.page || '', image_titre: r.title || '',
+        image_site: r.source || null, image_requete: r.requete || null,
+        image_source: r.moteur || 'commons', image_auto: auto, image_score: r.score ?? null,
+        image_ts: Date.now(), image_par: moi(), image_data: null, image_aucune: null,
+        image_recherche_ts: null, image_recherche_moteur: null,
+    };
+}
+// Google d'abord ; si la clé Google n'est pas encore configurée, repli sur
+// Wikimedia Commons (ancien moteur) pour ne pas laisser la liste sans image.
+async function meilleureImage(m) {
+    if (rechercheImages.google) {
+        try { return { r: await chercherGoogle(m, { jeton }), moteur: 'google' }; }
+        catch (e) { if (!(e instanceof NonConfigure)) throw e; rechercheImages.google = false; }
+    }
+    return { r: await chercherImage(m), moteur: 'commons' };
+}
 async function traiterImages() {
     rechercheImages.actif = true;
     while (rechercheImages.file.length) {
         const id = rechercheImages.file.shift(), m = allStock[id];
-        if (!m || imageDe(m) || m.image_aucune) continue;
+        if (!m || !aChercher(m)) continue;
         rechercheImages.enCours.add(id); statutImages();
         try {
-            const r = await chercherImage(m);
-            if (r) await update(ref(db, `db_pharmacie_stock/${id}`), {
-                image_url: r.thumb, image_page: r.page || '', image_titre: r.title, image_source: 'commons', image_auto: true,
-                image_score: r.score, image_ts: Date.now(), image_par: moi(), image_data: null, image_recherche_ts: null,
-            });
-            else await update(ref(db, `db_pharmacie_stock/${id}`), { image_recherche_ts: Date.now() });
+            const { r, moteur } = await meilleureImage(m);
+            if (r) await update(ref(db, `db_pharmacie_stock/${id}`), champsImage({ moteur, ...r }, true));
+            else if (!imageDe(m)) await update(ref(db, `db_pharmacie_stock/${id}`), { image_recherche_ts: Date.now(), image_recherche_moteur: moteur });
         } catch (e) {
-            // Réseau ou limite de débit : on réessaiera à la prochaine ouverture.
+            // Réseau ou quota : on réessaiera à la prochaine ouverture.
             rechercheImages.tentes.delete(id);
-            if (/429|Failed to fetch|NetworkError/i.test(e.message)) { rechercheImages.file.length = 0; }
+            if (/429|Failed to fetch|NetworkError|HTTP 5/i.test(e.message)) rechercheImages.file.length = 0;
         }
         rechercheImages.enCours.delete(id); statutImages();
-        await new Promise(r => setTimeout(r, 1200));     // ménage l'API Wikimedia
+        await new Promise(r => setTimeout(r, rechercheImages.google ? 400 : 1200));
     }
     rechercheImages.actif = false; statutImages();
 }
 
 async function enregistrerImage(id, img) {
     const m = allStock[id]; if (!m) return;
-    const base = { image_url: null, image_page: null, image_titre: null, image_score: null, image_data: null, image_auto: null, image_recherche_ts: null, image_ts: Date.now(), image_par: moi() };
-    const maj = !img ? { ...base, image_source: null, image_aucune: true }
-        : img.data ? { ...base, image_data: img.data, image_source: 'photo', image_aucune: null }
-        : { ...base, image_url: img.thumb, image_page: img.page || '', image_titre: img.title || '', image_source: 'commons', image_auto: false, image_aucune: null };
+    const vide = { image_url: null, image_hd: null, image_page: null, image_titre: null, image_site: null, image_requete: null, image_score: null,
+        image_data: null, image_auto: null, image_recherche_ts: null, image_recherche_moteur: null, image_ts: Date.now(), image_par: moi() };
+    const maj = !img ? { ...vide, image_source: null, image_aucune: true }
+        : img.data ? { ...vide, image_data: img.data, image_source: 'photo', image_aucune: null }
+        : champsImage(img, false);
     try { await update(ref(db, `db_pharmacie_stock/${id}`), maj); toast(img ? 'Image enregistrée.' : 'Image retirée.', 'ok'); fermer2(); }
     catch (err) { toast('Erreur : ' + err.message, 'err'); }
 }
@@ -796,37 +824,44 @@ function photoProduit(id, file) {
 
 function dialogueImage(id) {
     const m = allStock[id]; if (!m) return;
-    const a = analyser(m);
+    const q0 = requeteGoogle(m);
     ouvrir2(`
         <div class="sh-head"><div class="h"><h2>Choisir une image</h2><div class="s">${esc(m.nom)}</div></div>
             <button type="button" class="x" data-d="fermer" aria-label="Fermer">${I.x}</button></div>
         <div class="sh-body">
             <div class="bar" style="flex-wrap:nowrap;">
                 <div class="search" style="flex-basis:auto;"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                    <input type="search" id="ci-q" value="${esc(a.forme ? `${a.q} ${a.forme.en}` : a.q)}" placeholder="Ex : amoxicillin capsules"></div>
+                    <input type="search" id="ci-q" value="${esc(q0)}" placeholder="Nom du médicament en comprimé…"></div>
                 <button type="button" class="btn btn-p" data-d="chercher">Chercher</button>
             </div>
             <div id="ci-res"><div class="img-status"><span class="spin"></span>Recherche…</div></div>
-            <p class="note">Images libres de droits (Wikimedia Commons), classées par pertinence. Recherche en anglais conseillée (tablets, capsules, syrup, injection…).</p>
+            <p class="note" id="ci-note">Résultats Google Images, dans l'ordre de Google. Touchez l'image qui correspond au produit.</p>
         </div>
         <div class="sh-foot"><label class="btn btn-s" style="cursor:pointer;">Prendre une photo<input type="file" accept="image/*" capture="environment" hidden id="ci-photo"></label></div>`);
     let cands = [];
     const lancer = async () => {
         const host = sheet2.querySelector('#ci-res'); if (!host) return;
         host.innerHTML = '<div class="img-status"><span class="spin"></span>Recherche…</div>';
+        const q = sheet2.querySelector('#ci-q').value.trim() || q0;
         try {
-            const q = sheet2.querySelector('#ci-q').value.trim();
-            cands = await chercherImage(m, { tous: true, requete: q && q !== (a.forme ? `${a.q} ${a.forme.en}` : a.q) ? q : '' });
+            if (rechercheImages.google) {
+                try { cands = await chercherGoogle(m, { tous: true, requete: q, jeton }); }
+                catch (e) { if (!(e instanceof NonConfigure)) throw e; rechercheImages.google = false; }
+            }
+            if (!rechercheImages.google) {
+                sheet2.querySelector('#ci-note').textContent = 'Google Images n\'est pas encore configuré (clé SERPER_API_KEY) : résultats Wikimedia Commons.';
+                cands = (await chercherImage(m, { tous: true })).map(c => ({ ...c, moteur: 'commons' }));
+            }
             host.innerHTML = cands.length
-                ? `<div class="cand">${cands.slice(0, 16).map((c, i) => `<button type="button" data-ci="${i}" title="${esc(c.title.replace(/^File:/, ''))}"><img src="${esc(c.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>`
+                ? `<div class="cand">${cands.slice(0, 20).map((c, i) => `<button type="button" data-ci="${i}" title="${esc((c.title || '').replace(/^File:/, ''))}${c.source ? ' — ' + esc(c.source) : ''}"><img src="${esc(c.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>`
                 : '<div class="empty">Aucune image trouvée. Essayez un autre terme ou prenez une photo.</div>';
-        } catch (e) { host.innerHTML = '<div class="empty">Recherche impossible (connexion). Réessayez plus tard.</div>'; }
+        } catch (e) { host.innerHTML = '<div class="empty">Recherche impossible (connexion ou quota). Réessayez plus tard.</div>'; }
     };
     sheet2.onclick = (ev) => {
         const b = ev.target.closest('[data-d],[data-ci]'); if (!b) return;
         if (b.dataset.d === 'fermer') return fermer2();
         if (b.dataset.d === 'chercher') return lancer();
-        if (b.dataset.ci) enregistrerImage(id, cands[+b.dataset.ci]);
+        if (b.dataset.ci) enregistrerImage(id, { ...cands[+b.dataset.ci], requete: sheet2.querySelector('#ci-q').value.trim() });
     };
     sheet2.querySelector('#ci-q').addEventListener('keydown', e => { if (e.key === 'Enter') lancer(); });
     sheet2.querySelector('#ci-photo').addEventListener('change', e => { if (e.target.files[0]) photoProduit(id, e.target.files[0]); });
@@ -1100,6 +1135,7 @@ function ongletDetails(m, e) {
     const marge = prixAchat > 0 && num(m.prix_unitaire) > 0 ? Math.round((num(m.prix_unitaire) - prixAchat) / num(m.prix_unitaire) * 100) + ' %' : '—';
     const src = imageDe(m);
     const origine = m.image_source === 'photo' ? 'Photo prise sur place'
+        : m.image_source === 'google' ? `Google Images${m.image_auto ? ' (choix automatique)' : ''}${m.image_site ? ' · ' + esc(m.image_site) : ''}${m.image_page ? ` · <a href="${esc(m.image_page)}" target="_blank" rel="noopener">source</a>` : ''}`
         : m.image_source === 'commons' ? `Wikimedia Commons${m.image_auto ? ' (choix automatique)' : ''}${m.image_page ? ` · <a href="${esc(m.image_page)}" target="_blank" rel="noopener">source</a>` : ''}`
         : src ? 'Image enregistrée' : (m.image_aucune ? 'Aucune image (choix manuel)' : (rechercheImages.enCours.has(m.id) ? 'Recherche d\'image en cours…' : 'Aucune image pertinente trouvée'));
     return `
