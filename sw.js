@@ -4,7 +4,7 @@
 //  Stratégie : Cache-First pour assets statiques, Network-First pour données
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v39';
+const APP_VERSION     = 'v40';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
@@ -45,10 +45,11 @@ try {
       badge: '/icons/icon-96x96.png',
       tag: d.tag || ('caisse-' + (d.nkey || Date.now())),
       data: { type: d.type, key: d.key, nkey: d.nkey },
-      actions: [
-        { action: 'annuler', title: 'Annuler et retourner' },
-        { action: 'voir',    title: 'Voir le détail' },
-      ],
+      // Une opération déjà annulée n'a plus de bouton « Annuler ».
+      actions: d.action === 'annulation'
+        ? [{ action: 'voir', title: 'Voir le détail' }]
+        : [{ action: 'annuler', title: 'Annuler et retourner' },
+           { action: 'voir',    title: 'Voir le détail' }],
     });
   });
 } catch (e) {
@@ -197,8 +198,8 @@ self.addEventListener('message', (event) => {
 });
 
 // ── Notifications caisse : clic sur la notification ou sur une action ──
-// Émises par notifications-admin.js (reg.showNotification) à chaque
-// encaissement de ticket/médicaments. Le bouton d'action « Annuler et
+// Émises par notifications-admin.js (app ouverte) ou par le push FCM
+// (app fermée) à chaque opération de caisse. Le bouton d'action « Annuler et
 // retourner » ouvre directement la fiche d'annulation correspondante ;
 // un clic simple sur la notification ouvre le détail en lecture seule.
 self.addEventListener('notificationclick', (event) => {
