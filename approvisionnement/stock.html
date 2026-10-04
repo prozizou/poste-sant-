@@ -513,7 +513,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { ref, push, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
 import { exporterPDF } from '../planif_rapport/rapport-lib.js';
-import { analyser, libelleForme, chercherImage, chercherGoogle, requeteGoogle, NonConfigure, googleDisponible, vignetteHTML, imageDe } from './medoc-image.js';
+import { analyser, libelleForme, chercherImage, chercherGoogle, requeteGoogle, NonConfigure, googleDisponible, URL_GOOGLE, vignetteHTML, imageDe } from './medoc-image.js';
 initNotifCaisseAdmin();
 
 // ════════════════════════════════════════════════════════════════════════
@@ -775,6 +775,25 @@ async function meilleureImage(m) {
     }
     return { r: await chercherImage(m), moteur: 'commons' };
 }
+// Cloudinary + nœud « gallery » : l'image retenue est envoyée par la
+// fonction Vercel (secret côté serveur), qui met à jour le produit et sa
+// fiche gallery/{id}. Si Cloudinary n'est pas configuré → null, et l'on
+// garde l'ancien enregistrement direct (lien vers l'image d'origine).
+let cloudinaryOK = true;
+async function versCloudinary(id, corps) {
+    if (!cloudinaryOK) return null;
+    const r = await fetch(URL_GOOGLE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await jeton() },
+        body: JSON.stringify({ med_id: id, ...corps }),
+    });
+    if (r.status === 503) { cloudinaryOK = false; return null; }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    return d;
+}
+const metaImage = (r, auto) => ({ origine: r.moteur || 'google', page: r.page || '', site: r.source || '', titre: r.title || '', requete: r.requete || '', auto });
+
 async function traiterImages() {
     rechercheImages.actif = true;
     while (rechercheImages.file.length) {
@@ -783,7 +802,10 @@ async function traiterImages() {
         rechercheImages.enCours.add(id); statutImages();
         try {
             const { r, moteur } = await meilleureImage(m);
-            if (r) await update(ref(db, `db_pharmacie_stock/${id}`), champsImage({ moteur, ...r }, true));
+            if (r) {
+                const ok = await versCloudinary(id, { action: 'enregistrer', image: r.image, thumb: r.thumb, meta: metaImage({ moteur, ...r }, true) }).catch(() => null);
+                if (!ok) await update(ref(db, `db_pharmacie_stock/${id}`), champsImage({ moteur, ...r }, true));
+            }
             else if (!imageDe(m)) await update(ref(db, `db_pharmacie_stock/${id}`), { image_recherche_ts: Date.now(), image_recherche_moteur: moteur });
         } catch (e) {
             // Réseau ou quota : on réessaiera à la prochaine ouverture.
@@ -798,25 +820,39 @@ async function traiterImages() {
 
 async function enregistrerImage(id, img) {
     const m = allStock[id]; if (!m) return;
-    const vide = { image_url: null, image_hd: null, image_page: null, image_titre: null, image_site: null, image_requete: null, image_score: null,
-        image_data: null, image_auto: null, image_recherche_ts: null, image_recherche_moteur: null, image_ts: Date.now(), image_par: moi() };
-    const maj = !img ? { ...vide, image_source: null, image_aucune: true }
-        : img.data ? { ...vide, image_data: img.data, image_source: 'photo', image_aucune: null }
-        : champsImage(img, false);
-    try { await update(ref(db, `db_pharmacie_stock/${id}`), maj); toast(img ? 'Image enregistrée.' : 'Image retirée.', 'ok'); fermer2(); }
-    catch (err) { toast('Erreur : ' + err.message, 'err'); }
+    toast(img ? 'Enregistrement de l\'image…' : 'Retrait de l\'image…');
+    try {
+        // 1) Cloudinary + gallery (fonction Vercel)
+        const corps = !img ? { action: 'retirer' }
+            : img.data ? { action: 'enregistrer', data: img.hd || img.data }
+            : { action: 'enregistrer', image: img.image, thumb: img.thumb, meta: metaImage(img, false) };
+        if (await versCloudinary(id, corps)) { toast(img ? 'Image enregistrée (Cloudinary).' : 'Image retirée.', 'ok'); fermer2(); return; }
+        // 2) Repli : enregistrement direct sur le produit
+        const vide = { image_url: null, image_hd: null, image_page: null, image_titre: null, image_site: null, image_requete: null, image_score: null,
+            image_data: null, image_auto: null, image_recherche_ts: null, image_recherche_moteur: null, image_ts: Date.now(), image_par: moi() };
+        const maj = !img ? { ...vide, image_source: null, image_aucune: true }
+            : img.data ? { ...vide, image_data: img.data, image_source: 'photo', image_aucune: null }
+            : champsImage(img, false);
+        await update(ref(db, `db_pharmacie_stock/${id}`), maj);
+        toast(img ? 'Image enregistrée.' : 'Image retirée.', 'ok'); fermer2();
+    } catch (err) { toast('Erreur : ' + err.message, 'err'); }
 }
 
-// Photo prise sur place : réduite à 192 px (≈ 8 Ko) avant d'être enregistrée.
+// Photo prise sur place : 800 px pour Cloudinary ; repli 192 px (≈ 8 Ko)
+// stockée dans la base si Cloudinary n'est pas disponible.
 function photoProduit(id, file) {
     const img = new Image(), url = URL.createObjectURL(file);
     img.onload = () => {
-        const T = 192, c = document.createElement('canvas'); c.width = c.height = T;
-        const k = Math.max(T / img.width, T / img.height), w = img.width * k, h = img.height * k;
-        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, T, T);
-        ctx.drawImage(img, (T - w) / 2, (T - h) / 2, w, h);
+        const carre = (T, q) => {
+            const c = document.createElement('canvas'); c.width = c.height = T;
+            const k = Math.max(T / img.width, T / img.height), w = img.width * k, h = img.height * k;
+            const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, T, T);
+            ctx.drawImage(img, (T - w) / 2, (T - h) / 2, w, h);
+            return c.toDataURL('image/jpeg', q);
+        };
+        const hd = carre(Math.min(800, Math.max(img.width, img.height)), 0.85), petit = carre(192, 0.72);
         URL.revokeObjectURL(url);
-        enregistrerImage(id, { data: c.toDataURL('image/jpeg', 0.72) });
+        enregistrerImage(id, { data: petit, hd });
     };
     img.onerror = () => { URL.revokeObjectURL(url); toast('Image illisible.', 'err'); };
     img.src = url;
@@ -1138,10 +1174,11 @@ function ongletDetails(m, e) {
         : m.image_source === 'google' ? `Google Images${m.image_auto ? ' (choix automatique)' : ''}${m.image_site ? ' · ' + esc(m.image_site) : ''}${m.image_page ? ` · <a href="${esc(m.image_page)}" target="_blank" rel="noopener">source</a>` : ''}`
         : m.image_source === 'commons' ? `Wikimedia Commons${m.image_auto ? ' (choix automatique)' : ''}${m.image_page ? ` · <a href="${esc(m.image_page)}" target="_blank" rel="noopener">source</a>` : ''}`
         : src ? 'Image enregistrée' : (m.image_aucune ? 'Aucune image (choix manuel)' : (rechercheImages.enCours.has(m.id) ? 'Recherche d\'image en cours…' : 'Aucune image pertinente trouvée'));
+    const heberge = m.image_cloudinary_id ? ' · hébergée sur Cloudinary' : '';
     return `
         <div class="img-box">
             ${vignetteHTML(m, 'thumb xl')}
-            <div><div class="src">${origine}</div>
+            <div><div class="src">${origine}${heberge}</div>
                 <div class="acts">
                     <button type="button" class="btn btn-s btn-sm" data-f="img-choisir">Choisir une image</button>
                     <label class="btn btn-s btn-sm" style="cursor:pointer;">Photo<input type="file" accept="image/*" capture="environment" hidden data-f-photo></label>
@@ -1366,6 +1403,8 @@ async function supprimerProduit(id) {
         await journaliser({ type: 'suppression', med_id: id, nom_medicament: m.nom || '—', quantite_ajoutee: -num(m.quantite),
             ancienne_quantite: num(m.quantite), nouvelle_quantite: 0, observations: 'Produit supprimé du stock' });
         await remove(ref(db, `db_pharmacie_stock/${id}`));
+        // Image Cloudinary + fiche gallery du produit supprimé.
+        if (m.image_cloudinary_id) versCloudinary(id, { action: 'retirer', sans_produit: true }).catch(() => {});
         fermer(); toast('Produit supprimé.', 'ok');
     } catch (err) { toast('Erreur : ' + err.message, 'err'); }
 }
