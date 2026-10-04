@@ -52,6 +52,11 @@
       ".write": "auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier')"
     },
 
+    "gallery": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin'"
+    },
+
     "fcm_tokens_admin": {
       ".read": false,
       ".write": "auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin'"
