@@ -9,8 +9,8 @@
 //  notification système, sans cloche ni panneau dans l'interface :
 //
 //    1. Push Web (VAPID / Firebase Cloud Messaging) — ce module enregistre
-//       le jeton de l'appareil dans "fcm_tokens_admin" ; la Cloud Function
-//       (functions/index.js) envoie alors un push à chaque nouvelle entrée,
+//       le jeton de l'appareil dans "fcm_tokens_admin" ; la fonction Vercel
+//       api/notifier.js (appelée par push-relay.js) envoie alors le push,
 //       affiché par le Service Worker (sw.js) même application fermée.
 //    2. Application ouverte — FCM ne réveille pas le Service Worker quand
 //       une page de l'app est au premier plan : ce module écoute donc aussi
@@ -33,8 +33,8 @@ const VAPID_KEY = 'BGMhZ7XD4n7XAzfZd1JqMsS5ORZneRD7fzvCnJ23EJSHcxHuryzRr07hPAAqc
 
 function fcfa(n) { return Number(n || 0).toLocaleString('fr-FR') + ' FCFA'; }
 
-// Titre / texte d'une notification — même rendu que la Cloud Function
-// (functions/index.js), pour un affichage identique app ouverte ou fermée.
+// Titre / texte d'une notification — même rendu que api/notifier.js,
+// pour un affichage identique app ouverte ou fermée.
 export function contenuNotification(n) {
     const caissier = (n.caissier_email || '').split('@')[0] || 'Caisse';
     const quoi = n.type === 'med' ? 'Vente de médicaments' : 'Ticket de consultation';

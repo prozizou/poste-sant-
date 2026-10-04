@@ -5,19 +5,24 @@ import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import * as printer from './escpos-printer.js';
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
+import { signalerPush } from '../push-relay.js';
 initNotifCaisseAdmin(); // no-op si l'utilisateur connecté n'est pas administrateur
 
 // Chaque opération de caisse (encaissement, annulation, modification) est
 // signalée à l'administration par une notification push (VAPID / FCM, voir
-// notifications-admin.js et functions/index.js). Best-effort : un échec
+// notifications-admin.js, push-relay.js et api/notifier.js). Best-effort : un échec
 // ici ne remet jamais en cause l'opération, déjà enregistrée.
+// La clé de l'entrée est connue tout de suite, même hors-ligne : le push
+// (api/notifier.js) est mis en file et renvoyé jusqu'à confirmation.
 function notifierAdmin(data) {
-    push(ref(db, 'notifications_caisse'), {
+    const r = push(ref(db, 'notifications_caisse'), {
         action: 'encaissement',
         ...data,
         caissier_email: auth.currentUser?.email || '',
         ts: Date.now()
-    }).catch(e => console.warn('[notif caisse] échec envoi :', e));
+    });
+    r.catch(e => console.warn('[notif caisse] échec envoi :', e));
+    signalerPush(r.key);
 }
 
 // ── AUTH GUARD ──────────────────────────────────

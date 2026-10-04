@@ -4,7 +4,7 @@
 //  Stratégie : Cache-First pour assets statiques, Network-First pour données
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v40';
+const APP_VERSION     = 'v41';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
@@ -17,7 +17,7 @@ const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
 // En cas d'échec (hors-ligne à l'installation, navigateur trop ancien…),
 // le reste du Service Worker (cache PWA) continue de fonctionner : voir
 // notifications-admin.js pour le chemin temps réel (app ouverte), et
-// functions/ pour l'envoi effectif de ces messages FCM (Cloud Function).
+// api/notifier.js pour l'envoi effectif de ces messages FCM (fonction Vercel).
 try {
   importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
   importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
@@ -32,7 +32,7 @@ try {
   });
   const messaging = firebase.messaging();
 
-  // La Cloud Function (functions/) envoie des messages « data-only » (jamais
+  // La fonction Vercel (api/notifier.js) envoie des messages « data-only » (jamais
   // de champ "notification" côté FCM) : c'est ce gestionnaire qui construit
   // et affiche lui-même la notification, avec les mêmes boutons d'action que
   // le chemin temps réel — le même "tag" (voir notifications-admin.js) évite
@@ -63,6 +63,7 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/firebase-config.js',
   '/notifications-admin.js',
+  '/push-relay.js',
   '/accueil/menu_admin.html',
   '/accueil/menu_caissier.html',
   '/accueil/menu_tresorier.html',
