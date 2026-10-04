@@ -135,7 +135,7 @@
         .thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;}
         .thumb:not(.ph){background:#fff;}
         .thumb svg{width:26px;height:26px;fill:none;stroke:#5a7ea4;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.85;}
-        .thumb.sm{width:36px;height:36px;border-radius:9px;} .thumb.sm svg{width:18px;height:18px;}
+        .thumb.sm{width:42px;height:42px;border-radius:10px;} .thumb.sm svg{width:20px;height:20px;}
         .thumb.lg{width:64px;height:64px;border-radius:14px;} .thumb.lg svg{width:28px;height:28px;}
         .thumb.xl{width:100%;height:auto;aspect-ratio:1;border-radius:14px;} .thumb.xl svg{width:40%;height:40%;}
         .img-box{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;margin-bottom:10px;}
@@ -223,6 +223,13 @@
         .row .r-ic.in{background:var(--ok-bg);color:var(--ok);}
         .row .r-ic.out{background:var(--danger-bg);color:var(--danger);}
         .row .r-ic.adj{background:var(--warn-bg);color:var(--warn);}
+        /* Mouvements / réappro : vignette du produit + pastille du type de mouvement */
+        .r-img{position:relative;flex-shrink:0;}
+        .r-img .r-type{position:absolute;right:-5px;bottom:-5px;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;background:var(--primary);color:#fff;}
+        .r-img .r-type .icon{width:10px;height:10px;stroke-width:2.6;}
+        .r-img .r-type.in{background:var(--ok);} .r-img .r-type.out{background:var(--danger);} .r-img .r-type.adj{background:var(--warn);}
+        .row:has(.r-img){padding-top:10px;padding-bottom:10px;}
+        .chosen .thumb{width:48px;height:48px;}
         .row .r-b{flex:1;min-width:0;}
         .row .r-t{font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .row .r-s{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1621,8 +1628,14 @@ function ligneMouvement(x, avecNom = true) {
     const titre = avecNom ? esc(x.nom || '—') : esc(t.l);
     const sous = [avecNom ? t.l : '', x.par ? qui(x.par) : '', dateHeure(x.ts)].filter(Boolean).map(esc).join(' · ');
     const avAp = x.avant !== undefined && x.avant !== '' && x.apres !== undefined ? `${fmt(x.avant)} → ${fmt(x.apres)}` : '';
+    // Liste générale : vignette du produit (image seule) + pastille du type ;
+    // dans la fiche du produit, l'icône du type suffit.
+    const prod = avecNom ? (allStock[x.medId] || { nom: x.nom }) : null;
+    const visuel = prod
+        ? `<span class="r-img">${vignetteHTML(prod, 'thumb sm')}<span class="r-type ${t.g}" title="${esc(t.l)}">${t.i}</span></span>`
+        : `<span class="r-ic ${t.g}">${t.i}</span>`;
     return `<div class="row">
-        <span class="r-ic ${t.g}">${t.i}</span>
+        ${visuel}
         <div class="r-b"><div class="r-t">${titre}</div><div class="r-s">${sous}</div>${x.detail ? `<div class="r-s">${esc(x.detail)}</div>` : ''}</div>
         <div class="r-v num"><b class="${signe}">${x.delta > 0 ? '+' : x.delta < 0 ? '−' : ''}${x.delta ? fmt(Math.abs(x.delta)) : '—'}</b>${avAp ? `<small>${avAp}</small>` : ''}</div>
     </div>`;
