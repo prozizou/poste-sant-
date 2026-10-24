@@ -4,7 +4,7 @@
 //  Stratégie : Cache-First pour assets statiques, Network-First pour données
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v51';
+const APP_VERSION     = 'v54-hierarchy-20261024';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
@@ -39,8 +39,8 @@ try {
   // un doublon si les deux chemins se déclenchent pour le même événement.
   messaging.onBackgroundMessage((payload) => {
     const d = payload.data || {};
-    self.registration.showNotification(d.title || 'Poste de Santé de Diandioly', {
-      body: d.body || '',
+    self.registration.showNotification(d.title || 'Poste de santé', {
+      body: 'Nouvelle opération de caisse. Ouvrez l’application pour consulter les détails.',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-96x96.png',
       tag: d.tag || ('caisse-' + (d.nkey || Date.now())),
@@ -62,11 +62,18 @@ const STATIC_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/firebase-config.js',
+  '/role-server.js',
+  '/village-client.js',
+  '/access-panel.css',
+  '/accueil/menu_superadmin.html',
+  '/accueil/equipe.html',
+  '/pharmacie-client.js',
   '/notifications-admin.js',
   '/push-relay.js',
   '/accueil/menu_admin.html',
   '/accueil/menu_caissier.html',
   '/accueil/menu_tresorier.html',
+  '/accueil/menu_icp.html',
   '/facturation/facturation.html',
   '/facturation/style.css',
   '/facturation/script.js',
@@ -99,9 +106,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_STATIC).then((cache) => {
       console.log(`[SW] Pré-cache des assets statiques`);
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW] Certains assets n\'ont pas pu être mis en cache :', err);
-      });
+      return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
@@ -160,17 +165,14 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 4. Assets statiques → Cache-First
-  if (STATIC_ASSETS.some((asset) => url.pathname === asset || url.pathname.endsWith(asset.replace('/', '')))) {
+  if (url.origin === self.location.origin && STATIC_ASSETS.includes(url.pathname)) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
+      fetch(request).then((response) => {
           if (response && response.status === 200) {
             caches.open(CACHE_STATIC).then((cache) => cache.put(request, response.clone()));
           }
           return response;
-        }).catch(() => caches.match('/offline.html'));
-      })
+      }).catch(async () => (await caches.match(request)) || caches.match('/offline.html'))
     );
     return;
   }

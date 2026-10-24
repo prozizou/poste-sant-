@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord Administration – Poste de Santé de Diandioly</title>
+    <title>Tableau de Bord Administration – Poste de santé</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -130,7 +130,7 @@
             <svg class="icon" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
         </div>
         <div>
-            <h1>Poste de Santé de Diandioly</h1>
+            <h1>Poste de santé</h1>
             <p>Administration</p>
         </div>
     </div>
@@ -413,19 +413,25 @@ document.getElementById('info-modal').addEventListener('click', (e) => {
 });
 </script>
 
+<div style="margin:12px auto;max-width:1040px;padding:0 15px"><a href="equipe.html" style="display:block;padding:14px 18px;border-radius:12px;border:1px solid #b9d2e6;background:#eaf5ff;color:#165483;font-weight:750;text-decoration:none">Gérer mon équipe — Comptes et rôles</a></div>
 <script type="module">
     import { auth, db } from '../firebase-config.js';
+import { villageRef, chargerVillage } from '../village-client.js';
+await chargerVillage();
+import { roleServeur } from '../role-server.js';
+import { desabonnerPushAdmin } from '../notifications-admin.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
     import { initNotifCaisseAdmin } from '../notifications-admin.js';
     initNotifCaisseAdmin();
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (!user) { window.location.href = '../index.html'; return; }
-        const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+        const role = await roleServeur(user).catch(() => '');
         if (role) sessionStorage.setItem('userRole', role);
         if (role === 'caissier') { window.location.href = 'menu_caissier.html'; return; }
         if (role === 'icp') { window.location.href = 'menu_icp.html'; return; }
+        if (role !== 'admin') { window.location.href = role === 'tresorier' ? 'menu_tresorier.html' : '../index.html'; return; }
         const email = user.email || '';
         document.getElementById('user-email-display').textContent = email;
         document.getElementById('user-initials').textContent = email.slice(0, 2).toUpperCase();
@@ -456,9 +462,9 @@ document.getElementById('info-modal').addEventListener('click', (e) => {
         document.getElementById('stat-recettes-day').textContent = fmt(_ticketTotal + _medTotal) + ' F';
     }
 
-    const ticketRef = ref(db, 'ticket_dbase');
-    const medRef    = ref(db, 'vente_medicaments');
-    const stockRef  = ref(db, 'db_pharmacie_stock');
+    const ticketRef = villageRef(db, 'ticket_dbase');
+    const medRef    = villageRef(db, 'vente_medicaments');
+    const stockRef  = villageRef(db, 'db_pharmacie_stock');
 
     onValue(ticketRef, (snap) => {
         let count = 0, total = 0;
@@ -515,7 +521,7 @@ document.getElementById('info-modal').addEventListener('click', (e) => {
             off(ticketRef); off(medRef); off(stockRef);
             sessionStorage.clear();
             localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
-            signOut(auth).then(() => { window.location.href = '../index.html'; });
+            desabonnerPushAdmin().finally(() => signOut(auth).then(() => { window.location.href = '../index.html'; }));
         }
     };
     // Une déconnexion faite sur une autre page/onglet doit se propager ici aussi.

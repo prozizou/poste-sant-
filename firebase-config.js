@@ -1,70 +1,9 @@
-// ═══════════════════════════════════════════════════════════════════════
-//  firebase-config.js — Configuration Firebase
-//  Poste de Santé de Diandioly
-//  ✅ MIGRÉ : Firestore → Realtime Database (RTDB)
-// ═══════════════════════════════════════════════════════════════════════
-//
-//  ⚠️  IMPORTANT – SÉCURITÉ :
-//  Ces clés sont exposées côté client (comportement normal pour Firebase).
-//  La sécurité réelle repose sur les RÈGLES RTDB & AUTHENTICATION.
-//
-//  ⚠️  ATTENTION : la règle ".read"/".write": "auth != null" ne suffit PAS.
-//  Elle autorise N'IMPORTE QUEL utilisateur authentifié (donc un(e) caissier(ère))
-//  à lire/écrire TOUTES les données, y compris le stock pharmacie, les rapports,
-//  etc., même si l'interface (UI) le lui interdit. Le contrôle de rôle actuel
-//  (sessionStorage côté navigateur) n'est qu'un confort d'affichage : il peut
-//  être contourné en modifiant le sessionStorage ou en appelant l'API REST
-//  Firebase directement.
-//
-//  RECOMMANDATION : stocker le rôle de chaque utilisateur côté serveur, dans
-//  un nœud "db_users/{uid}/role" écrit UNIQUEMENT par un administrateur (ou
-//  via des "custom claims" Firebase Auth), puis déployer les règles RTDB du
-//  fichier database.rules.json à la racine du dépôt (source de vérité — ce
-//  commentaire n'en est qu'un résumé, toujours se référer au fichier réel).
-//  Ce jeu de règles reflète les nœuds RÉELLEMENT utilisés par le code
-//  (facturation, stock, dépenses, compteur d'attente, notifications) et le
-//  modèle de rôles déjà appliqué côté UI (admin / caissier / trésorier / icp).
-//
-//  ⚠️ IMPORTANT — "db_users/{uid}/role" (utilisé par TOUTES les règles
-//  ci-dessus) est un nœud DIFFÉRENT de "administration/auth_db" (utilisé
-//  par index.html pour la connexion, indexé par email). L'app n'écrit
-//  jamais automatiquement dans "db_users" : tant qu'il n'est pas rempli
-//  pour un compte, TOUTES ses écritures échouent une fois ces règles
-//  déployées, même avec un rôle valide dans "administration/auth_db".
-//  → Avant de déployer database.rules.json, exécuter UNE FOIS
-//  scripts/migrate-roles-to-db-users.js (recopie automatiquement chaque
-//  entrée de "administration/auth_db" vers "db_users/{uid}/role", en
-//  résolvant l'UID par email) — voir ce script pour les instructions.
-//  Le refaire (ou ajouter l'entrée à la main) à chaque nouveau compte créé.
-//
-//  ⚠️ "fcm_tokens_admin" n'est lisible par personne via ces règles
-//  (".read": false) : seule la Cloud Function (functions/) y a accès, via le
-//  SDK Admin qui CONTOURNE les règles RTDB — c'est voulu, ces jetons ne
-//  doivent pas être exposés à un client normal.
-//
-//  ⚠️ RÔLE "icp" (Infirmier(ère) Chef de Poste) : lecture seule par
-//  construction — aucune règle ".write" ne lui est jamais accordée, sur
-//  aucun nœud. Il voit un résumé (cartes + graphiques) des mêmes données
-//  que l'administration, sans jamais pouvoir les modifier : voir
-//  accueil/menu_icp.html, sa seule page.
-//
-//  Tout nœud non listé ci-dessus (db_patients, db_consultations,
-//  db_suivi_vulnerables, db_agenda — pas encore utilisés par le code) reste
-//  bloqué par le refus par défaut (".read"/".write": false) tant qu'il n'est
-//  pas explicitement ouvert avec ses propres règles.
-//
-//  Règles Authentication recommandées :
-//  - Activer uniquement Email/Password dans Firebase Console
-//  - Activer la protection "App Check" pour les environnements de production
-//  - Limiter les domaines autorisés dans Authentication > Settings
-//
-//  ⚠️  IMPORTANT – databaseURL :
-//  Remplacez "poste-sante-280b2-default-rtdb" par votre ID RTDB réel.
-//  Vous le trouvez dans Firebase Console > Realtime Database > URL de la base.
-//  Format : https://<projet>-default-rtdb.firebaseio.com
-//
-// ═══════════════════════════════════════════════════════════════════════
-
+// Firebase public config (API key is public; NEVER expose service-account secrets).
+// MODE MULTI-VILLAGES : toute donnée métier doit se trouver sous
+// /villages/{villageId}/..., et chaque utilisateur doit avoir un rôle +
+// village_id dans /db_users/{uid}. Les règles RTDB bloquent les autres villages.
+// Les nouveaux agents/villages sont créés côté serveur avec scripts/provision-village.js.
+// ATTENTION : migrer les données ET les affectations avant la mise en ligne des règles.
 import { initializeApp }     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAnalytics }      from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
 import { getDatabase }       from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";

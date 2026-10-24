@@ -29,6 +29,7 @@
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getDatabase } = require('firebase-admin/database');
+const { identifierVillage } = require('./_village.js');
 const { getMessaging } = require('firebase-admin/messaging');
 
 const DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://poste-sante-280b2-default-rtdb.firebaseio.com';
@@ -51,7 +52,7 @@ function contenu(n) {
     else if (n.action === 'modification') titre = `✏️ ${quoi} modifié${n.type === 'med' ? 'e' : ''}`;
     else titre = n.type === 'med' ? '💊 Vente de médicaments encaissée' : '🎫 Ticket de consultation encaissé';
     const montant = Number(n.montant || 0).toLocaleString('fr-FR') + ' FCFA';
-    const corps = `Par ${caissier} · ${n.patient_nom || 'Patient'} · ${montant}` + (n.detail ? `\n${n.detail}` : '');
+    const corps = 'Nouvelle opération de caisse. Connectez-vous pour en consulter les détails.';
     return { titre, corps };
 }
 
@@ -77,18 +78,17 @@ module.exports = async (req, res) => {
         const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
         if (!m) return res.status(401).json({ error: 'jeton manquant' });
         let user;
-        try { user = await getAuth().verifyIdToken(m[1]); }
+        try { user = await getAuth().verifyIdToken(m[1], true); }
         catch { return res.status(401).json({ error: 'jeton invalide' }); }
 
         const db = getDatabase();
-        const role = (await db.ref(`db_users/${user.uid}/role`).once('value')).val();
-        if (!ROLES_AUTORISES.includes(role)) return res.status(403).json({ error: 'rôle non autorisé' });
+        const { db: villageDb, villageId } = await identifierVillage(db, user, ROLES_AUTORISES);
 
         const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
         const nkey = String(body.nkey || '');
         if (!/^[-_A-Za-z0-9]{8,40}$/.test(nkey)) return res.status(400).json({ error: 'nkey invalide' });
 
-        const nRef = db.ref('notifications_caisse/' + nkey);
+        const nRef = villageDb.ref('notifications_caisse/' + nkey);
         const n = (await nRef.once('value')).val();
         // Entrée pas encore synchronisée (opération faite hors-ligne) : 404,
         // l'application réessaiera plus tard.
@@ -96,10 +96,15 @@ module.exports = async (req, res) => {
         if ((n.caissier_email || '') !== (user.email || '')) return res.status(403).json({ error: 'entrée d\'un autre compte' });
         if (n.push_ts) return res.status(200).json({ ok: true, deja: true });
 
-        const tokens = (await db.ref('fcm_tokens_admin').once('value')).val() || {};
-        const cibles = Object.entries(tokens)
+        const tokens = (await villageDb.ref('fcm_tokens_admin').once('value')).val() || {};
+        const ciblesPotentielles = Object.entries(tokens)
             .map(([cle, meta]) => ({ cle, token: (meta && meta.token) || cle, meta }))
-            .filter(({ token, meta }) => token && !(meta && meta.email && meta.email === n.caissier_email));
+            .filter(({ token, meta }) => token && meta?.uid && meta.email !== n.caissier_email);
+        const autorisations = await Promise.all(ciblesPotentielles.map(async c =>
+            ((await db.ref(`db_users/${c.meta.uid}`).once('value')).val()?.role === 'admin' &&
+             (await db.ref(`db_users/${c.meta.uid}/active`).once('value')).val() !== false &&
+             (await db.ref(`db_users/${c.meta.uid}/village_id`).once('value')).val() === villageId)));
+        const cibles = ciblesPotentielles.filter((_,i) => autorisations[i]);
 
         let envoyes = 0, retires = 0;
         if (cibles.length) {
@@ -110,7 +115,7 @@ module.exports = async (req, res) => {
                 data: {
                     title: titre, body: corps,
                     type: n.type || '', action: n.action || 'encaissement',
-                    key: n.ref_key || '', nkey, tag: 'caisse-' + nkey,
+                    key: n.ref_key || '', nkey, tag: 'caisse-' + villageId + '-' + nkey,
                 },
                 webpush: { headers: { Urgency: 'high', TTL: '86400' } },
             })));
@@ -119,7 +124,7 @@ module.exports = async (req, res) => {
             resp.responses.forEach((r, i) => {
                 const code = !r.success && r.error && r.error.code;
                 if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
-                    suppressions.push(db.ref('fcm_tokens_admin/' + cibles[i].cle).remove());
+                    suppressions.push(villageDb.ref('fcm_tokens_admin/' + cibles[i].cle).remove());
                 }
             });
             await Promise.all(suppressions);
@@ -129,6 +134,6 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, envoyes, cibles: cibles.length, retires });
     } catch (e) {
         console.error('[notifier]', e);
-        return res.status(500).json({ error: 'erreur serveur' });
+        return res.status(e.status || 500).json({ error: e.status ? e.message : 'erreur serveur' });
     }
 };

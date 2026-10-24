@@ -7,10 +7,10 @@
     <meta name="theme-color" content="#1a3a5c">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PS Diandioly">
+    <meta name="apple-mobile-web-app-title" content="Poste de santé">
     <link rel="apple-touch-icon" href="../icons/icon-152x152.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-96x96.png">
-    <title>Stock Pharmacie – Poste de Santé de Diandioly</title>
+    <title>Stock Pharmacie – Poste de santé</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Feuille A4 partagée pour l'export PDF (voir planif_rapport/rapport-lib.js) -->
@@ -517,6 +517,11 @@
 
 <script type="module">
 import { auth, db } from '../firebase-config.js';
+import { villageRef, chargerVillage } from '../village-client.js';
+await chargerVillage();
+import { roleServeur } from '../role-server.js';
+import { operationPharmacie, nouvelIdOperation } from '../pharmacie-client.js';
+import { desabonnerPushAdmin } from '../notifications-admin.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { ref, push, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
@@ -615,21 +620,21 @@ function message(id, type, txt) {
 function invalide(id) { document.getElementById(id)?.classList.add('is-invalid'); }
 document.addEventListener('input', e => e.target.closest('.f.is-invalid')?.classList.remove('is-invalid'));
 document.addEventListener('change', e => e.target.closest('.f.is-invalid')?.classList.remove('is-invalid'));
-const genKey = () => push(ref(db, 'db_pharmacie_stock')).key;   // clé seule, aucune écriture
+const genKey = () => push(villageRef(db, 'db_pharmacie_stock')).key;   // clé seule, aucune écriture
 
 // ── Auth : réservé à l'administration ───────────────────────────────────
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (!user) { location.href = '../index.html'; return; }
-    const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+    const role = await roleServeur(user).catch(() => '');
     if (role) sessionStorage.setItem('userRole', role);
     if (role === 'icp') { location.href = '../accueil/menu_icp.html'; return; }
-    if (role !== 'admin') { location.href = '../accueil/menu_caissier.html'; return; }
+    if (role !== 'admin') { location.href = '../index.html'; return; }
 });
 function deconnexion() {
     if (!confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) return;
     sessionStorage.clear();
     localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
-    signOut(auth).then(() => { location.href = '../index.html'; });
+    desabonnerPushAdmin().finally(() => signOut(auth).then(() => { location.href = '../index.html'; }));
 }
 window.addEventListener('storage', (e) => { if (e.key === 'savedRole' && !e.newValue) location.href = '../index.html'; });
 
@@ -691,7 +696,7 @@ function synchro(ok) {
         ? 'Synchronisé · ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
         : 'Erreur de synchronisation';
 }
-onValue(ref(db, 'db_pharmacie_stock'), (snap) => {
+onValue(villageRef(db, 'db_pharmacie_stock'), (snap) => {
     allStock = {};
     snap.forEach(c => { allStock[c.key] = { id: c.key, ...c.val() }; });
     charge.s = true; synchro(true);
@@ -699,14 +704,14 @@ onValue(ref(db, 'db_pharmacie_stock'), (snap) => {
     toutRendre();
     planifierImages();
 }, () => synchro(false));
-onValue(ref(db, 'db_pharmacie_reappro'), (snap) => {
+onValue(villageRef(db, 'db_pharmacie_reappro'), (snap) => {
     journalLog = [];
     snap.forEach(c => { journalLog.push({ id: c.key, ...c.val() }); });
     charge.j = true;
     rendreMouvements(); rendreHistoReappro(); majFournisseurs();
     if (ficheId) rendreFiche();
 });
-onValue(ref(db, 'vente_medicaments'), (snap) => {
+onValue(villageRef(db, 'vente_medicaments'), (snap) => {
     ventes = [];
     snap.forEach(c => { ventes.push({ id: c.key, ...c.val() }); });
     charge.v = true;
@@ -727,7 +732,7 @@ function resynchroniserPeremptions() {
         const date = ref0.date_peremption || '', lot = ref0.numero || '';
         if ((m.date_peremption || '') === date && (m.lot || '') === lot) return;
         enCoursSync.add(m.id);
-        update(ref(db, `db_pharmacie_stock/${m.id}`), { date_peremption: date, lot })
+        update(villageRef(db, `db_pharmacie_stock/${m.id}`), { date_peremption: date, lot })
             .catch(() => {}).finally(() => enCoursSync.delete(m.id));
     });
 }
@@ -816,8 +821,8 @@ async function traiterImages() {
             if (!fait) {
                 // Repli (Cloudinary non configuré) : ancien enregistrement direct.
                 const { r, moteur } = await meilleureImage(m);
-                if (r) await update(ref(db, `db_pharmacie_stock/${id}`), champsImage({ moteur, ...r }, true));
-                else if (!imageDe(m)) await update(ref(db, `db_pharmacie_stock/${id}`), { image_recherche_ts: Date.now(), image_recherche_moteur: moteur });
+                if (r) await update(villageRef(db, `db_pharmacie_stock/${id}`), champsImage({ moteur, ...r }, true));
+                else if (!imageDe(m)) await update(villageRef(db, `db_pharmacie_stock/${id}`), { image_recherche_ts: Date.now(), image_recherche_moteur: moteur });
             }
         } catch (e) {
             // Réseau ou quota : on réessaiera à la prochaine ouverture.
@@ -835,14 +840,16 @@ async function traiterImages() {
 // encaissée au même moment n'est jamais écrasée. Renvoie avant / après.
 async function ajusterTotal(id, delta) {
     let avant = 0;
-    const res = await runTransaction(ref(db, `db_pharmacie_stock/${id}/quantite`), cur => {
+    const res = await runTransaction(villageRef(db, `db_pharmacie_stock/${id}/quantite`), cur => {
         const n = parseInt(cur, 10); avant = isNaN(n) ? 0 : n;
-        return Math.max(0, avant + delta);
+        if (!Number.isSafeInteger(avant + delta) || avant + delta < 0) return;
+        return avant + delta;
     });
+    if (!res.committed) throw new Error('Ajustement refusé : stock insuffisant ou quantité invalide.');
     return { avant, apres: num(res.snapshot.val()) };
 }
 function journaliser(e) {
-    return push(ref(db, 'db_pharmacie_reappro'), {
+    return push(villageRef(db, 'db_pharmacie_reappro'), {
         date: isoJour(), timestamp: Date.now(), par: moi(),
         ...e,
     });
@@ -860,34 +867,13 @@ function lotInitialSiBesoin(m, qteExistante) {
 }
 
 // Réapprovisionnement d'un produit existant (formulaire et import Excel).
-async function reapprovisionner(id, { qte, numero, date_peremption, fournisseur, date_reception, prix_achat, obs }) {
+async function reapprovisionner(id, { qte, numero, date_peremption, fournisseur, date_reception, prix_achat, obs, operationId }) {
     const m = allStock[id];
     if (!m) throw new Error('Médicament introuvable.');
-    const { avant, apres } = await ajusterTotal(id, qte);
-    const maj = lotInitialSiBesoin(m, avant);
-    // Même n° et même péremption qu'un lot actif : on complète ce lot.
-    const exist = lotsReels(m).find(l => !l.retire && numero && l.numero === numero && l.date_peremption === date_peremption);
-    let lotId;
-    if (exist) {
-        lotId = exist.id;
-        maj[`lots/${lotId}/qte_recue`] = exist.qte_recue + qte;
-    } else {
-        lotId = genKey();
-        maj[`lots/${lotId}`] = {
-            numero: numero || '', date_peremption, qte_recue: qte, fournisseur: fournisseur || '',
-            date_reception: date_reception || isoJour(), prix_achat: num(prix_achat) || 0, par: moi(), ts: Date.now(),
-        };
-    }
-    if (num(prix_achat) > 0) maj.prix_achat = num(prix_achat);
-    maj.modifie_par = qui(moi()); maj.modifie_le = Date.now();
-    await update(ref(db, `db_pharmacie_stock/${id}`), maj);
-    await journaliser({
-        type: 'reappro', med_id: id, nom_medicament: m.nom || '—',
-        quantite_ajoutee: qte, ancienne_quantite: avant, nouvelle_quantite: apres,
-        lot: numero || '—', lot_id: lotId, nouvelle_peremption: date_peremption || '—',
-        source: fournisseur || '', observations: obs || '', date: date_reception || isoJour(),
-    });
-    return { avant, apres };
+    return operationPharmacie('reappro', {
+        key:id, qte:Number(qte), numero, date_peremption, fournisseur, date_reception,
+        prix_achat:Math.round(num(prix_achat)), obs
+    }, operationId || nouvelIdOperation());
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -905,7 +891,7 @@ function toutRendre() {
 }
 
 function rendreKPI() {
-    const arr = Object.values(allStock);
+    const arr = Object.values(allStock).filter(m => !m.archive);
     let val = 0, faibles = 0, ruptures = 0, expires = 0, bientot = 0, urgents = 0, qteExp = 0, nbLots = 0;
     arr.forEach(m => {
         const e = etat(m);
@@ -948,8 +934,8 @@ document.getElementById('alerts').addEventListener('click', (e) => {
 
 function rendreFiltreOptions() {
     const sel = document.getElementById('filtre'), cur = sel.value;
-    const cats = [...new Set(Object.values(allStock).map(m => m.categorie).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
-    sel.innerHTML = `<option value="">Tous</option>
+    const cats = [...new Set(Object.values(allStock).filter(m => !m.archive).map(m => m.categorie).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    sel.innerHTML = `<option value="">Tous</option><option value="archives">Archivés</option>
         <optgroup label="État">${['expired', 'rupture', 'soon', 'low', 'ok'].map(k => `<option value="e:${k}">${LIB_ETAT[k]}</option>`).join('')}</optgroup>
         ${cats.length ? `<optgroup label="Catégorie">${cats.map(c => `<option value="c:${esc(c)}">${esc(c)}</option>`).join('')}</optgroup>` : ''}`;
     sel.value = [...sel.options].some(o => o.value === cur) ? cur : '';
@@ -959,7 +945,7 @@ function listeFiltree() {
     const q = norm(document.getElementById('q').value);
     const f = document.getElementById('filtre').value;
     const tri = document.getElementById('tri').value;
-    let arr = Object.values(allStock).map(m => ({ m, e: etat(m) }));
+    let arr = Object.values(allStock).filter(m => f === 'archives' ? m.archive : !m.archive).map(m => ({ m, e: etat(m) }));
     if (q) arr = arr.filter(({ m, e }) => norm([m.nom, m.dosage, m.forme, m.categorie, m.fabricant, ...e.lots.map(l => `${l.numero} ${l.fournisseur}`)].join(' ')).includes(q));
     if (f.startsWith('e:')) {
         const k = f.slice(2);
@@ -984,7 +970,7 @@ function rendreInventaire() {
     const host = document.getElementById('plist');
     if (!charge.s) return;
     const arr = listeFiltree();
-    const total = Object.keys(allStock).length;
+    const total = Object.values(allStock).filter(m => document.getElementById('filtre').value === 'archives' ? m.archive : !m.archive).length;
     document.getElementById('cnt').textContent = `${arr.length} référence${arr.length > 1 ? 's' : ''}${arr.length !== total ? ` sur ${total}` : ''}`;
     document.getElementById('filtre').classList.toggle('on', !!document.getElementById('filtre').value);
     if (!arr.length) {
@@ -1086,8 +1072,8 @@ function rendreFiche() {
         </div>
         <div class="sh-body">${corps}</div>
         <div class="sh-foot">
-            <button type="button" class="btn btn-s" data-f="ajuster">${I.adj}Ajuster</button>
-            <button type="button" class="btn btn-p" data-f="reappro">${I.plus}Réapprovisionner</button>
+            ${m.archive ? '<span class="badge">Archivé · lecture seule</span>' : `<button type="button" class="btn btn-s" data-f="ajuster">${I.adj}Ajuster</button>
+            <button type="button" class="btn btn-p" data-f="reappro">${I.plus}Réapprovisionner</button>`}
         </div>`;
     if (ficheOnglet === 'mvt' || ficheOnglet === 'lots') sheet.querySelector('.sh-body').scrollTop = scroll;
 }
@@ -1096,9 +1082,10 @@ function ongletDetails(m, e) {
     const prixAchat = num(m.prix_achat);
     const marge = prixAchat > 0 && num(m.prix_unitaire) > 0 ? Math.round((num(m.prix_unitaire) - prixAchat) / num(m.prix_unitaire) * 100) + ' %' : '—';
     const src = imageDe(m);
+    const safeImageUrl = (() => { try { const u = new URL(m.image_page); return u.protocol === 'https:' ? u.href : ''; } catch { return ''; } })();
     const origine = m.image_source === 'photo' ? 'Photo prise sur place'
-        : m.image_source === 'google' ? `Google Images${m.image_auto ? ' (choix automatique)' : ''}${m.image_site ? ' · ' + esc(m.image_site) : ''}${m.image_page ? ` · <a href="${esc(m.image_page)}" target="_blank" rel="noopener">source</a>` : ''}`
-        : m.image_source === 'commons' ? `Wikimedia Commons${m.image_auto ? ' (choix automatique)' : ''}${m.image_page ? ` · <a href="${esc(m.image_page)}" target="_blank" rel="noopener">source</a>` : ''}`
+        : m.image_source === 'google' ? `Google Images${m.image_auto ? ' (choix automatique)' : ''}${m.image_site ? ' · ' + esc(m.image_site) : ''}${safeImageUrl ? ` · <a href="${esc(safeImageUrl)}" target="_blank" rel="noopener noreferrer">source</a>` : ''}`
+        : m.image_source === 'commons' ? `Wikimedia Commons${m.image_auto ? ' (choix automatique)' : ''}${safeImageUrl ? ` · <a href="${esc(safeImageUrl)}" target="_blank" rel="noopener noreferrer">source</a>` : ''}`
         : src ? 'Image enregistrée' : (m.image_aucune ? 'Aucune image (choix manuel)' : (rechercheImages.enCours.has(m.id) ? 'Recherche d\'image en cours…' : 'Aucune image pertinente trouvée'));
     const heberge = m.image_cloudinary_id ? ' · hébergée sur Cloudinary' : '';
     return `
@@ -1130,7 +1117,7 @@ function ongletDetails(m, e) {
         </div>
         <div class="quick">
             <button type="button" class="btn btn-s" data-f="modifier">${I.pencil}Modifier la fiche</button>
-            <button type="button" class="btn btn-d" data-f="supprimer">${I.trash}Supprimer</button>
+            <button type="button" class="btn btn-d" data-f="supprimer">${m.archive ? 'Restaurer' : 'Archiver'}</button>
         </div>`;
 }
 function ongletLots(m, e) {
@@ -1231,7 +1218,7 @@ function dialogueAjuster(id) {
         b.disabled = true;
         try {
             const { avant, apres } = await ajusterTotal(id, delta);
-            await update(ref(db, `db_pharmacie_stock/${id}`), { modifie_par: qui(moi()), modifie_le: Date.now() });
+            await update(villageRef(db, `db_pharmacie_stock/${id}`), { modifie_par: qui(moi()), modifie_le: Date.now() });
             await journaliser({ type: 'ajustement', med_id: id, nom_medicament: m.nom || '—', quantite_ajoutee: apres - avant,
                 ancienne_quantite: avant, nouvelle_quantite: apres, observations: [motif, sheet2.querySelector('#a-o').value.trim()].filter(Boolean).join(' — ') });
             fermer2(); toast(`Stock ajusté : ${fmt(avant)} → ${fmt(apres)}`, 'ok');
@@ -1268,7 +1255,7 @@ function dialogueRetirerLot(id, lotId) {
                 [`lots/${lotId}/retire`]: true, [`lots/${lotId}/qte_retiree`]: avant - apres,
                 [`lots/${lotId}/retire_motif`]: motif, [`lots/${lotId}/retire_par`]: moi(), [`lots/${lotId}/retire_ts`]: Date.now(),
             });
-            await update(ref(db, `db_pharmacie_stock/${id}`), maj);
+            await update(villageRef(db, `db_pharmacie_stock/${id}`), maj);
             await journaliser({ type: 'retrait', med_id: id, nom_medicament: m.nom || '—', quantite_ajoutee: apres - avant,
                 ancienne_quantite: avant, nouvelle_quantite: apres, lot: l.hors ? 'Sans lot' : (l.numero || '—'), lot_id: lotId,
                 nouvelle_peremption: l.date_peremption || '—', observations: motif });
@@ -1298,7 +1285,7 @@ function dialogueModifierLot(id, lotId) {
         const n = sheet2.querySelector('#ml-n').value.trim(), fo = sheet2.querySelector('#ml-f').value.trim();
         b.disabled = true;
         try {
-            await update(ref(db, `db_pharmacie_stock/${id}`), {
+            await update(villageRef(db, `db_pharmacie_stock/${id}`), {
                 [`lots/${lotId}/numero`]: n, [`lots/${lotId}/date_peremption`]: d, [`lots/${lotId}/fournisseur`]: fo,
                 modifie_par: qui(moi()), modifie_le: Date.now(),
             });
@@ -1315,14 +1302,20 @@ function dialogueModifierLot(id, lotId) {
 
 async function supprimerProduit(id) {
     const m = allStock[id];
-    if (!confirm(`Supprimer définitivement « ${m.nom} » (${fmt(m.quantite)} en stock) ? L'historique des mouvements est conservé.`)) return;
+    if (m.archive) {
+        if (!confirm(`Restaurer « ${m.nom} » dans l'inventaire actif ?`)) return;
+        await update(villageRef(db, `db_pharmacie_stock/${id}`), {archive:false, archive_ts:null, archive_par:null});
+        fermer(); toast('Produit restauré dans l’inventaire.', 'ok'); return;
+    }
+    if (num(m.quantite) !== 0) { toast('Archiver seulement lorsque le stock atteint zéro. Retirez ou transférez d’abord les unités restantes.', 'err'); return; }
+    if (!confirm(`Archiver « ${m.nom} » ? L'historique sera conservé.`)) return;
     try {
         await journaliser({ type: 'suppression', med_id: id, nom_medicament: m.nom || '—', quantite_ajoutee: -num(m.quantite),
             ancienne_quantite: num(m.quantite), nouvelle_quantite: 0, observations: 'Produit supprimé du stock' });
-        await remove(ref(db, `db_pharmacie_stock/${id}`));
+        await update(villageRef(db, `db_pharmacie_stock/${id}`), { archive:true, archive_ts:Date.now(), archive_par:moi() });
         // Image Cloudinary + fiche gallery du produit supprimé.
         if (m.image_cloudinary_id) versCloudinary(id, { action: 'retirer', sans_produit: true }).catch(() => {});
-        fermer(); toast('Produit supprimé.', 'ok');
+        fermer(); toast('Produit archivé.', 'ok');
     } catch (err) { toast('Erreur : ' + err.message, 'err'); }
 }
 
@@ -1417,7 +1410,7 @@ sheet.addEventListener('click', async (ev) => {
     b.disabled = true;
     try {
         if (m) {
-            await update(ref(db, `db_pharmacie_stock/${id}`), { ...champs, modifie_par: qui(moi()), modifie_le: Date.now() });
+            await update(villageRef(db, `db_pharmacie_stock/${id}`), { ...champs, modifie_par: qui(moi()), modifie_le: Date.now() });
             const lib = { nom: 'nom', prix_unitaire: 'prix de vente', seuil_alerte: 'seuil', prix_achat: 'prix d\'achat', forme: 'forme', dosage: 'dosage' };
             const ch = Object.keys(lib).filter(k => String(m[k] ?? '') !== String(champs[k] ?? '')).map(k => `${lib[k]} ${m[k] ?? '—'} → ${champs[k] || '—'}`);
             if (ch.length) await journaliser({ type: 'modification', med_id: id, nom_medicament: nom, quantite_ajoutee: 0, observations: 'Fiche modifiée : ' + ch.join(', ') });
@@ -1439,7 +1432,7 @@ sheet.addEventListener('click', async (ev) => {
                 agent: qui(moi()), cree_par: moi(), timestamp: Date.now(),
                 lots: { [lotKey]: { numero, date_peremption: exp, qte_recue: q, fournisseur: four, date_reception: isoJour(), prix_achat: champs.prix_achat || 0, par: moi(), ts: Date.now() } },
             };
-            const r = await push(ref(db, 'db_pharmacie_stock'), nouveau);
+            const r = await push(villageRef(db, 'db_pharmacie_stock'), nouveau);
             await journaliser({ type: 'entree', med_id: r.key, nom_medicament: nom, quantite_ajoutee: q, ancienne_quantite: 0, nouvelle_quantite: q,
                 lot: numero || '—', lot_id: lotKey, nouvelle_peremption: exp, source: four, observations: 'Nouveau produit' });
             toast(`« ${nom} » ajouté au stock.`, 'ok');
@@ -1473,7 +1466,7 @@ function rendreChoisi() {
 }
 function resultatsRecherche() {
     const q = norm(rSearch.value);
-    const arr = Object.values(allStock)
+    const arr = Object.values(allStock).filter(m => !m.archive)
         .filter(m => !q || norm(`${m.nom} ${m.dosage || ''} ${m.forme || ''}`).includes(q))
         .map(m => ({ m, e: etat(m) }))
         // Les produits à réapprovisionner en premier quand rien n'est saisi.
@@ -1518,6 +1511,7 @@ function viderReappro() {
     majCalc();
 }
 document.getElementById('r-reset').addEventListener('click', viderReappro);
+let reapproFormOperationId = null;
 document.getElementById('r-save').addEventListener('click', async (ev) => {
     const qte = Math.round(num(document.getElementById('r-qte').value));
     const exp = document.getElementById('r-exp').value;
@@ -1530,15 +1524,16 @@ document.getElementById('r-save').addEventListener('click', async (ev) => {
     const btn = ev.currentTarget; btn.disabled = true;
     const nom = allStock[rSel].nom;
     try {
+        if (!reapproFormOperationId) reapproFormOperationId = nouvelIdOperation();
         const { avant, apres } = await reapprovisionner(rSel, {
-            qte, date_peremption: exp,
+            operationId: reapproFormOperationId, qte, date_peremption: exp,
             numero: document.getElementById('r-lot').value.trim(),
             fournisseur: document.getElementById('r-fournisseur').value.trim(),
             date_reception: document.getElementById('r-date').value,
             prix_achat: document.getElementById('r-pachat').value,
             obs: document.getElementById('r-obs').value.trim(),
         });
-        viderReappro();
+        reapproFormOperationId = null; viderReappro();
         message('r-msg', 'ok', `${nom} : ${fmt(avant)} + ${fmt(qte)} = ${fmt(apres)} en stock.`);
     } catch (err) {
         message('r-msg', 'err', 'Erreur : ' + err.message);
@@ -1775,21 +1770,38 @@ function apercu() {
     const ix = h => iHead.indexOf(h), c = {};
     Object.entries(iMap).forEach(([k, h]) => { c[k] = ix(h); });
     const iq = ix(document.getElementById('i-qcol').value);
-    const parNom = {}; Object.values(allStock).forEach(m => { if (m.nom) parNom[norm(m.nom)] = m; });
+    const parRef = new Map();
+    Object.values(allStock).filter(m => !m.archive).forEach(m => {
+        const k = [norm(m.nom), norm(m.dosage), norm(m.forme)].join('|');
+        if (!parRef.has(k)) parRef.set(k, []);
+        parRef.get(k).push(m);
+    });
+    const dateValide = d => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d)) && new Date(d).toISOString().slice(0,10) === d;
     const cell = (r, k) => c[k] >= 0 ? r[c[k]] : '';
     iRows = iData.map(r => {
-        const nom = String(cell(r, 'nom') ?? '').trim(), qte = iq >= 0 ? Math.round(toNumber(r[iq])) : 0;
-        const ex = parNom[norm(nom)] || null;
+        const nom = String(cell(r, 'nom') ?? '').trim();
+        const qRaw = iq >= 0 ? toNumber(r[iq]) : NaN;
+        const qte = Number.isSafeInteger(qRaw) && qRaw > 0 ? qRaw : NaN;
+        const forme = String(cell(r, 'forme') ?? '').trim();
+        const dosage = String(cell(r, 'dosage') ?? '').trim();
+        const candidates = parRef.get([norm(nom), norm(dosage), norm(forme)].join('|')) || [];
+        const ex = candidates.length === 1 ? candidates[0] : null;
+        const per = dateCell(cell(r, 'per'));
+        const prix = toNumber(cell(r, 'prix'));
         let st, on;
         if (!nom) { st = ['expired', 'Sans nom']; on = false; }
+        else if (!Number.isSafeInteger(qte) || qte <= 0) { st = ['expired', 'Quantité invalide']; on = false; }
+        else if (!dateValide(per)) { st = ['expired', 'Date invalide']; on = false; }
+        else if (!Number.isSafeInteger(prix) || prix < 0) { st = ['expired', 'Prix invalide']; on = false; }
+        else if (candidates.length > 1) { st = ['expired', 'Référence ambiguë']; on = false; }
         else if (mode === 'reappro') {
             if (qte <= 0) { st = ['low', 'Qté nulle']; on = false; }
             else if (ex) { st = ['ok', `+${fmt(qte)}`]; on = true; }
             else { st = ['expired', 'Introuvable']; on = false; }
         } else if (ex) { st = ['low', 'Déjà en stock']; on = false; }
         else { st = ['ok', 'Nouveau']; on = true; }
-        return { nom, qte, forme: String(cell(r, 'forme') ?? '').trim(), dosage: String(cell(r, 'dosage') ?? '').trim(),
-            per: dateCell(cell(r, 'per')), prix: toNumber(cell(r, 'prix')), lot: String(cell(r, 'lot') ?? '').trim(),
+        return { nom, qte, forme, dosage,
+            per, prix, lot: String(cell(r, 'lot') ?? '').trim(),
             four: String(cell(r, 'four') ?? '').trim(), exId: ex?.id || null, st, on };
     });
     document.getElementById('i-body').innerHTML = iRows.length ? iRows.map((r, i) => `<tr class="${r.on ? '' : 'off'}">
@@ -1824,11 +1836,12 @@ document.getElementById('i-run').addEventListener('click', async () => {
     for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
         try {
+            if (!Number.isSafeInteger(r.qte) || r.qte <= 0 || !Number.isSafeInteger(r.prix) || r.prix < 0 || !/^\d{4}-\d{2}-\d{2}$/.test(r.per)) throw new Error('Ligne invalide');
             if (mode === 'reappro') {
-                await reapprovisionner(r.exId, { qte: r.qte, numero: r.lot, date_peremption: r.per, fournisseur: r.four || 'Import Excel', obs: `Import « ${iFile} »` });
+                await reapprovisionner(r.exId, { operationId: r.operationId || (r.operationId = nouvelIdOperation()), qte: r.qte, numero: r.lot, date_peremption: r.per, fournisseur: r.four || 'Import Excel', obs: `Import « ${iFile} »` });
             } else {
                 const lotKey = genKey();
-                const res = await push(ref(db, 'db_pharmacie_stock'), {
+                const res = await push(villageRef(db, 'db_pharmacie_stock'), {
                     nom: r.nom, forme: r.forme || 'Autre', dosage: r.dosage, quantite: r.qte, prix_unitaire: Math.round(r.prix),
                     date_peremption: r.per, lot: r.lot, source: r.four || 'Import Excel', seuil_alerte: SEUIL_DEFAUT, unite: 'unité(s)',
                     categorie: '', ordonnance: 'non', date_entree: isoJour(), agent: qui(moi()), cree_par: moi(), timestamp: Date.now(),

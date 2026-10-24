@@ -7,14 +7,14 @@
     <meta name="theme-color" content="#1a3a5c">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PS Diandioly">
+    <meta name="apple-mobile-web-app-title" content="Postes de santé">
     <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
     <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
     <meta name="msapplication-TileColor" content="#1a3a5c">
-    <meta name="description" content="Application de gestion du Poste de Santé de Diandioly – Facturation, Stock, Rapports.">
+    <meta name="description" content="Application de gestion du Postes de santé — Accès sécurisé – Facturation, Stock, Rapports.">
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96x96.png">
-    <title>Connexion – Poste de Santé de Diandioly</title>
+    <title>Connexion – Postes de santé — Accès sécurisé</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -321,7 +321,7 @@
                 <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
             </div>
             <div class="header">
-                <h1>Poste de Santé de Diandioly</h1>
+                <h1>Postes de santé — Accès sécurisé</h1>
                 <p>Portail d'accès sécurisé</p>
             </div>
 
@@ -365,6 +365,10 @@
                     </div>
                 </div>
 
+                <div style="margin:10px 0 16px;font-size:13px;color:var(--muted)">
+                    <label style="display:flex;gap:8px;align-items:center"><input id="use-password" type="checkbox"> Utiliser un mot de passe sécurisé au lieu du code à 6 chiffres</label>
+                    <input id="password-alternative" type="password" autocomplete="current-password" minlength="10" placeholder="Mot de passe Firebase" style="display:none;width:100%;padding:12px;margin-top:8px;border-radius:10px;border:1px solid #bac4d0;background:var(--card-bg);color:var(--text)">
+                </div>
                 <button type="submit" class="submit-btn" id="submit-btn">
                     <span id="submit-btn-label">Se connecter</span>
                 </button>
@@ -396,7 +400,8 @@
 
     <script type="module">
         // 1. IMPORTS
-        import { auth, db } from './firebase-config.js'; // db est maintenant la Realtime Database
+        import { roleServeur } from './role-server.js';
+import { auth, db } from './firebase-config.js'; // db est maintenant la Realtime Database
         import {
             signInWithEmailAndPassword,
             onAuthStateChanged,
@@ -435,18 +440,21 @@
         // "administration/auth_db", une entrée { "email": "...", "role":
         // "icp" } — exactement comme pour les autres rôles.
         const ROLE_HOME = {
+            superadmin:'accueil/menu_superadmin.html',
             admin:     'accueil/menu_admin.html',
             caissier:  'accueil/menu_caissier.html',
             tresorier: 'accueil/menu_tresorier.html',
             icp:       'accueil/menu_icp.html',
         };
         const ROLE_LABEL = {
+            superadmin:{label:'Super administration',sub:'Villages et administrateurs'},
             admin:     { label: 'Administration', sub: 'Tableau de bord, gestion complète' },
             caissier:  { label: 'Caisse',          sub: 'Consultations et ventes' },
             tresorier: { label: 'Trésorerie',      sub: 'Dépenses et bilan financier' },
             icp:       { label: 'Supervision (ICP)', sub: 'Vue d\'ensemble en lecture seule' },
         };
         const ROLE_ICON = {
+            superadmin:'<svg class="icon" viewBox="0 0 24 24"><path d="M12 2 3 7v6c0 6 4 9 9 9s9-3 9-9V7z"/></svg>',
             admin:     '<svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
             caissier:  '<svg class="icon" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>',
             tresorier: '<svg class="icon" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>',
@@ -456,10 +464,10 @@
         // Interroge la base et renvoie la liste des rôles distincts associés
         // à cet email (normalement un seul).
         async function rolesPourEmail(email) {
-            const snap = await get(query(ref(db, 'administration/auth_db'), orderByChild('email'), equalTo(email)));
-            const roles = new Set();
-            if (snap.exists()) snap.forEach(c => { const r = c.val().role; if (ROLE_HOME[r]) roles.add(r); });
-            return [...roles];
+            // Ne pas interroger les anciens rôles globaux : l'affectation
+            // village + rôle provient maintenant exclusivement de db_users/UID.
+            const reel = await roleServeur(auth.currentUser);
+            return reel && ROLE_HOME[reel] ? [reel] : [];
         }
 
         function memoriserRole(email, role) {
@@ -500,6 +508,9 @@
         });
 
         // 3. GESTION DU CODE SECRET (Saisie & Copier-Coller)
+        const usePassword = document.getElementById('use-password');
+        const passwordAlternative = document.getElementById('password-alternative');
+        usePassword.addEventListener('change',()=>{ passwordAlternative.style.display=usePassword.checked?'block':'none'; passwordAlternative.required=usePassword.checked; document.querySelectorAll('.digit').forEach(d=>{d.required=!usePassword.checked; d.disabled=usePassword.checked}); });
         const digits = document.querySelectorAll('.digit');
         const passcodeContainer = document.getElementById('passcode-fields');
 
@@ -682,7 +693,9 @@
             // mauvais espace. On l'ignore alors et on re-détermine le rôle
             // depuis la base, comme pour un appareil jamais utilisé.
             if (roleMemorise && emailMemorise && emailMemorise === emailCourant && ROLE_HOME[roleMemorise]) {
-                dejaTraite = true; allerVersEspace(roleMemorise); return;
+                const reel = await roleServeur(user).catch(() => '');
+                if (reel === roleMemorise) { dejaTraite = true; allerVersEspace(reel); return; }
+                localStorage.removeItem('savedRole'); sessionStorage.removeItem('userRole');
             }
             // Rôle non mémorisé, ou mémorisé pour un autre compte (ex. nouvel
             // appareil, ou changement de compte sans déconnexion explicite) :
@@ -727,10 +740,10 @@
             if (lockoutActif) return;
 
             const email = emailInput.value.trim().toLowerCase();
-            const passcode = Array.from(digits).map(d => d.value).join('');
+            const passcode = usePassword.checked ? passwordAlternative.value : Array.from(digits).map(d => d.value).join('');
 
             if (!RE_EMAIL.test(email)) { showMessage('Adresse e-mail invalide.'); emailInput.classList.add('invalid'); return; }
-            if (passcode.length < 6) { showMessage('Veuillez saisir les 6 chiffres de votre code secret.'); return; }
+            if (passcode.length < (usePassword.checked ? 10 : 6)) { showMessage(usePassword.checked?'Veuillez saisir un mot de passe d’au moins 10 caractères.':'Veuillez saisir les 6 chiffres de votre code secret.'); return; }
 
             submitBtn.disabled = true;
             submitBtn.classList.remove('success-state');

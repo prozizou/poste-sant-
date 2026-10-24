@@ -1,4 +1,8 @@
 import { db, auth } from '../firebase-config.js';
+import { villageRef, chargerVillage, villageActuel } from '../village-client.js';
+await chargerVillage();
+import { roleServeur } from '../role-server.js';
+import { desabonnerPushAdmin } from '../notifications-admin.js';
 import { ref, push, onValue, off, get, update, runTransaction }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged, signOut }
@@ -6,6 +10,7 @@ import { onAuthStateChanged, signOut }
 import * as printer from './escpos-printer.js';
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
 import { signalerPush } from '../push-relay.js';
+import { operationPharmacie, nouvelIdOperation } from '../pharmacie-client.js';
 initNotifCaisseAdmin(); // no-op si l'utilisateur connecté n'est pas administrateur
 
 // Chaque opération de caisse (encaissement, annulation, modification) est
@@ -15,7 +20,7 @@ initNotifCaisseAdmin(); // no-op si l'utilisateur connecté n'est pas administra
 // La clé de l'entrée est connue tout de suite, même hors-ligne : le push
 // (api/notifier.js) est mis en file et renvoyé jusqu'à confirmation.
 function notifierAdmin(data) {
-    const r = push(ref(db, 'notifications_caisse'), {
+    const r = push(villageRef(db, 'notifications_caisse'), {
         action: 'encaissement',
         ...data,
         caissier_email: auth.currentUser?.email || '',
@@ -34,12 +39,13 @@ function notifierAdmin(data) {
 // session Firebase pourtant valide comme non authentifiée après un
 // redémarrage de l'application (notamment via le raccourci PWA « Facturation »
 // qui ouvre directement cette page sans repasser par l'écran de connexion).
-onAuthStateChanged(auth, u => {
+onAuthStateChanged(auth, async u => {
     if (!u) { window.location.href = '../index.html'; return; }
-    const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+    const role = await roleServeur(u).catch(() => '');
     if (role) sessionStorage.setItem('userRole', role);
     if (role === 'tresorier') { window.location.href = '../accueil/menu_tresorier.html'; return; }
     if (role === 'icp') { window.location.href = '../accueil/menu_icp.html'; return; }
+    if (!['admin', 'caissier'].includes(role)) { window.location.href = '../index.html'; return; }
     const back = document.querySelector('.back-btn');
     if (back) back.href = (role === 'admin') ? '../accueil/menu_admin.html' : '../accueil/menu_caissier.html';
 });
@@ -48,7 +54,7 @@ window.deconnexion = () => {
     if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
         sessionStorage.clear();
         localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
-        signOut(auth).then(() => { window.location.href = '../index.html'; });
+        desabonnerPushAdmin().finally(() => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     }
 };
 // Une déconnexion faite sur une autre page/onglet doit se propager ici aussi.
@@ -57,9 +63,9 @@ window.addEventListener('storage', (e) => {
 });
 
 // ── REFS FIREBASE ───────────────────────────────
-const ticketRef   = ref(db, 'ticket_dbase');
-const medVenteRef = ref(db, 'vente_medicaments');
-const stockRef    = ref(db, 'db_pharmacie_stock');
+const ticketRef   = villageRef(db, 'ticket_dbase');
+const medVenteRef = villageRef(db, 'vente_medicaments');
+const stockRef    = villageRef(db, 'db_pharmacie_stock');
 
 // ── STATE ───────────────────────────────────────
 let allTickets   = [];
@@ -76,6 +82,8 @@ let loadedT = false, loadedM = false, loadedS = false;
 // numéro d'attente, les statistiques et le reçu imprimé suivent alors cette
 // date-là plutôt que l'instant réel de la saisie.
 let backdateEtaitActif = false;
+let saisieHeureManuelle = false;
+let enregistrementVenteId = null;
 
 function getOpTimestamp() {
     const dEl = document.getElementById('op-date');
@@ -103,6 +111,10 @@ function validerOpDate() {
         toast("La date de l'opération ne peut pas être dans le futur.", 'err');
         dEl.value = ymd(Date.now());
         majBackdateUI();
+        return false;
+    }
+    if (!Number.isFinite(getOpTimestamp()) || getOpTimestamp() > Date.now() + 59000) {
+        toast('L’heure de l’opération ne peut pas être dans le futur.', 'err');
         return false;
     }
     return true;
@@ -159,24 +171,25 @@ majBackdateUI();
 // normale : un mode « a posteriori » choisi par l'utilisateur ne doit
 // jamais être silencieusement remis à « maintenant ».
 setInterval(() => {
-    if (!backdateEtaitActif) reglerHeureActuelle();
+    if (!backdateEtaitActif && !saisieHeureManuelle) reglerHeureActuelle();
     majBackdateUI();
 }, 60000);
+document.getElementById('op-heure')?.addEventListener('change', () => {
+    saisieHeureManuelle = true;
+    validerOpDate(); majBackdateUI();
+});
 document.getElementById('op-date')?.addEventListener('change', () => {
     if (validerOpDate()) majBackdateUI();
     if (document.getElementById('m-search-patient')?.value.trim()) window.filtrerPatients();
 });
-document.getElementById('op-heure')?.addEventListener('change', () => { majBackdateUI(); });
 document.getElementById('btn-reset-date')?.addEventListener('click', () => {
-    reglerHeureActuelle(); majBackdateUI();
+    saisieHeureManuelle = false; reglerHeureActuelle(); majBackdateUI();
     toast("Date de l'opération réinitialisée à maintenant.", 'ok');
 });
 
 // ── SÉCURITÉ : Échappement XSS ──────────────────
 function esc(str) {
-    const div = document.createElement('div');
-    div.textContent = String(str ?? '');
-    return div.innerHTML;
+    return String(str ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
 // ── HELPERS ─────────────────────────────────────
@@ -267,7 +280,7 @@ function receiptHead(svg, sousTitre, bandeau = '') {
     return `
         <header class="r-head">
             ${svg}
-            <h1 class="r-title">Poste de Santé de Diandioly</h1>
+            <h1 class="r-title">Poste de santé de ${String(villageActuel()?.nom || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</h1>
             <p class="r-sub">${esc(sousTitre)}</p>
         </header>
         ${bandeau ? `<div class="r-banner">${esc(bandeau)}</div>` : ''}`;
@@ -492,7 +505,7 @@ async function prochainNumeroAttente(refTs = Date.now()) {
     });
 
     const jour = ymd(refTs); // AAAA-MM-JJ du jour de l'opération
-    const compteurRef = ref(db, `compteurs/attente_${jour}`);
+    const compteurRef = villageRef(db, `compteurs/attente_${jour}`);
     try {
         const result = await runTransaction(compteurRef, (current) => {
             let c = current || 0;
@@ -502,8 +515,8 @@ async function prochainNumeroAttente(refTs = Date.now()) {
         if (result.committed) return { num: result.snapshot.val(), fiable: true };
         throw new Error('transaction non validée');
     } catch (e) {
-        console.warn("Compteur en ligne indisponible — utilisation du compteur local.", e);
-        return { num: maxAttente + 1, fiable: false };
+        console.warn('Attribution du numéro d’attente impossible.', e);
+        throw new Error('Numéro d’attente non attribué : connexion requise pour éviter les doublons.');
     }
 }
 // ── STATS GLOBALES (TICKETS + MÉDICAMENTS) ───────
@@ -546,10 +559,9 @@ onValue(medVenteRef, snap => {
 
 onValue(stockRef, snap => {
     allStock = [];
-    snap.forEach(c => { allStock.push({ _key:c.key, ...c.val() }); });
+    snap.forEach(c => { if (!c.val().archive) allStock.push({ _key:c.key, ...c.val() }); });
     allStock.sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
-    renderMedGrid('');
-    loadedS=true; checkLoadState();
+    loadedS=true; renderMedGrid(''); checkLoadState();
 });
 
 // ── TABS ─────────────────────────────────────────
@@ -645,7 +657,7 @@ function checkTicketBtn() {
     }
 
     let montantOk = true;
-    if (recu > 0 && recu < prixActuel) {
+    if (recu < prixActuel) {
         montantOk = false;
         document.getElementById('t-monnaie').textContent = '⚠ Montant insuffisant';
         document.getElementById('t-monnaie').className = 'monnaie-result neg';
@@ -679,7 +691,7 @@ window.encaisserTicket = async function() {
 
     if (!prenom||!nom||!age||!prixActuel) return;
     if (!validateAge(age)) { toast('Âge invalide (0–120 ans).', 'err'); return; }
-    if (recu > 0 && recu < prixActuel) { toast('Montant remis insuffisant.', 'err'); return; }
+    if (recu < prixActuel) { toast('Montant remis insuffisant.', 'err'); return; }
     if (!validerOpDate()) return;
 
     const btn=document.getElementById('btn-ticket');
@@ -691,9 +703,10 @@ window.encaisserTicket = async function() {
     // validité) est daté sur cette base, pas sur l'instant de la saisie.
     const opTs = getOpTimestamp();
     const enDiffere = !isSameDay(opTs, Date.now());
-    const { num: nAtt, fiable } = await prochainNumeroAttente(opTs);
+    let nAtt;
+    try { ({ num: nAtt } = await prochainNumeroAttente(opTs)); }
+    catch (e) { toast(e.message, 'err'); btn.disabled=false; btnLabel.textContent='Encaisser'; return; }
     const numAttente='N° ' + String(nAtt).padStart(3, '0');
-    if (!fiable) toast('Connexion instable : risque de doublon.', 'err');
 
     const validiteTs=opTs + 24*60*60*1000;
     const validiteStr=new Date(validiteTs).toLocaleDateString('fr-FR')+' à '+new Date(validiteTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
@@ -733,8 +746,9 @@ window.encaisserTicket = async function() {
         document.getElementById('print-content').innerHTML = buildConsultationHTML(ticketData);
         const imprimer = document.getElementById('op-imprimer')?.checked !== false;
         if (imprimer) {
-            await imprimerTicket('consultation', ticketData);
-            toast('Ticket enregistré et imprimé avec succès.','ok');
+            try { await imprimerTicket('consultation', ticketData); }
+            catch (printErr) { console.warn('[impression]', printErr); toast('Ticket de consultation enregistré(e), impression échouée : réimprimez depuis l’historique.', 'err'); }
+            // Impression indépendante : aucun échec d'impression ne recrée un encaissement.
         } else {
             toast('Ticket enregistré avec succès (sans impression).','ok');
         }
@@ -884,7 +898,7 @@ window.selectPatient = function(p) {
 function renderMedGrid(q) {
     const container = document.getElementById('med-liste');
     if (!allStock.length) {
-        container.innerHTML='<div class="med-empty">Chargement des médicaments…</div>';
+        container.innerHTML= loadedS ? '<div class="med-empty">Aucun médicament enregistré dans le stock.</div>' : '<div class="med-empty">Chargement des médicaments…</div>';
         return;
     }
     
@@ -928,12 +942,14 @@ function renderMedGrid(q) {
         const prixHtml = hasPrix ? `<div class="med-prix">${esc(fmt(m.prix_unitaire))} FCFA</div>` : '';
         const catHtml = m.categorie ? ` · <span style="font-style:italic;">${esc(m.categorie)}</span>` : '';
 
-        const isBlocked = inPanier || isOutOfStock;
+        const expired = !m.date_peremption || m.date_peremption < ymd(Date.now());
+        const isBlocked = inPanier || isOutOfStock || expired;
+
 
         // Action à droite : « + Ajouter », déjà ajouté, ou une référence en
         // rupture n'est jamais sélectionnable.
         let actionHtml;
-        if (isOutOfStock) actionHtml = `<button type="button" class="med-add-btn disabled" disabled>Indisponible</button>`;
+        if (isOutOfStock || expired) actionHtml = `<button type="button" class="med-add-btn disabled" disabled>${expired ? 'Péremption à vérifier' : 'Indisponible'}</button>`;
         else if (inPanier) actionHtml = `<span class="med-added-tag">${ICON_CHECK}Ajouté</span>`;
         else actionHtml = `<button type="button" class="med-add-btn" onclick="event.stopPropagation();ajouterMed('${m._key}')">+ Ajouter</button>`;
 
@@ -974,6 +990,9 @@ window.ajouterMed = function(key) {
     const med = allStock.find(m => m._key === key);
     if (!med) return;
     
+    if (!med.date_peremption || med.date_peremption < ymd(Date.now())) {
+        toast('Lot périmé ou date non renseignée : vente bloquée.', 'err'); return;
+    }
     const stockDispo = parseInt(med.quantite, 10) || 0;
     const existing = panier.find(p => p.stock_key === key);
     if (existing) {
@@ -1079,7 +1098,7 @@ window.encaisserMedicaments = async function() {
     const recu = parseFloat(document.getElementById('m-recu').value) || 0;
     const monnaie = recu - total;
 
-    if (recu > 0 && recu < total) { toast('Montant remis insuffisant.', 'err'); return; }
+    if (!Number.isFinite(recu) || recu < total) { toast('Montant remis insuffisant.', 'err'); return; }
     if (!validerOpDate()) return;
 
     const patientNom = patientSelectionne ? patientSelectionne.name : manualName;
@@ -1107,22 +1126,11 @@ window.encaisserMedicaments = async function() {
     };
 
     try {
-        const stockErrors = [];
-        for (const item of panier) {
-            const itemStockRef = ref(db, `db_pharmacie_stock/${item.stock_key}/quantite`);
-            try {
-                await runTransaction(itemStockRef, (current) => {
-                    const n = parseInt(current, 10);
-                    if (isNaN(n) || n < item.qte) return; 
-                    return n - item.qte; 
-                });
-            } catch (stockErr) {
-                stockErrors.push(item.nom);
-            }
-        }
-        if (stockErrors.length) toast(`Stock non mis à jour pour : ${stockErrors.join(', ')}`, 'err');
-
-        const newRef=await push(medVenteRef, payload);
+        // Même identifiant après timeout/réseau coupé : ne débite jamais deux fois.
+        if (!enregistrementVenteId) enregistrementVenteId = nouvelIdOperation();
+        const resultat = await operationPharmacie('encaisser', payload, enregistrementVenteId);
+        const newRef = { key: resultat.key };
+        enregistrementVenteId = null;
         const refNum='MED-'+newRef.key.substring(0,6).toUpperCase();
         const dateStr=dateISO(opTs);
 
@@ -1141,8 +1149,9 @@ window.encaisserMedicaments = async function() {
         document.getElementById('print-content').innerHTML = buildMedicamentsHTML(medData);
         const imprimer = document.getElementById('op-imprimer')?.checked !== false;
         if (imprimer) {
-            await imprimerTicket('medicaments', medData);
-            toast('Vente enregistrée et ticket imprimé.','ok');
+            try { await imprimerTicket('medicaments', medData); }
+            catch (printErr) { console.warn('[impression]', printErr); toast('Vente de médicaments enregistré(e), impression échouée : réimprimez depuis l’historique.', 'err'); }
+            // Impression indépendante : aucun échec d'impression ne recrée un encaissement.
         } else {
             toast('Vente enregistrée avec succès (sans impression).','ok');
         }
@@ -1267,32 +1276,7 @@ function codeConfirmationValide(saisi, attendu) {
     return !!ds && !!da && parseInt(ds, 10) === parseInt(da, 10);
 }
 
-// Remet en stock les médicaments d'une vente annulée. Retourne le détail
-// par ligne (clé stock résolue, succès/échec) pour que l'administration
-// puisse plus tard reverser précisément cette remise en stock si elle
-// décide de révoquer l'annulation.
-async function restockerMedicaments(items) {
-    const detail = [];
-    for (const item of items) {
-        let key = item.stock_key;
-        if (!key || !allStock.find(s => s._key === key)) {
-            const nomLower = (item.nom || '').trim().toLowerCase();
-            const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
-            key = matches.length === 1 ? matches[0]._key : null;
-        }
-        if (!key) { detail.push({ nom: item.nom, qte: item.qte, stock_key: null, ok: false }); continue; }
-        try {
-            await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), (current) => {
-                const n = parseInt(current, 10);
-                return (isNaN(n) ? 0 : n) + Number(item.qte || 0);
-            });
-            detail.push({ nom: item.nom, qte: item.qte, stock_key: key, ok: true });
-        } catch (e) {
-            detail.push({ nom: item.nom, qte: item.qte, stock_key: key, ok: false });
-        }
-    }
-    return detail;
-}
+// Annulation de vente : stock et facture sont désormais modifiés ensemble côté serveur.
 
 // Prépare le champ de confirmation d'une modale d'action sensible : mémorise
 // le code attendu, vide la saisie précédente, affiche l'indice et laisse le
@@ -1385,7 +1369,7 @@ window.confirmerAnnulation = async function() {
 
     try {
         if (pendingAnnulation.type === 'ticket') {
-            await update(ref(db, 'ticket_dbase/' + pendingAnnulation.key), annuleFields);
+            await update(villageRef(db, 'ticket_dbase/' + pendingAnnulation.key), annuleFields);
             const tk = allTickets.find(t => t._key === pendingAnnulation.key) || {};
             notifierAdmin({
                 action: 'annulation', type: 'ticket', ref_key: pendingAnnulation.key,
@@ -1395,28 +1379,14 @@ window.confirmerAnnulation = async function() {
             toast('Ticket annulé. Il est exclu du bilan.', 'ok');
         } else {
             const vente = allMedVentes.find(m => m._key === pendingAnnulation.key);
-            const items = (vente && vente.medicaments) || [];
-            const retourDetail = await restockerMedicaments(items);
-            const restockOk = retourDetail.filter(d => d.ok).length;
-            const restockFail = retourDetail.filter(d => !d.ok).map(d => d.nom);
-
-            await update(ref(db, 'vente_medicaments/' + pendingAnnulation.key), {
-                ...annuleFields,
-                retour_detail: retourDetail,
-                retour_stock_ok: restockOk,
-                retour_stock_echec: restockFail
-            });
+            const operationId = pendingAnnulation.operationId || (pendingAnnulation.operationId = nouvelIdOperation());
+            await operationPharmacie('annuler', { key: pendingAnnulation.key, motif, obs }, operationId);
             notifierAdmin({
                 action: 'annulation', type: 'med', ref_key: pendingAnnulation.key,
                 patient_nom: vente?.patient_nom || '', num_attente: vente?.num_attente || '',
                 montant: vente?.total || 0, detail: `Motif : ${motif}${obs ? ' — ' + obs : ''}`
             });
-
-            if (restockFail.length) {
-                toast(`Vente annulée. ${restockOk}/${items.length} médicament(s) retourné(s) — non retrouvé(s) en stock : ${restockFail.join(', ')}.`, 'err');
-            } else {
-                toast(`Vente annulée. ${restockOk} médicament(s) remis en stock.`, 'ok');
-            }
+            toast('Vente annulée et stock restauré intégralement.', 'ok');
         }
         closeModalAnnulation();
     } catch (e) {
@@ -1439,33 +1409,7 @@ let modifVente = null;   // enregistrement Firebase d'origine (référence)
 let modifPanier = [];    // copie de travail éditable, indépendante tant que non enregistrée
 let modifConfirmCode = ''; // code de confirmation attendu (n° d'attente, ou nom si patient non identifié)
 
-// Ajuste le stock d'un médicament d'un écart signé : positif = remis en
-// stock (quantité retirée de la vente), négatif = prélevé en plus
-// (quantité ajoutée à la vente). Résout stock_key par nom en repli, comme
-// restockerMedicaments(), pour les lignes anciennes ou dont la clé a disparu.
-async function ajusterStockDelta(nom, stockKeyHint, delta) {
-    if (!delta) return { ok: true, stock_key: stockKeyHint || null };
-    let key = stockKeyHint;
-    if (!key || !allStock.find(s => s._key === key)) {
-        const nomLower = (nom || '').trim().toLowerCase();
-        const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
-        key = matches.length === 1 ? matches[0]._key : null;
-    }
-    if (!key) return { ok: false, stock_key: null };
-    let insuffisant = false;
-    try {
-        await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), current => {
-            const n = parseInt(current, 10);
-            const next = (isNaN(n) ? 0 : n) + delta;
-            if (next < 0) { insuffisant = true; return; } // undefined -> Firebase abandonne la transaction
-            return next;
-        });
-    } catch (e) {
-        return { ok: false, stock_key: key };
-    }
-    return { ok: !insuffisant, stock_key: key };
-}
-
+// Modification pharmacie : aucun débit/recrédit direct depuis le navigateur.
 window.ouvrirModalModifMed = function(key) {
     const x = allMedVentes.find(m => m._key === key);
     if (!x || x.annule) return;
@@ -1565,7 +1509,9 @@ function renderModifMedGrid(q) {
             ? `<div class="med-prix">${esc(fmt(m.prix_unitaire))} FCFA${inPanier ? ' ✓' : ''}</div>`
             : (inPanier ? '<div class="med-prix">✓</div>' : '');
         const catHtml = m.categorie ? ` · <span style="font-style:italic;">${esc(m.categorie)}</span>` : '';
-        const isBlocked = inPanier || isOutOfStock;
+        const expired = !m.date_peremption || m.date_peremption < ymd(Date.now());
+        const isBlocked = inPanier || isOutOfStock || expired;
+
         return `
             <div class="med-item ${inPanier ? 'added' : ''}"
                  tabindex="${isBlocked ? '-1' : '0'}" role="button"
@@ -1673,36 +1619,14 @@ window.confirmerModifMed = async function() {
     btn.disabled = true; document.getElementById('modif-confirm-btn-label').textContent = 'Enregistrement…';
 
     try {
-        const stockErrors = [];
-        for (const [k, info] of infoMap) {
-            const delta = (avantMap.get(k) || 0) - (apresMap.get(k) || 0);
-            if (delta === 0) continue;
-            const res = await ajusterStockDelta(info.nom, info.stock_key, delta);
-            if (!res.ok) stockErrors.push(info.nom);
-        }
-        if (stockErrors.length) toast(`Stock non ajusté pour : ${stockErrors.join(', ')}`, 'err');
-
-        const total = modifPanier.reduce((s, p) => s + p.prix * p.qte, 0);
-        const caissierEmail = auth.currentUser?.email || '';
-        const recu = Number(modifVente.argent_remis || 0);
-        const monnaie = recu > 0 ? recu - total : (modifVente.monnaie_rendue || 0);
-        const apres = modifPanier.map(p => ({ nom: p.nom, prix: p.prix, qte: p.qte, stock_key: p.stock_key || null }));
-
-        const entree = {
-            ts: Date.now(), par: caissierEmail, motif, obs,
-            avant: original, apres,
-            avant_total: modifVente.total || 0, apres_total: total
-        };
-
-        await update(ref(db, 'vente_medicaments/' + modifVente._key), {
-            medicaments: apres,
-            total,
-            monnaie_rendue: monnaie,
-            modifie_par: caissierEmail,
-            modifie_ts: Date.now(),
-            modifications: [...(modifVente.modifications || []), entree]
-        });
-
+        const total = modifPanier.reduce((n, l) => n + l.prix * l.qte, 0);
+        const operationId = modifVente._operationModifId || (modifVente._operationModifId = nouvelIdOperation());
+        await operationPharmacie('modifier', {
+            key: modifVente._key, medicaments: modifPanier.map(l => ({
+                stock_key: l.stock_key, qte: l.qte, prix: l.prix
+            })), motif, obs
+        }, operationId);
+        modifVente._operationModifId = null;
         notifierAdmin({
             action: 'modification', type: 'med', ref_key: modifVente._key,
             patient_nom: modifVente.patient_nom || '', num_attente: modifVente.num_attente || '',

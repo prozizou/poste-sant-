@@ -1,7 +1,7 @@
 {
-  "name": "Poste de Santé de Diandioly",
-  "short_name": "PS Diandioly",
-  "description": "Application de gestion du Poste de Santé de Diandioly – Facturation, Stock, Rapports.",
+  "name": "Gestion des postes de santé",
+  "short_name": "Postes de santé",
+  "description": "Application multi-villages de gestion sanitaire, caisse, pharmacie et rapports.",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
@@ -10,7 +10,11 @@
   "theme_color": "#1a3a5c",
   "lang": "fr",
   "dir": "ltr",
-  "categories": ["medical", "health", "productivity"],
+  "categories": [
+    "medical",
+    "health",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "icons/icon-72x72.png",
@@ -67,40 +71,43 @@
       "short_name": "Caisse",
       "description": "Accéder directement à la facturation",
       "url": "/accueil/menu_caissier.html",
-      "icons": [{ "src": "icons/shortcut-facturation.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "icons/shortcut-facturation.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Stock",
       "short_name": "Stock",
       "description": "Gérer le stock pharmacie",
       "url": "/approvisionnement/stock.html",
-      "icons": [{ "src": "icons/shortcut-stock.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "icons/shortcut-stock.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Rapports",
       "short_name": "Rapports",
       "description": "Générer les rapports",
       "url": "/planif_rapport/rapports.html",
-      "icons": [{ "src": "icons/shortcut-rapports.png", "sizes": "96x96" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "screenshots/login.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Connexion sécurisée"
-    },
-    {
-      "src": "screenshots/dashboard.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Tableau de bord admin"
+      "icons": [
+        {
+          "src": "icons/shortcut-rapports.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ],
   "prefer_related_applications": false,
   "related_applications": [],
-  "display_override": ["standalone", "minimal-ui", "browser"]
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ]
 }

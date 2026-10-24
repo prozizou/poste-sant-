@@ -1,7 +1,8 @@
+import { villageActuel } from '../village-client.js';
 /* ═══════════════════════════════════════════════════════════════
    ESCPOS-PRINTER.JS
    Pilote d'impression thermique ESC/POS pour imprimante 58mm
-   (POS58B — Poste de Santé de Diandioly), avec DEUX canaux de
+   (POS58B — Poste de santé), avec DEUX canaux de
    transport possibles :
 
    1) WebUSB — direct depuis le navigateur, sans app tierce.
@@ -661,7 +662,7 @@ function sendViaRawBT(bytes) {
 // en moins. Objectif : ~6 cm de papier par ticket au lieu de ~13.
 function entete(r, sousTitre) {
     r.align('center').font('A').bold(true);
-    r.line('POSTE DE SANTE DE DIANDIOLY');
+    r.line(('POSTE DE SANTE ' + (villageActuel()?.nom || '')).slice(0,32).toUpperCase());
     r.bold(false).font('B').line(sousTitre);
     r.font('A').align('left');
     return r;

@@ -1,8 +1,11 @@
 {
-  "name": "poste-sante-diandioly",
+  "name": "postes-sante-multivillages",
   "private": true,
-  "description": "PWA statique + fonction Vercel api/notifier.js (relais de notifications push).",
+  "description": "Gestion des postes de santé multi-villages : données et accès isolés via Firebase RTDB.",
   "dependencies": {
     "firebase-admin": "^12.7.0"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
   }
 }

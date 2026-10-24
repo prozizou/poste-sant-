@@ -7,10 +7,10 @@
     <meta name="theme-color" content="#1a3a5c">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PS Diandioly">
+    <meta name="apple-mobile-web-app-title" content="Poste de santé">
     <link rel="apple-touch-icon" href="../icons/icon-152x152.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-96x96.png">
-    <title>Supervision (ICP) – Poste de Santé de Diandioly</title>
+    <title>Supervision (ICP) – Poste de santé</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -231,7 +231,7 @@
             <svg class="icon" viewBox="0 0 24 24"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
         </div>
         <div style="min-width:0;">
-            <h1>Poste de Santé de Diandioly</h1>
+            <h1>Poste de santé</h1>
             <div class="sub">
                 <svg class="icon lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 ICP · Lecture seule
@@ -406,13 +406,17 @@
 
 <script type="module">
 import { auth, db } from '../firebase-config.js';
+import { villageRef, chargerVillage } from '../village-client.js';
+await chargerVillage();
+import { roleServeur } from '../role-server.js';
+import { desabonnerPushAdmin } from '../notifications-admin.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // ── Auth guard : réservé au rôle "icp" (lecture seule) ──────────────────
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = '../index.html'; return; }
-    const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+    const role = await roleServeur(user).catch(() => '');
     if (role) sessionStorage.setItem('userRole', role);
     const AUTRES_ACCUEILS = {
         admin: '../accueil/menu_admin.html',
@@ -426,7 +430,7 @@ window.deconnexion = () => {
     if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
         sessionStorage.clear();
         localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
-        signOut(auth).then(() => { window.location.href = '../index.html'; });
+        desabonnerPushAdmin().finally(() => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     }
 };
 window.addEventListener('storage', (e) => {
@@ -869,22 +873,22 @@ function afficherErreur(noeud, err) {
     banner.hidden = false;
 }
 
-onValue(ref(db, 'ticket_dbase'), snap => {
+onValue(villageRef(db, 'ticket_dbase'), snap => {
     allTickets = [];
     snap.forEach(c => { const v = c.val(); if (!v.annule) allTickets.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
     loadedT = true; render();
 }, err => afficherErreur('ticket_dbase', err));
-onValue(ref(db, 'vente_medicaments'), snap => {
+onValue(villageRef(db, 'vente_medicaments'), snap => {
     allVentes = [];
     snap.forEach(c => { const v = c.val(); if (!v.annule) allVentes.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
     loadedV = true; render();
 }, err => afficherErreur('vente_medicaments', err));
-onValue(ref(db, 'db_depenses'), snap => {
+onValue(villageRef(db, 'db_depenses'), snap => {
     allDepenses = [];
     snap.forEach(c => { const v = c.val(); allDepenses.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
     loadedD = true; render();
 }, err => afficherErreur('db_depenses', err));
-onValue(ref(db, 'db_pharmacie_stock'), snap => {
+onValue(villageRef(db, 'db_pharmacie_stock'), snap => {
     allStock = [];
     snap.forEach(c => { allStock.push({ _key: c.key, ...c.val() }); });
     loadedS = true; render();

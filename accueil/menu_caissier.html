@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord Caissier – Poste de Santé de Diandioly</title>
+    <title>Tableau de Bord Caissier – Poste de santé</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -69,7 +69,7 @@
     <div class="topbar-left">
         <div class="topbar-logo">🏥</div>
         <div>
-            <h1>Poste de Santé de Diandioly</h1>
+            <h1>Poste de santé</h1>
             <p>Tableau de bord – Caissier(ère)</p>
         </div>
     </div>
@@ -136,15 +136,20 @@
 </main>
 <script type="module">
     import { auth, db } from '../firebase-config.js';
+import { villageRef, chargerVillage } from '../village-client.js';
+await chargerVillage();
+import { roleServeur } from '../role-server.js';
+import { desabonnerPushAdmin } from '../notifications-admin.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (!user) { window.location.href = '../index.html'; return; }
-        const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+        const role = await roleServeur(user).catch(() => '');
         if (role) sessionStorage.setItem('userRole', role);
         if (role === 'admin') { window.location.href = 'menu_admin.html'; return; }
         if (role === 'icp') { window.location.href = 'menu_icp.html'; return; }
+        if (role !== 'caissier') { window.location.href = role === 'tresorier' ? 'menu_tresorier.html' : '../index.html'; return; }
         const email = user.email || '';
         document.getElementById('user-email-display').textContent = email;
         document.getElementById('user-initials').textContent = email.slice(0, 2).toUpperCase();
@@ -169,14 +174,14 @@
         document.getElementById('stat-recettes-day').textContent = fmt(_ticketTotal + _medTotal) + ' F';
     }
 
-    const ticketRef = ref(db, 'ticket_dbase');
-    const medRef    = ref(db, 'vente_medicaments');
+    const ticketRef = villageRef(db, 'ticket_dbase');
+    const medRef    = villageRef(db, 'vente_medicaments');
 
     onValue(ticketRef, (snap) => {
         let count = 0, total = 0;
         snap.forEach(c => {
-            const d = c.val(), ts = d.date_heure_ts || Date.now();
-            if (isToday(ts)) { count++; total += (d.prix || 0); }
+            const d = c.val(), ts = Number(d.date_heure_ts) || 0;
+            if (ts && isToday(ts) && !d.annule) { count++; total += (Number(d.prix) || 0); }
         });
         document.getElementById('stat-tickets-day').textContent = count;
         _ticketTotal = total; updateRecettes();
@@ -185,8 +190,8 @@
     onValue(medRef, (snap) => {
         let totalMed = 0;
         snap.forEach(c => {
-            const d = c.val(), ts = d.date_heure_ts || Date.now();
-            if (isToday(ts)) totalMed += (d.total || 0);
+            const d = c.val(), ts = Number(d.date_heure_ts) || 0;
+            if (ts && isToday(ts) && !d.annule) totalMed += (Number(d.total) || 0);
         });
         document.getElementById('stat-meds-day').textContent = fmt(totalMed) + ' F';
         _medTotal = totalMed; updateRecettes();
@@ -197,7 +202,7 @@
             off(ticketRef); off(medRef);
             sessionStorage.clear();
             localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
-            signOut(auth).then(() => { window.location.href = '../index.html'; });
+            desabonnerPushAdmin().finally(() => signOut(auth).then(() => { window.location.href = '../index.html'; }));
         }
     };
     // Une déconnexion faite sur une autre page/onglet doit se propager ici aussi.

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="../manifest.json">
     <meta name="theme-color" content="#b87309">
-    <title>Tableau de Bord Trésorerie – Poste de Santé de Diandioly</title>
+    <title>Tableau de Bord Trésorerie – Poste de santé</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -76,7 +76,7 @@
     <div class="topbar-left">
         <div class="topbar-logo">💰</div>
         <div>
-            <h1>Poste de Santé de Diandioly</h1>
+            <h1>Poste de santé</h1>
             <p>Tableau de bord – Trésorerie</p>
         </div>
     </div>
@@ -149,12 +149,16 @@
 </main>
 <script type="module">
     import { auth, db } from '../firebase-config.js';
+import { villageRef, chargerVillage } from '../village-client.js';
+await chargerVillage();
+import { roleServeur } from '../role-server.js';
+import { desabonnerPushAdmin } from '../notifications-admin.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (!user) { window.location.href = '../index.html'; return; }
-        const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+        const role = await roleServeur(user).catch(() => '');
         if (role) sessionStorage.setItem('userRole', role);
         // Réservé au trésorier (l'admin garde son propre tableau de bord)
         if (role !== 'tresorier') {
@@ -192,23 +196,23 @@
         document.getElementById('card-solde').classList.toggle('negatif', solde < 0);
     }
 
-    const ticketRef  = ref(db, 'ticket_dbase');
-    const medRef     = ref(db, 'vente_medicaments');
-    const depenseRef = ref(db, 'db_depenses');
+    const ticketRef  = villageRef(db, 'ticket_dbase');
+    const medRef     = villageRef(db, 'vente_medicaments');
+    const depenseRef = villageRef(db, 'db_depenses');
 
     onValue(ticketRef, (snap) => {
         let total = 0;
-        snap.forEach(c => { const d = c.val(), ts = d.date_heure_ts || Date.now(); if (isToday(ts)) total += (d.prix || 0); });
+        snap.forEach(c => { const d = c.val(), ts = Number(d.date_heure_ts) || 0; if (ts && isToday(ts) && !d.annule) total += (Number(d.prix) || 0); });
         _ticket = total; refresh();
     });
     onValue(medRef, (snap) => {
         let total = 0;
-        snap.forEach(c => { const d = c.val(), ts = d.date_heure_ts || Date.now(); if (isToday(ts)) total += (d.total || 0); });
+        snap.forEach(c => { const d = c.val(), ts = Number(d.date_heure_ts) || 0; if (ts && isToday(ts) && !d.annule) total += (Number(d.total) || 0); });
         _med = total; refresh();
     });
     onValue(depenseRef, (snap) => {
         let total = 0;
-        snap.forEach(c => { const d = c.val(), ts = d.date_ts || d.timestamp || Date.now(); if (isToday(ts)) total += (d.montant || 0); });
+        snap.forEach(c => { const d = c.val(), ts = Number(d.date_ts || d.timestamp) || 0; if (ts && isToday(ts) && !d.annule) total += (Number(d.montant) || 0); });
         _dep = total; refresh();
     });
 
@@ -217,7 +221,7 @@
             off(ticketRef); off(medRef); off(depenseRef);
             sessionStorage.clear();
             localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
-            signOut(auth).then(() => { window.location.href = '../index.html'; });
+            desabonnerPushAdmin().finally(() => signOut(auth).then(() => { window.location.href = '../index.html'; }));
         }
     };
     // Une déconnexion faite sur une autre page/onglet doit se propager ici aussi.

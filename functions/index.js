@@ -29,21 +29,27 @@ setGlobalOptions({ region: 'europe-west1', maxInstances: 5 });
 const INSTANCE = 'poste-sante-280b2-default-rtdb';
 
 exports.notifierCaisseAdmin = onValueCreated(
-    { ref: '/notifications_caisse/{notifId}', instance: INSTANCE },
+    { ref: '/villages/{villageId}/notifications_caisse/{notifId}', instance: INSTANCE },
     async (event) => {
         const n = event.data.val();
         const notifId = event.params.notifId;
+        const villageId = event.params.villageId;
         if (!n) return;
 
         const db = getDatabase();
-        const tokensSnap = await db.ref('fcm_tokens_admin').once('value');
+        const tokensSnap = await db.ref('villages/' + villageId + '/fcm_tokens_admin').once('value');
         const tokensObj = tokensSnap.val() || {};
 
         // clé RTDB = jeton assaini (voir notifications-admin.js) ; le champ
         // "token" porte le jeton FCM exact à utiliser pour l'envoi.
-        const cibles = Object.entries(tokensObj)
+        const possibles = Object.entries(tokensObj)
             .map(([cle, meta]) => ({ cle, token: (meta && meta.token) || cle, meta }))
-            .filter(({ token, meta }) => token && !(meta && meta.email && meta.email === n.caissier_email));
+            .filter(({ token, meta }) => token && meta?.uid && meta.email !== n.caissier_email);
+        const autorises = await Promise.all(possibles.map(async c =>
+            ((await db.ref('db_users/' + c.meta.uid).once('value')).val()?.role === 'admin' &&
+              (await db.ref('db_users/' + c.meta.uid + '/active').once('value')).val() !== false &&
+              (await db.ref('db_users/' + c.meta.uid + '/village_id').once('value')).val() === villageId)));
+        const cibles = possibles.filter((_,i) => autorises[i]);
             // (pas de self-notification si l'admin est aussi le/la caissier(ère) ayant encaissé)
 
         if (!cibles.length) return;
@@ -58,7 +64,7 @@ exports.notifierCaisseAdmin = onValueCreated(
         else if (n.action === 'modification') titre = `✏️ ${quoi} modifié${n.type === 'med' ? 'e' : ''}`;
         else titre = n.type === 'med' ? '💊 Vente de médicaments encaissée' : '🎫 Ticket de consultation encaissé';
         const montantFmt = Number(n.montant || 0).toLocaleString('fr-FR') + ' FCFA';
-        const corps = `Par ${caissier} · ${n.patient_nom || 'Patient'} · ${montantFmt}` + (n.detail ? `\n${n.detail}` : '');
+        const corps = 'Nouvelle opération de caisse. Connectez-vous pour en consulter les détails.';
 
         // Messages "data-only" (jamais de champ "notification" côté FCM) :
         // c'est le Service Worker (sw.js → onBackgroundMessage) qui construit
@@ -68,7 +74,7 @@ exports.notifierCaisseAdmin = onValueCreated(
             data: {
                 title: titre, body: corps,
                 type: n.type || '', action: n.action || 'encaissement',
-                key: n.ref_key || '', nkey: notifId, tag: 'caisse-' + notifId,
+                key: n.ref_key || '', nkey: notifId, tag: 'caisse-' + villageId + '-' + notifId,
             },
             webpush: { headers: { Urgency: 'high' } },
         }));
@@ -81,7 +87,7 @@ exports.notifierCaisseAdmin = onValueCreated(
             if (r.success) return;
             const code = r.error && r.error.code;
             if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
-                suppressions.push(db.ref('fcm_tokens_admin/' + cibles[i].cle).remove());
+                suppressions.push(db.ref('villages/' + villageId + '/fcm_tokens_admin/' + cibles[i].cle).remove());
             } else {
                 console.warn('[notif] échec envoi FCM :', code, r.error && r.error.message);
             }

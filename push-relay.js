@@ -16,6 +16,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { auth } from './firebase-config.js';
+import { villageActuel, chargerVillage } from './village-client.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // Même domaine quand l'application est servie par Vercel ; adresse
@@ -23,15 +24,23 @@ import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/fi
 const URL_RELAIS = location.hostname.endsWith('.vercel.app')
     ? '/api/notifier'
     : 'https://poste-health.vercel.app/api/notifier';
-const CLE_FILE = 'notif_push_file';
+const CLE_FILE = 'notif_push_file'; // ancien nom, conservé sans lecture pour éviter les notifications inter-villages
+function cleFile() {
+    const c = villageActuel();
+    return c ? `notif_push_file:${c.id}:${c.uid}` : null;
+}
 const AGE_MAX = 7 * 24 * 3600 * 1000;   // au-delà, l'alerte n'a plus d'intérêt
 const INTERVALLE = 60 * 1000;
 
 function lire() {
-    try { return JSON.parse(localStorage.getItem(CLE_FILE) || '[]'); } catch { return []; }
+    const cle = cleFile();
+    if (!cle) return [];
+    try { return JSON.parse(localStorage.getItem(cle) || '[]'); } catch { return []; }
 }
 function ecrire(file) {
-    try { localStorage.setItem(CLE_FILE, JSON.stringify(file)); } catch {}
+    const cle = cleFile();
+    if (!cle) return;
+    try { localStorage.setItem(cle, JSON.stringify(file)); } catch {}
 }
 function retirer(nkey) { ecrire(lire().filter(x => x.nkey !== nkey)); }
 
@@ -45,6 +54,7 @@ export function signalerPush(nkey) {
 let enCours = false;
 export async function viderFile() {
     if (enCours || !navigator.onLine) return;
+    try { await chargerVillage(); } catch { return; }
     const user = auth.currentUser;
     if (!user || !lire().length) return;
     enCours = true;

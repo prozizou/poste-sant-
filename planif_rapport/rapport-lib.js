@@ -1,3 +1,4 @@
+import { villageActuel } from '../village-client.js';
 /* ═══════════════════════════════════════════════════════════════
    RAPPORT-LIB.JS
    Socle commun aux pages « Rapports » et « Dépenses ».
@@ -209,7 +210,7 @@ export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], secti
       <header class="rs-head">
         ${LOGO}
         <div class="rs-ident">
-          <h1>Poste de Santé de Diandioly</h1>
+          <h1>Poste de santé de ${esc(villageActuel()?.nom || '')}</h1>
           ${sousTitre ? `<p>${esc(sousTitre)}</p>` : ''}
         </div>
       </header>
@@ -233,7 +234,7 @@ export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], secti
           <span class="rs-sign-line"></span>
         </div>`).join('')}
       </footer>
-      <p class="rs-edit">Document édité le ${esc(dateHeure(Date.now()))} — Poste de Santé de Diandioly</p>`;
+      <p class="rs-edit">Document édité le ${esc(dateHeure(Date.now()))} — Poste de santé de ${esc(villageActuel()?.nom || '')}</p>`;
 
     document.body.classList.add('printing-sheet');
     // Laisse un cycle de rendu au navigateur avant d'ouvrir la boîte

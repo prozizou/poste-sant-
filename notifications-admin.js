@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  notifications-admin.js — Notifications push caisse (administration)
-//  Poste de Santé de Diandioly
+//  Poste de santé
 //
 //  Chaque opération d'un(e) caissier(ère) — encaissement d'un ticket ou
 //  d'une vente de médicaments, annulation, modification d'une vente — écrit
@@ -21,8 +21,10 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { app, db, auth } from './firebase-config.js';
-import { ref, query, orderByChild, startAt, onValue, update }
+import { villageRef, chargerVillage } from './village-client.js';
+import { ref, query, orderByChild, startAt, onValue, update, remove }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { roleServeur } from './role-server.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 // firebase-messaging.js est chargé dynamiquement : un import statique qui
 // échoue (réseau, navigateur non supporté) ferait échouer tout le module.
@@ -42,18 +44,36 @@ export function contenuNotification(n) {
     if (n.action === 'annulation')        titre = `❌ ${quoi} annulé${n.type === 'med' ? 'e' : ''}`;
     else if (n.action === 'modification') titre = `✏️ ${quoi} modifié${n.type === 'med' ? 'e' : ''}`;
     else titre = n.type === 'med' ? '💊 Vente de médicaments encaissée' : '🎫 Ticket de consultation encaissé';
-    const corps = `Par ${caissier} · ${n.patient_nom || 'Patient'} · ${fcfa(n.montant)}` + (n.detail ? `\n${n.detail}` : '');
+    const corps = 'Nouvelle opération de caisse. Ouvrez l’application pour consulter les détails.';
     return { titre, corps };
 }
 
+let stopEcoute = null;
 export function initNotifCaisseAdmin() {
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
+        if (stopEcoute) { stopEcoute(); stopEcoute = null; }
         if (!user) return;
-        const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
-        if (role !== 'admin') return;
+        const role = await roleServeur(user).catch(() => '');
+        if (role !== 'admin' || auth.currentUser?.uid !== user.uid) return;
         demarrer(user.email || '', user.uid);
     });
 }
+
+// L'enregistrement sur appareil partagé est effacé AVANT la sortie de session.
+export async function desabonnerPushAdmin() {
+    if (!auth.currentUser || !('serviceWorker' in navigator) || !('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    try {
+        await chargerVillage();
+        const reg = await navigator.serviceWorker.ready;
+        const { getMessaging, getToken, deleteToken } = await import('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js');
+        const msg = getMessaging(app);
+        const token = await getToken(msg, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+        if (token) await remove(villageRef(db, 'fcm_tokens_admin/' + token.replace(/[.#$[\]/]/g, '_')));
+        await deleteToken(msg);
+    } catch (e) { console.warn('[notif] désinscription push incomplète :', e?.message || e); }
+}
+
 
 // ── Abonnement Push Web (VAPID) ─────────────────────────────────────────
 // Un jeton = un appareil/navigateur : la clé RTDB dérive du jeton, donc pas
@@ -66,7 +86,7 @@ async function abonnerPush(monEmail, monUid) {
         const token = await getToken(getMessaging(app), { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
         if (!token) return;
         const cle = token.replace(/[.#$[\]/]/g, '_');
-        await update(ref(db, 'fcm_tokens_admin/' + cle), {
+        await update(villageRef(db, 'fcm_tokens_admin/' + cle), {
             token, email: monEmail, uid: monUid || null, ts: Date.now(), ua: navigator.userAgent.slice(0, 120),
         });
     } catch (e) {
@@ -93,7 +113,7 @@ function demarrer(monEmail, monUid) {
     // l'ouverture de la page sont notifiées.
     const depuis = Date.now();
     const vus = new Set();
-    onValue(query(ref(db, 'notifications_caisse'), orderByChild('ts'), startAt(depuis)), (snap) => {
+    stopEcoute = onValue(query(villageRef(db, 'notifications_caisse'), orderByChild('ts'), startAt(depuis)), (snap) => {
         snap.forEach((c) => {
             if (vus.has(c.key)) return;
             vus.add(c.key);

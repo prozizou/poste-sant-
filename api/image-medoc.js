@@ -27,6 +27,7 @@ const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getDatabase } = require('firebase-admin/database');
 const cloudinary = require('./_cloudinary.js');
+const { identifierVillage } = require('./_village.js');
 
 const DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://poste-sante-280b2-default-rtdb.firebaseio.com';
 
@@ -60,7 +61,7 @@ async function rechercheGoogle(q, num = 10) {
 //   2. Firebase : fiche gallery d'un produit de même nom et même forme
 //      (même image Cloudinary réutilisée, sans nouvel envoi) ;
 //   3. seulement ensuite Google Images (Serper) → Cloudinary → gallery.
-async function imageAuto(db, medId, m, { q, cles = [] }, par) {
+async function imageAuto(db, villageId, medId, m, { q, cles = [] }, par) {
     const g = (await db.ref('gallery').once('value')).val() || {};
     const appliquer = async (fiche, origine) => {
         const up = { ...fiche.cloudinary, thumb: fiche.thumb, hd: fiche.hd, source_utilisee: fiche.origine_url || '' };
@@ -77,7 +78,7 @@ async function imageAuto(db, medId, m, { q, cles = [] }, par) {
     // Ordre de Google ; premier résultat qui nomme la molécule, sinon le premier.
     const t = x => sansAccent(`${x.title} ${x.source} ${x.page}`);
     const choix = res.find(x => !/\.svg(\?|$)/i.test(x.image) && cles.some(k => k && k.length >= 4 && t(x).includes(k))) || res[0];
-    const up = await cloudinary.televerserPremiere([choix.image, choix.thumb], medId);
+    const up = await cloudinary.televerserPremiere([choix.image, choix.thumb], `${villageId}/${medId}`);
     const fiche = await cloudinary.enregistrer(db, medId, m, up, { origine: 'google', page: choix.page, site: choix.source, titre: choix.title, requete: q, auto: true, par });
     return { ok: true, origine: 'google', thumb: fiche.thumb };
 }
@@ -95,10 +96,9 @@ module.exports = async (req, res) => {
         const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
         if (!m) return res.status(401).json({ error: 'jeton manquant' });
         let user;
-        try { user = await getAuth().verifyIdToken(m[1]); }
+        try { user = await getAuth().verifyIdToken(m[1], true); }
         catch { return res.status(401).json({ error: 'jeton invalide' }); }
-        const role = (await getDatabase().ref(`db_users/${user.uid}/role`).once('value')).val();
-        if (role !== 'admin') return res.status(403).json({ error: 'réservé à l\'administration' });
+        const { db, villageId } = await identifierVillage(getDatabase(), user, ['admin']);
 
         const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
         const action = body.action || 'recherche';
@@ -107,13 +107,12 @@ module.exports = async (req, res) => {
             if (!cloudinary.config()) return res.status(503).json({ error: 'Cloudinary non configuré', non_configure: true });
             const medId = String(body.med_id || '');
             if (!/^[-_A-Za-z0-9]{6,40}$/.test(medId)) return res.status(400).json({ error: 'med_id invalide' });
-            const db = getDatabase();
             const prod = (await db.ref('db_pharmacie_stock/' + medId).once('value')).val();
             if (!prod) return res.status(404).json({ error: 'médicament introuvable' });
             if (prod.image_cloudinary_id) return res.status(200).json({ ok: true, origine: 'deja' });
             const q = String(body.q || prod.nom || '').replace(/\s+/g, ' ').trim().slice(0, 200);
             const cles = (Array.isArray(body.cles) ? body.cles : []).map(sansAccent).slice(0, 4);
-            const r = await imageAuto(db, medId, prod, { q, cles }, user.email || '');
+            const r = await imageAuto(db, villageId, medId, prod, { q, cles }, user.email || '');
             if (r.non_configure) return res.status(503).json({ error: 'SERPER_API_KEY manquant', non_configure: true });
             if (r.aucun) {
                 await db.ref('db_pharmacie_stock/' + medId).update({ image_recherche_ts: Date.now(), image_recherche_moteur: 'google' });
@@ -126,10 +125,9 @@ module.exports = async (req, res) => {
             if (!cloudinary.config()) return res.status(503).json({ error: 'Cloudinary non configuré', non_configure: true });
             const medId = String(body.med_id || '');
             if (!/^[-_A-Za-z0-9]{6,40}$/.test(medId)) return res.status(400).json({ error: 'med_id invalide' });
-            const db = getDatabase();
-            const m = (await db.ref('db_pharmacie_stock/' + medId).once('value')).val();
+                        const m = (await db.ref('db_pharmacie_stock/' + medId).once('value')).val();
             if (action === 'retirer') {
-                await cloudinary.supprimer(medId);
+                await cloudinary.supprimer(`${villageId}/${medId}`);
                 await db.ref('gallery/' + medId).remove();
                 if (m && !body.sans_produit) await db.ref('db_pharmacie_stock/' + medId).update({
                     image_url: null, image_hd: null, image_cloudinary_id: null, image_data: null, image_source: null, image_page: null,
@@ -143,7 +141,7 @@ module.exports = async (req, res) => {
                 .filter(x => typeof x === 'string' && (/^https?:\/\//.test(x) || /^data:image\/(jpeg|png|webp);base64,/.test(x)));
             if (!sources.length) return res.status(400).json({ error: 'aucune image' });
             let up;
-            try { up = await cloudinary.televerserPremiere(sources, medId); }
+            try { up = await cloudinary.televerserPremiere(sources, `${villageId}/${medId}`); }
             catch (e) { return res.status(502).json({ error: 'Envoi Cloudinary impossible : ' + e.message }); }
             const meta = body.meta || {};
             const fiche = await cloudinary.enregistrer(db, medId, m, up, {
@@ -164,6 +162,6 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, q, images });
     } catch (e) {
         console.error('[image-medoc]', e);
-        return res.status(500).json({ error: 'erreur serveur' });
+        return res.status(e.status || 500).json({ error: e.status ? e.message : 'erreur serveur' });
     }
 };

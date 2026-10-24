@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dépenses &amp; Bilan – Poste de Santé de Diandioly</title>
+    <title>Dépenses &amp; Bilan – Poste de santé</title>
     <link rel="icon" href="data:,">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -364,6 +364,10 @@
 
 <script type="module">
 import { db, auth } from '../firebase-config.js';
+import { villageRef, chargerVillage } from '../village-client.js';
+await chargerVillage();
+import { roleServeur } from '../role-server.js';
+import { desabonnerPushAdmin } from '../notifications-admin.js';
 import { ref, push, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
@@ -377,9 +381,9 @@ import {
 // (persistant entre deux lancements de l'app) — évite de traiter une
 // session Firebase pourtant valide comme non authentifiée après un
 // redémarrage de l'application.
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
     if (!user) { window.location.href = '../index.html'; return; }
-    const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+    const role = await roleServeur(user).catch(() => '');
     if (role) sessionStorage.setItem('userRole', role);
     if (role === 'icp') { window.location.href = '../accueil/menu_icp.html'; return; }
     if (role !== 'tresorier' && role !== 'admin') {
@@ -387,6 +391,7 @@ onAuthStateChanged(auth, user => {
         return;
     }
     const back = document.getElementById('back-btn');
+    if (!['admin','tresorier'].includes(role)) { window.location.href = '../index.html'; return; }
     if (back) back.href = (role === 'tresorier')
         ? '../accueil/menu_tresorier.html'
         : '../accueil/menu_admin.html';
@@ -396,7 +401,7 @@ window.deconnexion = () => {
     if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
         sessionStorage.clear();
         localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
-        signOut(auth).then(() => { window.location.href = '../index.html'; });
+        desabonnerPushAdmin().finally(() => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     }
 };
 window.addEventListener('storage', (e) => {
@@ -473,9 +478,9 @@ function dateCompacte(ts) {
 
 // ── ÉTAT ────────────────────────────────────────
 const DEPENSES_NODE = 'db_depenses';
-const depenseRef = ref(db, DEPENSES_NODE);
-const ticketRef  = ref(db, 'ticket_dbase');
-const medRef     = ref(db, 'vente_medicaments');
+const depenseRef = villageRef(db, DEPENSES_NODE);
+const ticketRef  = villageRef(db, 'ticket_dbase');
+const medRef     = villageRef(db, 'vente_medicaments');
 
 let allDepenses = [], allTickets = [], allVentes = [];
 let loadedD = false, loadedT = false, loadedM = false;

@@ -7,10 +7,10 @@
     <meta name="theme-color" content="#1a3a5c">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PS Diandioly">
+    <meta name="apple-mobile-web-app-title" content="Poste de santé">
     <link rel="apple-touch-icon" href="../icons/icon-152x152.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-96x96.png">
-    <title>Retours & Annulations – Poste de Santé de Diandioly</title>
+    <title>Retours & Annulations – Poste de santé</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -436,8 +436,13 @@
 
 <script type="module">
 import { auth, db } from '../firebase-config.js';
+import { villageRef, chargerVillage } from '../village-client.js';
+await chargerVillage();
+import { roleServeur } from '../role-server.js';
+import { desabonnerPushAdmin } from '../notifications-admin.js';
+import { operationPharmacie, nouvelIdOperation } from '../pharmacie-client.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { ref, onValue, update, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
 initNotifCaisseAdmin();
 
@@ -446,19 +451,19 @@ initNotifCaisseAdmin();
 // (persistant entre deux lancements de l'app) — évite de traiter une
 // session Firebase pourtant valide comme non authentifiée après un
 // redémarrage de l'application.
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = '../index.html'; return; }
-    const role = sessionStorage.getItem('userRole') || localStorage.getItem('savedRole') || '';
+    const role = await roleServeur(user).catch(() => '');
     if (role) sessionStorage.setItem('userRole', role);
     if (role === 'icp') { window.location.href = '../accueil/menu_icp.html'; return; }
-    if (role !== 'admin') { window.location.href = '../accueil/menu_caissier.html'; return; }
+    if (!['admin','caissier'].includes(role)) { window.location.href = '../index.html'; return; }
 });
 
 window.deconnexion = () => {
     if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
         sessionStorage.clear();
         localStorage.removeItem('savedRole'); localStorage.removeItem('savedEmail');
-        signOut(auth).then(() => { window.location.href = '../index.html'; });
+        desabonnerPushAdmin().finally(() => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     }
 };
 window.addEventListener('storage', (e) => {
@@ -467,9 +472,7 @@ window.addEventListener('storage', (e) => {
 
 // ── Utilitaires ──────────────────────────────────────────────────
 function esc(str) {
-    const div = document.createElement('div');
-    div.textContent = String(str ?? '');
-    return div.innerHTML;
+    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
 }
 function fmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
 function fcfa(n) { return fmt(n) + ' FCFA'; }
@@ -518,9 +521,9 @@ const PERIODE_LABELS = { day: "Aujourd'hui", week: 'Cette semaine', month: 'Ce m
 const STATUT_LABELS  = { tous: 'Tous les statuts', actifs: 'Actif', annules: 'Annulé' };
 
 // ── Firebase refs & state ───────────────────────────────────────
-const ticketRef = ref(db, 'ticket_dbase');
-const medRef    = ref(db, 'vente_medicaments');
-const stockRef  = ref(db, 'db_pharmacie_stock');
+const ticketRef = villageRef(db, 'ticket_dbase');
+const medRef    = villageRef(db, 'vente_medicaments');
+const stockRef  = villageRef(db, 'db_pharmacie_stock');
 
 let allTickets = [], allMedVentes = [], allStock = [];
 let loadedT = false, loadedM = false, loadedS = false;
@@ -1006,68 +1009,7 @@ window.closeModal = function() {
     pendingCode = '';
 };
 
-// Résout la clé stock d'une ligne (clé stockée en priorité, sinon
-// correspondance par nom si le médicament existe encore, unique).
-function resoudreCleStock(item) {
-    let key = item.stock_key;
-    if (key && allStock.find(s => s._key === key)) return key;
-    const nomLower = (item.nom || '').trim().toLowerCase();
-    const matches = allStock.filter(s => (s.nom || '').trim().toLowerCase() === nomLower);
-    return matches.length === 1 ? matches[0]._key : null;
-}
-
-// Remet en stock les médicaments d'une vente annulée. Retourne le détail
-// par ligne (clé stock résolue, succès/échec) pour permettre plus tard
-// une restauration précise (retrait exact des mêmes quantités).
-async function restockerMedicaments(items) {
-    const detail = [];
-    for (const item of items) {
-        const key = resoudreCleStock(item);
-        if (!key) { detail.push({ nom: item.nom, qte: item.qte, stock_key: null, ok: false }); continue; }
-        try {
-            await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), (current) => {
-                const n = parseInt(current, 10);
-                return (isNaN(n) ? 0 : n) + Number(item.qte || 0);
-            });
-            detail.push({ nom: item.nom, qte: item.qte, stock_key: key, ok: true });
-        } catch (e) {
-            detail.push({ nom: item.nom, qte: item.qte, stock_key: key, ok: false });
-        }
-    }
-    return detail;
-}
-
-// Reverse une remise en stock lors de la restauration d'une vente annulée :
-// utilise le détail précis enregistré à l'annulation quand il existe, sinon
-// retombe sur les lignes de la vente (anciennes ventes annulées avant ce
-// suivi détaillé). La quantité est plafonnée à 0 pour ne jamais aller en
-// négatif si le stock a entre-temps été modifié manuellement.
-async function reverserStockRetour(vente) {
-    const lignes = vente.retour_detail && vente.retour_detail.length
-        ? vente.retour_detail
-        : (vente.medicaments || []).map(item => ({ nom: item.nom, qte: item.qte, stock_key: item.stock_key || null, ok: true }));
-
-    let ok = 0, fail = [], clamped = [];
-    for (const l of lignes) {
-        if (!l.ok) continue; // jamais remis en stock : rien à retirer
-        const key = (l.stock_key && allStock.find(s => s._key === l.stock_key)) ? l.stock_key : resoudreCleStock(l);
-        if (!key) { fail.push(l.nom); continue; }
-        try {
-            let fut_negatif = false;
-            await runTransaction(ref(db, `db_pharmacie_stock/${key}/quantite`), (current) => {
-                const n = parseInt(current, 10);
-                const base = isNaN(n) ? 0 : n;
-                if (base < Number(l.qte || 0)) fut_negatif = true;
-                return Math.max(0, base - Number(l.qte || 0));
-            });
-            if (fut_negatif) clamped.push(l.nom);
-            ok++;
-        } catch (e) {
-            fail.push(l.nom);
-        }
-    }
-    return { ok, fail, clamped, total: lignes.filter(l => l.ok).length };
-}
+// Les mutations de stock/vente sont désormais effectuées côté serveur, jamais ici.
 
 // ── Confirmation ──────────────────────────────────────────────────
 window.confirmerAnnulation = async function() {
@@ -1090,50 +1032,29 @@ window.confirmerAnnulation = async function() {
 
     try {
         if (pending.type === 'ticket') {
-            await update(ref(db, 'ticket_dbase/' + pending.key), {
+            await update(villageRef(db, 'ticket_dbase/' + pending.key), {
                 annule: true, annule_ts: Date.now(), annule_motif: motif, annule_obs: obs, annule_par: adminEmail
             });
             toast('Ticket annulé. Il est exclu du bilan.', 'ok');
 
         } else if (pending.type === 'med') {
             const vente = allMedVentes.find(m => m._key === pending.key);
-            const items = (vente && vente.medicaments) || [];
-            const retourDetail = await restockerMedicaments(items);
-            const restockOk = retourDetail.filter(d => d.ok).length;
-            const restockFail = retourDetail.filter(d => !d.ok).map(d => d.nom);
-
-            await update(ref(db, 'vente_medicaments/' + pending.key), {
-                annule: true, annule_ts: Date.now(), annule_motif: motif, annule_obs: obs, annule_par: adminEmail,
-                retour_detail: retourDetail, retour_stock_ok: restockOk, retour_stock_echec: restockFail
-            });
-
-            if (restockFail.length) {
-                toast(`Vente annulée. ${restockOk}/${items.length} médicament(s) retourné(s) — non retrouvé(s) en stock : ${restockFail.join(', ')}.`, 'err');
-            } else {
-                toast(`Vente annulée. ${restockOk} médicament(s) remis en stock.`, 'ok');
-            }
+            const operationId = pending.operationId || (pending.operationId = nouvelIdOperation());
+            await operationPharmacie('annuler', { key: pending.key, motif, obs }, operationId);
+            toast('Vente annulée et stock restauré intégralement.', 'ok');
 
         } else if (pending.type === 'restaurer_ticket') {
-            await update(ref(db, 'ticket_dbase/' + pending.key), {
+            await update(villageRef(db, 'ticket_dbase/' + pending.key), {
                 annule: false, restaure_ts: Date.now(), restaure_motif: motif, restaure_obs: obs, restaure_par: adminEmail
             });
             toast('Ticket restauré. Il redevient actif et réintègre le bilan.', 'ok');
 
         } else if (pending.type === 'restaurer_med') {
             const vente = allMedVentes.find(m => m._key === pending.key);
-            const { ok, fail, clamped, total } = await reverserStockRetour(vente);
+            const operationId = pending.operationId || (pending.operationId = nouvelIdOperation());
+            await operationPharmacie('restaurer', { key: pending.key, motif, obs }, operationId);
+            toast('Vente restaurée ; stock retiré intégralement.', 'ok');
 
-            await update(ref(db, 'vente_medicaments/' + pending.key), {
-                annule: false, restaure_ts: Date.now(), restaure_motif: motif, restaure_obs: obs, restaure_par: adminEmail
-            });
-
-            if (fail.length) {
-                toast(`Vente restaurée. ${ok}/${total} médicament(s) retiré(s) du stock — non retrouvé(s) : ${fail.join(', ')}.`, 'err');
-            } else if (clamped.length) {
-                toast(`Vente restaurée. ${ok} médicament(s) retiré(s) du stock — stock insuffisant pour : ${clamped.join(', ')} (ramené à 0, à vérifier).`, 'err');
-            } else {
-                toast(`Vente restaurée. ${ok} médicament(s) retiré(s) du stock.`, 'ok');
-            }
         }
         closeModal();
     } catch (e) {
