@@ -365,10 +365,6 @@
                     </div>
                 </div>
 
-                <div style="margin:10px 0 16px;font-size:13px;color:var(--muted)">
-                    <label style="display:flex;gap:8px;align-items:center"><input id="use-password" type="checkbox"> Utiliser un mot de passe sécurisé au lieu du code à 6 chiffres</label>
-                    <input id="password-alternative" type="password" autocomplete="current-password" minlength="10" placeholder="Mot de passe Firebase" style="display:none;width:100%;padding:12px;margin-top:8px;border-radius:10px;border:1px solid #bac4d0;background:var(--card-bg);color:var(--text)">
-                </div>
                 <button type="submit" class="submit-btn" id="submit-btn">
                     <span id="submit-btn-label">Se connecter</span>
                 </button>
@@ -508,9 +504,6 @@ import { auth, db } from './firebase-config.js'; // db est maintenant la Realtim
         });
 
         // 3. GESTION DU CODE SECRET (Saisie & Copier-Coller)
-        const usePassword = document.getElementById('use-password');
-        const passwordAlternative = document.getElementById('password-alternative');
-        usePassword.addEventListener('change',()=>{ passwordAlternative.style.display=usePassword.checked?'block':'none'; passwordAlternative.required=usePassword.checked; document.querySelectorAll('.digit').forEach(d=>{d.required=!usePassword.checked; d.disabled=usePassword.checked}); });
         const digits = document.querySelectorAll('.digit');
         const passcodeContainer = document.getElementById('passcode-fields');
 
@@ -740,10 +733,10 @@ import { auth, db } from './firebase-config.js'; // db est maintenant la Realtim
             if (lockoutActif) return;
 
             const email = emailInput.value.trim().toLowerCase();
-            const passcode = usePassword.checked ? passwordAlternative.value : Array.from(digits).map(d => d.value).join('');
+            const passcode = Array.from(digits).map(d => d.value).join('');
 
             if (!RE_EMAIL.test(email)) { showMessage('Adresse e-mail invalide.'); emailInput.classList.add('invalid'); return; }
-            if (passcode.length < (usePassword.checked ? 10 : 6)) { showMessage(usePassword.checked?'Veuillez saisir un mot de passe d’au moins 10 caractères.':'Veuillez saisir les 6 chiffres de votre code secret.'); return; }
+            if (passcode.length < 6) { showMessage('Veuillez saisir les 6 chiffres de votre code secret.'); return; }
 
             submitBtn.disabled = true;
             submitBtn.classList.remove('success-state');
