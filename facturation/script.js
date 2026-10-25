@@ -1225,6 +1225,8 @@ window.renderHistMeds = function() {
     const cards=document.getElementById('hist-meds-cards');
     const filter=document.getElementById('filter-meds').value;
     let list=filterByPeriod(allMedVentes,filter);
+    // La suppression définitive est réservée à l'administrateur (le caissier a l'annulation).
+    const isAdmin = (sessionStorage.getItem('userRole') === 'admin');
     const countEl = document.getElementById('hist-meds-count');
     if (countEl) countEl.textContent = list.length ? `(${list.length})` : '';
     if (!list.length) {
@@ -1244,6 +1246,7 @@ window.renderHistMeds = function() {
                 <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">${ICON_PRINTER}Réimprimer</button>
                 ${!x.annule ? `<button type="button" class="btn-modifier" onclick="ouvrirModalModifMed('${x._key}')">${ICON_PENCIL}Modifier</button>` : ''}
                 ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">${ICON_UNDO}Annuler</button>` : ''}
+                ${isAdmin ? `<button type="button" class="btn-annuler" onclick="supprimerMed('${x._key}')">${ICON_TRASH}Supprimer</button>` : ''}
             </div></td>
         </tr>
     `).join('');
@@ -1264,16 +1267,34 @@ window.renderHistMeds = function() {
             </div>
             <div class="hist-card-foot">
                 <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">${ICON_PRINTER}Réimprimer</button>
-                ${!x.annule ? `<div class="menu-wrap">
+                ${(!x.annule || isAdmin) ? `<div class="menu-wrap">
                     <button type="button" class="btn-kebab" onclick="toggleDropdown('${menuId}', this)" aria-label="Plus d'actions">${ICON_DOTS}</button>
                     <div class="dropdown-menu" id="${menuId}" style="right:0;">
-                        <button type="button" class="dropdown-item" onclick="closeAllDropdowns();ouvrirModalModifMed('${x._key}')">${ICON_PENCIL}Modifier la vente</button>
-                        <button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();ouvrirModalMed('${x._key}')">${ICON_UNDO}Annuler &amp; retourner</button>
+                        ${!x.annule ? `<button type="button" class="dropdown-item" onclick="closeAllDropdowns();ouvrirModalModifMed('${x._key}')">${ICON_PENCIL}Modifier la vente</button>` : ''}
+                        ${!x.annule ? `<button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();ouvrirModalMed('${x._key}')">${ICON_UNDO}Annuler &amp; retourner</button>` : ''}
+                        ${isAdmin ? `<button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();supprimerMed('${x._key}')">${ICON_TRASH}Supprimer définitivement</button>` : ''}
                     </div>
                 </div>` : ''}
             </div>
         </div>`;
     }).join('');
+};
+
+// Suppression définitive d'une vente saisie par erreur (administrateur uniquement).
+// Si la vente est encore active, le stock est restitué par le serveur, comme à l'annulation.
+window.supprimerMed = async function(key) {
+    if (sessionStorage.getItem('userRole') !== 'admin') { toast('Suppression réservée à l’administrateur.', 'err'); return; }
+    const v = allMedVentes.find(x => x._key === key);
+    if (!v) { toast('Vente introuvable.', 'err'); return; }
+    const nom = v.patient_nom ? ` de ${v.patient_nom}` : '';
+    const stockMsg = v.annule ? '' : 'Le stock des médicaments sera restitué. ';
+    if (!confirm(`Supprimer définitivement cette vente${nom} (${fmt(v.total || 0)} FCFA) ?\n\n${stockMsg}Cette action est irréversible et tracée.`)) return;
+    try {
+        await operationPharmacie('supprimer', { key }, nouvelIdOperation());
+        toast('Vente supprimée définitivement.', 'ok');
+    } catch (e) {
+        console.error(e); toast(e.message || 'Suppression impossible.', 'err');
+    }
 };
 
 window.reimprimerMed = async function(key) {
