@@ -1,14 +1,14 @@
 'use strict';
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
 const {identity,mayManage,OWNER_EMAIL}=require('../api/_access.js');
-const {assignAccount,changeAdmin,changeStaff,perform,listing}=require('../api/access-management.js').__test;
+const {assignAccount,changeStaff,perform,listing}=require('../api/access-management.js').__test;
 const root=path.join(__dirname,'..');
 function mk(users={},registry={diandioly:{nom:'Diandioly',active:true},'keur-moussa':{nom:'Keur Moussa',active:true}},superadmins={}){
 const state={db_users:structuredClone(users),villages_registry:structuredClone(registry),superadmins:structuredClone(superadmins),villages:{}};
 const byPath=(p)=>p.split('/').filter(Boolean);
 const locate=(p)=>byPath(p).reduce((o,k)=>o&&o[k],state);
 const set=(p,value)=>{const ss=byPath(p);let cur=state;while(ss.length>1){let k=ss.shift();cur=cur[k]??(cur[k]={})}cur[ss[0]]=value};
-return {state,ref:(p)=>({path:p,once:async()=>({val:()=>locate(p),exists:()=>!!locate(p)}),transaction:async fn=>{const result=fn(locate(p)??null);if(result===undefined)return {committed:false};set(p,result);return {committed:true}}})};}
+return {state,ref:(p)=>({path:p,set:async v=>{set(p,v)},once:async()=>({val:()=>locate(p),exists:()=>!!locate(p)}),transaction:async fn=>{const result=fn(locate(p)??null);if(result===undefined)return {committed:false};set(p,result);return {committed:true}}})};}
 const user=(uid,email='staff@example.test')=>({uid,email});
 test('Superadmin: compte UID inscrit et email exact seulement',async()=>{
  const db=mk({boss:{role:'superadmin',active:true}},{diandioly:{active:true}},{boss:{active:true,email:OWNER_EMAIL}});
@@ -52,9 +52,16 @@ test('API: désactivation du village, lecture limitée aux admins',async()=>{
  const admin=await identity(db,user('admin'));
  const cashier=await identity(db,user('cash'));
  await assert.rejects(listing(db,{},cashier,'team'),/Accès/);
- await assert.rejects(perform(db,{},admin,{action:'deactivateVillage',villageId:'diandioly'}),/Accès/);
- await perform(db,{},owner,{action:'deactivateVillage',villageId:'diandioly'});
+ await assert.rejects(perform(db,{},admin,{action:'deactivateVillage',villageId:'diandioly',motif:'Impayé'}),/Accès/);
+ await assert.rejects(perform(db,{},owner,{action:'deactivateVillage',villageId:'diandioly'}),/motif/i);
+ const revoked=[];
+ await perform(db,{revokeRefreshTokens:async u=>{revoked.push(u)}},owner,{action:'deactivateVillage',villageId:'diandioly',motif:'Impayé'});
+ assert.equal(db.state.villages_registry.diandioly.suspension.motif,'Impayé');
+ assert.deepEqual(revoked.sort(),['admin','cash']);
  await assert.rejects(identity(db,user('cash')),/Village inactif/);
+ await perform(db,{},owner,{action:'activateVillage',villageId:'diandioly'});
+ assert.equal(db.state.villages_registry.diandioly.suspension,undefined);
+ assert.equal((await identity(db,user('cash'))).role,'caissier');
 });
 test('Les règles RTDB bloquent les mutations des rôles et les comptes suspendus',()=>{
  const r=JSON.parse(fs.readFileSync(path.join(root,'database.rules.json'),'utf8')).rules;
@@ -67,20 +74,9 @@ test('Les règles RTDB bloquent les mutations des rôles et les comptes suspendu
 test('Interface superadmin et gestion équipe: écrans présents',()=>{
  for(const page of ['accueil/menu_superadmin.html','accueil/equipe.html']) assert.ok(fs.existsSync(path.join(root,page)));
  const main=fs.readFileSync(path.join(root,'index.html'),'utf8');assert.match(main,/superadmin:\s*'accueil\/menu_superadmin.html'/);
- assert.match(main,/password-alternative/);
+ assert.doesNotMatch(main,/password-alternative/);
 });
 
-test('Seul le super administrateur peut suspendre un admin, sans toucher aux autres villages',async()=>{
- const uid='admin_local_test_000001';
- const db=mk({owner:{role:'superadmin',active:true},[uid]:{role:'admin',active:true,village_id:'diandioly'}},undefined,{owner:{active:true,email:OWNER_EMAIL}});
- const owner=await identity(db,user('owner',OWNER_EMAIL));
- await assert.rejects(changeAdmin(db,owner,{uid,villageId:'keur-moussa',action:'revokeAdmin'}),/pas administrateur/);
- await changeAdmin(db,owner,{uid,villageId:'diandioly',action:'revokeAdmin'});
- assert.equal(db.state.db_users[uid].active,false);
- await assert.rejects(identity(db,user(uid)),/suspendu/);
- await changeAdmin(db,owner,{uid,villageId:'diandioly',action:'reactivateAdmin'});
- assert.equal((await identity(db,user(uid))).role,'admin');
-});
 test('Attribution sécurisée: création du compte par e-mail et interdiction de transférer entre villages',async()=>{
  const local={uid:'local',role:'admin',villageId:'diandioly',global:false};
  const db=mk({local:{role:'admin',village_id:'diandioly'}});

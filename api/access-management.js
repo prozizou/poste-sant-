@@ -80,28 +80,10 @@ async function changeStaff(db,actor,{uid,role,mode}){
  if(typeof uid!=='string'||uid.length<16||uid.length>128||actor.uid===uid) throw forbidden();
  if(mode==='role'&&!STAFF.includes(role)) throw forbidden('Rôle interdit.');
  const accountRef=db.ref('db_users/'+uid);
- let conflict='';
- const result=await accountRef.transaction(cur=>{
-  if(!cur || cur.village_id!==actor.villageId || !STAFF.includes(cur.role)){
-   conflict='Utilisateur extérieur à votre équipe ou rôle protégé.';return;
-  }
-  return {...cur,...(mode==='role'?{role}:{active:mode==='reactivate'}),updated_ts:Date.now(),updated_by:actor.uid};
- },undefined,false);
- if(!result.committed) throw fail(403,conflict||'Modification refusée.');
+ const cur=(await accountRef.once('value')).val();
+ if(!cur || cur.village_id!==actor.villageId || !STAFF.includes(cur.role)) throw fail(403,'Utilisateur extérieur à votre équipe ou rôle protégé.');
+ await accountRef.set({...cur,...(mode==='role'?{role}:{active:mode==='reactivate'}),updated_ts:Date.now(),updated_by:actor.uid});
  return {uid,role:mode==='role'?role:undefined,active:mode==='revoke'?false:undefined};
-}
-async function changeAdmin(db,actor,{uid,villageId,action}){
- if(!actor.global || !SLUG.test(villageId||'') || typeof uid!=='string' || !/^[\w-]{16,128}$/.test(uid) || uid===actor.uid) throw forbidden();
- const target=db.ref('db_users/'+uid);
- let problem='';
- const result=await target.transaction(current=>{
-  if(!current || current.role!=='admin' || current.village_id!==villageId){
-   problem='Ce compte n’est pas administrateur de ce village.';return;
-  }
-  return {...current,active:action==='reactivateAdmin',updated_ts:Date.now(),updated_by:actor.uid};
- },undefined,false);
- if(!result.committed) throw fail(403,problem||'Compte administrateur protégé.');
- return {uid,villageId,active:action==='reactivateAdmin'};
 }
 async function changeVillage(db,auth,actor,{villageId,action,motif}){
  if(!actor.global || !SLUG.test(villageId||'')) throw forbidden();
@@ -111,13 +93,11 @@ async function changeVillage(db,auth,actor,{villageId,action,motif}){
  const raison=val(motif,300);
  if(action==='deactivateVillage' && raison.length<3) throw fail(422,'Indiquer le motif de la suspension (3 caractères minimum).');
  const activer=action==='activateVillage';
- const result=await v.transaction(current=>{
-  if(!current) return undefined;
-  const next={...current,active:activer,updated_by:actor.uid,updated_ts:Date.now()};
-  if(activer) delete next.suspension; else next.suspension={motif:raison,ts:Date.now(),by:actor.uid};
-  return next;
- },undefined,false);
- if(!result.committed) throw fail(404,'Village introuvable.');
+ const current=(await v.once('value')).val();
+ if(!current) throw fail(404,'Village introuvable.');
+ const next={...current,active:activer,updated_by:actor.uid,updated_ts:Date.now()};
+ if(activer) delete next.suspension; else next.suspension={motif:raison,ts:Date.now(),by:actor.uid};
+ await v.set(next);
  if(!activer){
   // Toute l'équipe est déconnectée : les jetons existants sont révoqués, et les règles
   // RTDB + les API refusent déjà tout accès tant que le village est suspendu.
@@ -137,7 +117,6 @@ async function perform(db,auth,actor,b){
   if(!result.committed) throw fail(409,'Village existant.');
   return {villageId:id,nom};
  }
- if(action==='revokeAdmin'||action==='reactivateAdmin') return changeAdmin(db,actor,{uid:b.uid,villageId:b.villageId,action});
  if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,auth,actor,{villageId:b.villageId,action,motif:b.motif});
  if(action==='assignAdmin'||action==='createStaff'){
   if((action==='assignAdmin')!==actor.global) throw forbidden();
@@ -182,4 +161,4 @@ async function handler(req,res){
  }
 }
 module.exports=handler;
-module.exports.__test={assignAccount,changeAdmin,changeStaff,perform,listing};
+module.exports.__test={assignAccount,changeStaff,perform,listing};

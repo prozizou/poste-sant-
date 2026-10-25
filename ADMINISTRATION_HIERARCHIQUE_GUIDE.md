@@ -37,7 +37,7 @@ L'UID réel du superadmin est volontairement résolu auprès de Firebase Authent
 
 `api/access-management.js` : gestion des comptes côté serveur Firebase Admin, `Authorization: Bearer <Firebase ID token>`, validation de l'acteur à **chaque requête**, aucun `db_users` ou `superadmins` modifiable directement côté navigateur.
 
-Actions : `createVillage`, `activateVillage`, `deactivateVillage`, `assignAdmin`, `revokeAdmin`, `reactivateAdmin`, `createStaff`, `changeStaffRole`, `revokeStaff`, `reactivateStaff`. Lectures : `GET ?scope=overview` (superadmin), `GET ?scope=team` (administrateur local). Le serveur déduit le village local depuis le compte et refuse toute affectation inter-villages.
+Actions : `createVillage`, `activateVillage`, `deactivateVillage`, `assignAdmin`, `createStaff`, `changeStaffRole`, `revokeStaff`, `reactivateStaff`. Lectures : `GET ?scope=overview` (superadmin), `GET ?scope=team` (administrateur local). Le serveur déduit le village local depuis le compte et refuse toute affectation inter-villages.
 
 À la création d'un nouvel utilisateur, un mot de passe initial aléatoire fort (inconnu de l'administrateur) est affecté côté serveur. Le navigateur demande à Firebase d'envoyer un message de réinitialisation ; le nouvel agent doit définir son propre mot de passe. Si l'e-mail n'est pas reçu, il peut utiliser « Mot de passe oublié ». Vérifier la configuration des modèles d'e-mail Firebase et la présence du fournisseur Email/Mot de passe. Les comptes historiques qui utilisent déjà leur code à 6 chiffres continuent à pouvoir se connecter.
 
