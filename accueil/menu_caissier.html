@@ -2,137 +2,190 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tableau de Bord Caissier – Poste de santé</title>
+    <link rel="icon" href="../icons/icon-192x192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary:#1a3a5c;--primary-light:#274e74;--accent:#0ea472;
-            --warning:#d68910;--bg:#f0f4f8;--card-bg:#ffffff;
-            --text:#1e2a38;--muted:#6b7a8d;--border:#d8e0e8;
+        :root{
+            --green:#059669;--green-dark:#047857;--green-soft:#ecfdf5;--green-ring:#a7f3d0;
+            --bg:#f1f5f9;--card:#ffffff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;
+            --blue-soft:#eff6ff;--blue:#2563eb;--amber-soft:#fffbeb;--amber:#d97706;
+            --shadow:0 1px 2px rgba(15,23,42,.04),0 2px 8px rgba(15,23,42,.05);
+            --shadow-lg:0 8px 24px rgba(15,23,42,.10);--radius:16px;
         }
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
         html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
-        body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-        .topbar{background:linear-gradient(135deg,#0b8a5f,var(--accent));color:white;padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(14,164,114,.25);position:sticky;top:0;z-index:100;}
-        .topbar-left{display:flex;align-items:center;gap:12px;}
-        .topbar-logo{width:38px;height:38px;background:rgba(255,255,255,.18);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;}
-        .topbar-left h1{font-size:1.05rem;font-weight:700;line-height:1.2;}
-        .topbar-left p{font-size:.72rem;opacity:.8;}
-        .topbar-right{display:flex;align-items:center;gap:16px;}
-        .role-badge{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.35);color:white;font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;}
-        .user-badge{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:24px;padding:6px 14px 6px 8px;font-size:.83rem;}
-        .user-avatar{width:28px;height:28px;background:rgba(255,255,255,.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;}
-        .btn-logout{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:white;padding:7px 16px;border-radius:8px;font-size:.82rem;font-family:inherit;font-weight:600;cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:6px;}
-        .btn-logout:hover{background:rgba(255,255,255,.25);}
-        .main{padding:32px;max-width:900px;margin:0 auto;}
-        .welcome-bar{margin-bottom:28px;}
-        .welcome-bar h2{font-size:1.55rem;font-weight:800;color:var(--primary);}
-        .welcome-bar p{font-size:.9rem;color:var(--muted);margin-top:4px;}
-        .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px;}
-        .stat-card{background:var(--card-bg);border-radius:12px;padding:18px 20px;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.03);display:flex;align-items:center;gap:14px;}
-        .stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
-        .stat-card:nth-child(1) .stat-icon{background:#e8f4fd;}
-        .stat-card:nth-child(2) .stat-icon{background:#e6f7f1;}
-        .stat-card:nth-child(3) .stat-icon{background:#fef5e7;}
-        .stat-label{font-size:.75rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px;}
-        .stat-value{font-size:1.4rem;font-weight:800;color:var(--primary);line-height:1;margin-top:2px;}
-        .section-title{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;}
-        .access-notice{background:#e6f7f1;border:1.5px solid #a7e3ce;border-radius:12px;padding:14px 18px;margin-bottom:24px;display:block;line-height:1.5;font-size:.85rem;color:#0b6e4c;font-weight:500;}
-        .module-card{background:var(--card-bg);border-radius:14px;padding:28px;box-shadow:0 2px 10px rgba(0,0,0,.04);border:1px solid var(--border);transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;max-width:500px;}
-        .module-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--accent);}
-        .module-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.08);}
-        .module-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
-        .module-emoji{width:50px;height:50px;border-radius:12px;background:#e6f7f1;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
-        .module-title-group h3{font-size:1rem;font-weight:700;color:var(--primary);}
-        .module-sub{font-size:.78rem;color:var(--muted);margin-top:2px;}
-        .module-desc{font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:18px;}
-        .module-features{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;}
-        .feature-tag{font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg);color:var(--muted);border:1px solid var(--border);}
-        .module-action{display:block;width:100%;padding:12px 16px;border-radius:8px;border:none;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;text-align:center;transition:opacity .2s,transform .15s;text-decoration:none;background:linear-gradient(135deg,#0b8a5f,var(--accent));color:white;}
-        .module-action:hover{opacity:.88;transform:translateY(-1px);}
-        @media(max-width:600px){
-            .main{padding:16px;}
-            .topbar{height:auto;min-height:60px;padding:10px 14px;flex-wrap:wrap;gap:8px 10px;}
-            .topbar-left h1{font-size:.98rem;line-height:1.15;}
-            .topbar-left p{font-size:.68rem;}
-            .topbar-right{width:100%;justify-content:space-between;gap:8px;}
-            .user-badge .user-email{display:none;}
-            .role-badge{font-size:.7rem;padding:4px 10px;}
-            .btn-logout{padding:6px 12px;font-size:.76rem;}
+        body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+        svg{display:block;}
+        .icon{width:1.25em;height:1.25em;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+
+        /* En-tête compact */
+        .topbar{background:linear-gradient(135deg,var(--green-dark),var(--green));color:#fff;
+            padding:12px max(16px,calc((100% - 880px)/2));display:flex;align-items:center;justify-content:space-between;gap:12px;
+            box-shadow:0 4px 16px rgba(5,150,105,.22);position:sticky;top:0;z-index:100;padding-top:max(12px,env(safe-area-inset-top));}
+        .brand{display:flex;align-items:center;gap:11px;min-width:0;}
+        .brand-logo{width:40px;height:40px;background:rgba(255,255,255,.18);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .brand-logo .icon{width:22px;height:22px;stroke-width:2;}
+        .brand-txt{min-width:0;}
+        .brand-txt h1{font-size:1.02rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .brand-txt p{font-size:.72rem;font-weight:500;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .top-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+        .avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;letter-spacing:.5px;}
+        .btn-logout{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);color:#fff;padding:8px 14px;border-radius:10px;font-size:.82rem;font-family:inherit;font-weight:600;cursor:pointer;transition:background .18s,transform .18s;display:flex;align-items:center;gap:7px;}
+        .btn-logout .icon{width:17px;height:17px;}
+        .btn-logout:hover{background:rgba(255,255,255,.28);}
+        .btn-logout:active{transform:scale(.97);}
+
+        .main{padding:20px max(16px,calc((100% - 880px)/2)) 40px;}
+        .welcome{margin-bottom:16px;animation:rise .4s ease both;}
+        .welcome h2{font-size:1.45rem;font-weight:800;letter-spacing:-.02em;}
+        .welcome p{font-size:.85rem;color:var(--muted);margin-top:3px;}
+
+        .access-chip{display:inline-flex;align-items:center;gap:8px;background:var(--green-soft);border:1px solid var(--green-ring);
+            color:var(--green-dark);border-radius:12px;padding:9px 13px;font-size:.8rem;font-weight:500;line-height:1.4;margin-bottom:18px;animation:rise .45s ease both;}
+        .access-chip .icon{width:16px;height:16px;flex-shrink:0;}
+        .access-chip strong{font-weight:700;}
+
+        /* KPIs */
+        .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:24px;}
+        .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px 13px;box-shadow:var(--shadow);
+            display:flex;flex-direction:column;gap:9px;animation:rise .5s ease both;}
+        .kpi:nth-child(2){animation-delay:.05s;}
+        .kpi:nth-child(3){animation-delay:.1s;}
+        .kpi-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;}
+        .kpi-ico .icon{width:20px;height:20px;stroke-width:2.1;}
+        .kpi:nth-child(1) .kpi-ico{background:var(--blue-soft);color:var(--blue);}
+        .kpi:nth-child(2) .kpi-ico{background:var(--green-soft);color:var(--green);}
+        .kpi:nth-child(3) .kpi-ico{background:var(--amber-soft);color:var(--amber);}
+        .kpi-val{font-size:clamp(1.05rem,4.7vw,1.4rem);font-weight:800;line-height:1.05;letter-spacing:-.02em;overflow-wrap:anywhere;}
+        .kpi-lbl{font-size:.68rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;line-height:1.25;}
+        .kpi-val.loading{position:relative;color:transparent;border-radius:6px;overflow:hidden;min-height:1.1em;width:60%;
+            background:linear-gradient(90deg,#eef2f6 25%,#e2e8f0 37%,#eef2f6 63%);background-size:400% 100%;animation:shimmer 1.3s ease-in-out infinite;}
+
+        .section-title{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin:0 2px 11px;}
+
+        /* Module */
+        .module{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+            overflow:hidden;animation:rise .55s ease both;}
+        .module-top{height:4px;background:linear-gradient(90deg,var(--green),var(--green-dark));}
+        .module-body{padding:20px;}
+        .module-head{display:flex;align-items:center;gap:13px;margin-bottom:14px;}
+        .module-ico{width:50px;height:50px;border-radius:13px;background:var(--green-soft);color:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .module-ico .icon{width:26px;height:26px;}
+        .module-head h3{font-size:1.08rem;font-weight:700;line-height:1.2;}
+        .module-head .badge{display:inline-block;margin-top:4px;font-size:.68rem;font-weight:700;color:var(--green-dark);background:var(--green-soft);border:1px solid var(--green-ring);padding:2px 9px;border-radius:20px;}
+        .module-desc{font-size:.85rem;color:var(--muted);line-height:1.55;margin-bottom:15px;}
+        .features{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;}
+        .feature{display:flex;align-items:center;gap:7px;font-size:.76rem;font-weight:600;color:#334155;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+        .feature .icon{width:15px;height:15px;color:var(--green);flex-shrink:0;}
+        .cta{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:14px 16px;border-radius:12px;border:none;
+            font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;text-decoration:none;color:#fff;
+            background:linear-gradient(135deg,var(--green),var(--green-dark));box-shadow:0 4px 14px rgba(5,150,105,.28);transition:transform .15s,box-shadow .2s,opacity .2s;}
+        .cta .icon{width:19px;height:19px;transition:transform .2s;}
+        .cta:hover{box-shadow:0 7px 20px rgba(5,150,105,.36);}
+        .cta:hover .icon{transform:translateX(3px);}
+        .cta:active{transform:scale(.985);}
+
+        @keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+        @keyframes shimmer{0%{background-position:100% 0;}100%{background-position:-100% 0;}}
+        @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+        @media(min-width:560px){
+            .kpi{flex-direction:row;align-items:center;gap:13px;padding:17px 18px;}
+            .kpi-txt{display:flex;flex-direction:column;gap:3px;}
+            .features{grid-template-columns:1fr 1fr;}
+        }
+        @media(max-width:430px){
+            .btn-logout span{display:none;}
+            .btn-logout{padding:9px 11px;}
+        }
+        @media(max-width:360px){
+            .brand-txt p{display:none;}
         }
     </style>
 </head>
 <body>
 <nav class="topbar">
-    <div class="topbar-left">
-        <div class="topbar-logo">🏥</div>
-        <div>
-            <h1>Poste de santé</h1>
-            <p>Tableau de bord – Caissier(ère)</p>
+    <div class="brand">
+        <div class="brand-logo" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M12 9v6M9 12h6"/></svg>
+        </div>
+        <div class="brand-txt">
+            <h1 id="village-name">Poste de santé</h1>
+            <p>Tableau de bord — Caissier(ère)</p>
         </div>
     </div>
-    <div class="topbar-right">
-        <div class="role-badge">💰 Caissier(ère)</div>
-        <div class="user-badge">
-            <div class="user-avatar" id="user-initials">?</div>
-            <span class="user-email" id="user-email-display">Chargement…</span>
-        </div>
-        <button class="btn-logout" onclick="deconnexion()"><span>⎋</span> Déconnexion</button>
+    <div class="top-actions">
+        <div class="avatar" id="user-initials" title="" aria-label="Compte connecté">?</div>
+        <button class="btn-logout" onclick="deconnexion()" aria-label="Se déconnecter">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+            <span>Déconnexion</span>
+        </button>
     </div>
 </nav>
+<span id="user-email-display" hidden></span>
 <main class="main">
-    <div class="welcome-bar">
+    <section class="welcome">
         <h2>Bienvenue, <span id="greeting-name">—</span> 👋</h2>
         <p id="current-datetime">Chargement…</p>
+    </section>
+
+    <div class="access-chip" role="note">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Connecté(e) en tant que <strong>Caissier(ère)</strong> — accès au Module 1 uniquement.</span>
     </div>
 
-    <div class="access-notice">
-        🔒 Vous êtes connecté(e) en tant que <strong>Caissier(ère)</strong> — Accès au Module 1 uniquement.
-    </div>
+    <section class="kpis" aria-label="Statistiques du jour">
+        <div class="kpi">
+            <div class="kpi-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v14"/></svg></div>
+            <div class="kpi-txt">
+                <div class="kpi-val loading" id="stat-tickets-day">0</div>
+                <div class="kpi-lbl">Tickets du jour</div>
+            </div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5-7-7a4.95 4.95 0 0 1 7-7l7 7a4.95 4.95 0 0 1-7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+            <div class="kpi-txt">
+                <div class="kpi-val loading" id="stat-meds-day">0 F</div>
+                <div class="kpi-lbl">Ventes méd. (jour)</div>
+            </div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></div>
+            <div class="kpi-txt">
+                <div class="kpi-val loading" id="stat-recettes-day">0 F</div>
+                <div class="kpi-lbl">Recettes du jour</div>
+            </div>
+        </div>
+    </section>
 
-    <div class="stats-row">
-        <div class="stat-card">
-            <div class="stat-icon">🎟️</div>
-            <div>
-                <div class="stat-label">Tickets du jour</div>
-                <div class="stat-value" id="stat-tickets-day">—</div>
+    <h2 class="section-title">Module disponible</h2>
+    <section class="module">
+        <div class="module-top"></div>
+        <div class="module-body">
+            <div class="module-head">
+                <div class="module-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg></div>
+                <div>
+                    <h3>Facturation</h3>
+                    <span class="badge">Module 1 · Tickets &amp; Médicaments</span>
+                </div>
             </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon">💊</div>
-            <div>
-                <div class="stat-label">Ventes méd. (jour)</div>
-                <div class="stat-value" id="stat-meds-day">—</div>
+            <p class="module-desc">Enregistrement des patients et émission des tickets de consultation avec numéro d'attente. Paiement des médicaments sur ordonnance avec ticket à agrafer.</p>
+            <div class="features">
+                <span class="feature"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Ticket consultation</span>
+                <span class="feature"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>N° d'attente</span>
+                <span class="feature"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Paiement médicaments</span>
+                <span class="feature"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Ticket ordonnance</span>
             </div>
+            <a class="cta" href="../facturation/facturation.html">
+                Accéder à la Facturation
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
         </div>
-        <div class="stat-card">
-            <div class="stat-icon">💰</div>
-            <div>
-                <div class="stat-label">Recettes du jour</div>
-                <div class="stat-value" id="stat-recettes-day">—</div>
-            </div>
-        </div>
-    </div>
-    <div class="section-title">Module disponible</div>
-    <div class="module-card">
-        <div class="module-header">
-            <div class="module-emoji">🧾</div>
-            <div class="module-title-group">
-                <h3>Facturation</h3>
-                <div class="module-sub">Module 1 – Tickets & Médicaments</div>
-            </div>
-        </div>
-        <p class="module-desc">Enregistrement des patients et émission des tickets de consultation avec numéro d'attente. Paiement des médicaments sur ordonnance avec ticket à agrafer.</p>
-        <div class="module-features">
-            <span class="feature-tag">Ticket consultation</span>
-            <span class="feature-tag">N° d'attente</span>
-            <span class="feature-tag">Paiement médicaments</span>
-            <span class="feature-tag">Ticket ordonnance</span>
-        </div>
-        <a class="module-action" href="../facturation/facturation.html">Accéder à la Facturation →</a>
-    </div>
+    </section>
 </main>
 <script type="module">
     import { auth, db } from '../firebase-config.js';
@@ -143,6 +196,10 @@ import { desabonnerPushAdmin } from '../notifications-admin.js';
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
     import { ref, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
+    // Nom du village dans l'en-tête (défini après vérification serveur du contexte).
+    const nomVillage = sessionStorage.getItem('villageNom');
+    if (nomVillage) document.getElementById('village-name').textContent = nomVillage;
+
     onAuthStateChanged(auth, async (user) => {
         if (!user) { window.location.href = '../index.html'; return; }
         const role = await roleServeur(user).catch(() => '');
@@ -152,7 +209,9 @@ import { desabonnerPushAdmin } from '../notifications-admin.js';
         if (role !== 'caissier') { window.location.href = role === 'tresorier' ? 'menu_tresorier.html' : '../index.html'; return; }
         const email = user.email || '';
         document.getElementById('user-email-display').textContent = email;
-        document.getElementById('user-initials').textContent = email.slice(0, 2).toUpperCase();
+        const initiales = document.getElementById('user-initials');
+        initiales.textContent = email.slice(0, 2).toUpperCase();
+        initiales.title = email;
         const name = email.split('@')[0];
         document.getElementById('greeting-name').textContent = name.charAt(0).toUpperCase() + name.slice(1);
     });
@@ -168,10 +227,16 @@ import { desabonnerPushAdmin } from '../notifications-admin.js';
         return d.getDate()===n.getDate() && d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear();
     }
     function fmt(n) { return Number(n).toLocaleString('fr-FR'); }
+    // Affiche une valeur de KPI et retire l'état de chargement (squelette animé).
+    function setKpi(id, texte) {
+        const el = document.getElementById(id);
+        el.textContent = texte;
+        el.classList.remove('loading');
+    }
 
     let _ticketTotal = 0, _medTotal = 0;
     function updateRecettes() {
-        document.getElementById('stat-recettes-day').textContent = fmt(_ticketTotal + _medTotal) + ' F';
+        setKpi('stat-recettes-day', fmt(_ticketTotal + _medTotal) + ' F');
     }
 
     const ticketRef = villageRef(db, 'ticket_dbase');
@@ -183,9 +248,9 @@ import { desabonnerPushAdmin } from '../notifications-admin.js';
             const d = c.val(), ts = Number(d.date_heure_ts) || 0;
             if (ts && isToday(ts) && !d.annule) { count++; total += (Number(d.prix) || 0); }
         });
-        document.getElementById('stat-tickets-day').textContent = count;
+        setKpi('stat-tickets-day', count);
         _ticketTotal = total; updateRecettes();
-    });
+    }, () => { setKpi('stat-tickets-day', '—'); });
 
     onValue(medRef, (snap) => {
         let totalMed = 0;
@@ -193,9 +258,9 @@ import { desabonnerPushAdmin } from '../notifications-admin.js';
             const d = c.val(), ts = Number(d.date_heure_ts) || 0;
             if (ts && isToday(ts) && !d.annule) totalMed += (Number(d.total) || 0);
         });
-        document.getElementById('stat-meds-day').textContent = fmt(totalMed) + ' F';
+        setKpi('stat-meds-day', fmt(totalMed) + ' F');
         _medTotal = totalMed; updateRecettes();
-    });
+    }, () => { setKpi('stat-meds-day', '—'); });
 
     window.deconnexion = () => {
         if (confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?')) {
