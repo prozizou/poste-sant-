@@ -3,7 +3,7 @@ import { villageRef, chargerVillage, villageActuel } from '../village-client.js'
 await chargerVillage();
 import { roleServeur } from '../role-server.js';
 import { desabonnerPushAdmin } from '../notifications-admin.js';
-import { ref, push, onValue, off, get, update, runTransaction }
+import { ref, push, onValue, off, get, update, remove, runTransaction }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -800,6 +800,7 @@ window.renderHistTickets = function() {
     const cards=document.getElementById('hist-tickets-cards');
     const filter=document.getElementById('filter-tickets').value;
     let list = filterByPeriod(allTickets, filter);
+    const isAdmin = (sessionStorage.getItem('userRole') === 'admin');
     const countEl = document.getElementById('hist-tickets-count');
     if (countEl) countEl.textContent = list.length ? `(${list.length})` : '';
     if (!list.length) {
@@ -819,6 +820,7 @@ window.renderHistTickets = function() {
             <td><div class="hist-actions">
                 <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">${ICON_PRINTER}Réimprimer</button>
                 ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">Annuler</button>` : ''}
+                ${isAdmin ? `<button type="button" class="btn-annuler" onclick="supprimerTicket('${x._key}')">${ICON_TRASH}Supprimer</button>` : ''}
             </div></td>
         </tr>
     `).join('');
@@ -839,15 +841,37 @@ window.renderHistTickets = function() {
             </div>
             <div class="hist-card-foot">
                 <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">${ICON_PRINTER}Réimprimer</button>
-                ${!x.annule ? `<div class="menu-wrap">
+                ${(!x.annule || isAdmin) ? `<div class="menu-wrap">
                     <button type="button" class="btn-kebab" onclick="toggleDropdown('${menuId}', this)" aria-label="Plus d'actions">${ICON_DOTS}</button>
                     <div class="dropdown-menu" id="${menuId}" style="right:0;">
-                        <button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();ouvrirModalTicket('${x._key}')">${ICON_UNDO}Annuler le ticket</button>
+                        ${!x.annule ? `<button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();ouvrirModalTicket('${x._key}')">${ICON_UNDO}Annuler le ticket</button>` : ''}
+                        ${isAdmin ? `<button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();supprimerTicket('${x._key}')">${ICON_TRASH}Supprimer définitivement</button>` : ''}
                     </div>
                 </div>` : ''}
             </div>
         </div>`;
     }).join('');
+};
+
+// Suppression définitive d'un ticket saisi par erreur (administrateur uniquement).
+// Les règles RTDB n'autorisent le retrait que pour un administrateur du village actif.
+window.supprimerTicket = async function(key) {
+    if (sessionStorage.getItem('userRole') !== 'admin') { toast('Suppression réservée à l’administrateur.', 'err'); return; }
+    const t = allTickets.find(x => x._key === key);
+    if (!t) { toast('Ticket introuvable.', 'err'); return; }
+    const nom = t.name ? ` de ${t.name}` : '';
+    if (!confirm(`Supprimer définitivement ce ticket${nom} (${fmt(t.prix || 0)} FCFA) ?\n\nCette action est irréversible.`)) return;
+    try {
+        await remove(villageRef(db, 'ticket_dbase/' + key));
+        notifierAdmin({
+            action: 'suppression', type: 'ticket', ref_key: key,
+            patient_nom: t.name || '', num_attente: t.num_attente || '',
+            montant: t.prix || 0, detail: 'Ticket supprimé définitivement'
+        });
+        toast('Ticket supprimé définitivement.', 'ok');
+    } catch (e) {
+        console.error(e); toast('Suppression impossible : ' + (e.message || 'accès refusé.'), 'err');
+    }
 };
 
 window.reimprimerTicket = async function(key) {
