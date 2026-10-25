@@ -1092,6 +1092,17 @@ window.calcMonnaieM = function() {
     const el = document.getElementById('m-monnaie');
     el.textContent = recu > 0 ? fmt(m) + ' FCFA' : '—';
     el.className = 'monnaie-result' + (m < 0 ? ' neg' : '');
+    // Permet à l'assistant médicaments de recalculer l'état du bouton d'encaissement.
+    document.dispatchEvent(new CustomEvent('med:recalc'));
+};
+
+// Résumé du panier (lecture seule) pour l'étape de synthèse de l'assistant médicaments.
+window.panierResume = function() {
+    return {
+        lignes: panier.map(p => ({ nom: p.nom, qte: p.qte, montantFmt: fmt(p.prix * p.qte) })),
+        total: panier.reduce((s,p) => s + (p.prix * p.qte), 0),
+        count: panier.length
+    };
 };
 
 // Raccourcis de billets pour le règlement des médicaments.
@@ -1178,6 +1189,15 @@ window.encaisserMedicaments = async function() {
         } else {
             toast('Vente enregistrée avec succès (sans impression).','ok');
         }
+
+        // L'assistant médicaments écoute cet évènement pour la confirmation.
+        document.dispatchEvent(new CustomEvent('med:success', { detail: {
+            key: newRef.key, patientNom, patientAtt,
+            lignes: medData.lignes, count: panier.length,
+            total: fmt(total), recuFmt: fmt(recu), monnaieFmt: fmt(monnaie),
+            dateAffiche: new Date(opTs).toLocaleDateString('fr-FR') + ' • ' + new Date(opTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+            imprime: imprimer
+        }}));
 
         panier=[];
         patientSelectionne=null;

@@ -854,3 +854,26 @@ html[data-view="desktop"] .hist-wrap  { display: block; }
 @keyframes suPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
 @keyframes suCheck{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 @media(prefers-reduced-motion:reduce){.wiz-step,.su-overlay.open,.su-card,.su-check{animation:none!important;}}
+
+/* Assistant Médicaments : déclinaison violette + liste de synthèse */
+.wiz-dot.purple.active .wiz-dot-n{background:var(--purple);box-shadow:0 0 0 4px var(--purple-bg);}
+.wiz-dot.purple.done .wiz-dot-n{background:var(--purple);}
+.wiz-dot.purple.active .wiz-dot-l,.wiz-dot.purple.done .wiz-dot-l{color:var(--purple);}
+.wiz-bar.purple.done{background:var(--purple);}
+.wiz-head.purple .wiz-head-ico{background:var(--purple-bg);color:var(--purple);}
+.wiz-head.purple .wiz-step-tag{color:var(--purple);}
+.wiz-btn.purple{background:var(--purple);}
+.wiz-btn.purple:hover{background:#654d8c;}
+.sy-ico.purple{background:var(--purple-bg);color:var(--purple);}
+.wiz-pay.purple .wiz-monnaie,.wiz-monnaie.purple{background:var(--purple-bg);border-color:#d9ccec;}
+.wiz-monnaie.purple .wiz-monnaie-ico{color:var(--purple);}
+.wiz-monnaie.purple .wiz-monnaie-lbl,.wiz-monnaie.purple .monnaie-result{color:var(--purple);}
+.su-check.purple{background:var(--purple-bg);color:var(--purple);}
+.sy-med-list{display:flex;flex-direction:column;gap:7px;}
+.sy-med-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.86rem;padding:6px 0;border-bottom:1px dashed var(--border);}
+.sy-med-row:last-child{border-bottom:none;}
+.sy-med-row span{color:var(--primary);}
+.sy-med-row b{color:var(--purple);font-weight:700;white-space:nowrap;}
+.sy-med-empty{color:var(--muted);font-size:.85rem;padding:6px 0;}
+.su-med-list{display:flex;flex-direction:column;gap:5px;border-bottom:1px solid var(--border);padding-bottom:10px;}
+.su-med-list .sy-med-row{font-size:.82rem;padding:4px 0;}

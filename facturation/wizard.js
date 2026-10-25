@@ -131,3 +131,116 @@ if (wiz) {
 
     montre(1, false);
 }
+
+// ══════════════ Assistant Médicaments (3 étapes) ══════════════
+const wizM = document.getElementById('wiz-med');
+if (wizM) {
+    const steps = [...wizM.querySelectorAll('.wiz-step')];
+    const dots  = [...wizM.querySelectorAll('.wiz-dot')];
+    const bars  = [...wizM.querySelectorAll('.wiz-bar')];
+    const $ = id => document.getElementById(id);
+    let courant = 1;
+
+    function totalPanier() {
+        const r = typeof window.panierResume === 'function' ? window.panierResume() : { total: 0, count: 0, lignes: [] };
+        return r;
+    }
+
+    function montre(n, defiler = true) {
+        courant = n;
+        steps.forEach(s => s.classList.toggle('active', +s.dataset.step === n));
+        dots.forEach(d => { const i = +d.dataset.dot; d.classList.toggle('active', i === n); d.classList.toggle('done', i < n); });
+        bars.forEach(b => b.classList.toggle('done', +b.dataset.bar < n));
+        if (n === 3) remplirSynthese();
+        if (defiler) wizM.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function erreur(n, msg) { const el = $('wiz-med-err-' + n); if (!el) return; if (msg) { el.textContent = msg; el.hidden = false; } else { el.hidden = true; } }
+
+    function patientPresent() {
+        const visible = $('patient-selectionne') && $('patient-selectionne').style.display !== 'none';
+        return visible || $('m-search-patient').value.trim().length > 0;
+    }
+    function valideEtape1() {
+        if (!patientPresent()) { erreur(1, 'Sélectionnez un ticket ou saisissez le nom du patient.'); return false; }
+        erreur(1, ''); return true;
+    }
+    function valideEtape2() {
+        if (totalPanier().count === 0) { erreur(2, 'Ajoutez au moins un médicament.'); return false; }
+        erreur(2, ''); return true;
+    }
+
+    // En étape 3, l'encaissement n'est permis que si la somme remise couvre le total.
+    function gateEncaissement() {
+        if (courant !== 3) return;
+        const { total } = totalPanier();
+        const recu = parseFloat($('m-recu').value) || 0;
+        const ok = total > 0 && recu >= total && patientPresent();
+        $('btn-med').disabled = !ok;
+        erreur(3, recu > 0 && recu < total ? 'Somme remise insuffisante pour le total à payer.' : '');
+    }
+
+    function remplirSynthese() {
+        const selVisible = $('patient-selectionne') && $('patient-selectionne').style.display !== 'none';
+        $('sy-m-patient').textContent = selVisible ? ($('ps-nom').textContent || '—') : ($('m-search-patient').value.trim() || '—');
+        $('sy-m-attente').textContent = selVisible ? ($('ps-attente').textContent || '—') : '—';
+        const { lignes, total } = totalPanier();
+        $('sy-med-list').innerHTML = lignes.length
+            ? lignes.map(l => `<div class="sy-med-row"><span>${l.qte}× ${escHtml(l.nom)}</span><b>${escHtml(l.montantFmt)} FCFA</b></div>`).join('')
+            : '<div class="sy-med-empty">Aucun médicament</div>';
+        $('sy-m-total').textContent = total.toLocaleString('fr-FR') + ' FCFA';
+        gateEncaissement();
+    }
+    function escHtml(s) { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
+
+    wizM.querySelectorAll('.wiz-next').forEach(b => b.addEventListener('click', () => {
+        const from = +b.dataset.next;
+        if (from === 1 && !valideEtape1()) return;
+        if (from === 2 && !valideEtape2()) return;
+        montre(from + 1);
+    }));
+    wizM.querySelectorAll('.wiz-prev').forEach(b => b.addEventListener('click', () => montre(+b.dataset.prev - 1)));
+    wizM.querySelectorAll('.sy-edit').forEach(b => b.addEventListener('click', () => montre(+b.dataset.goto)));
+
+    $('m-search-patient')?.addEventListener('input', () => erreur(1, ''));
+    $('m-recu')?.addEventListener('input', gateEncaissement);
+    // calcMonnaieM émet med:recalc : on resynchronise le bouton et la synthèse.
+    document.addEventListener('med:recalc', () => { if (courant === 3) { $('sy-m-total').textContent = totalPanier().total.toLocaleString('fr-FR') + ' FCFA'; gateEncaissement(); } });
+
+    // ── Confirmation ──
+    const overlay = $('sm-overlay');
+    let dernier = null;
+    document.addEventListener('med:success', e => {
+        dernier = e.detail || {};
+        $('sm-num').textContent = 'Ordonnance ' + (dernier.key ? 'MED-' + String(dernier.key).substring(0, 6).toUpperCase() : '');
+        $('sm-datetime').textContent = dernier.dateAffiche || '—';
+        $('sm-patient').textContent = dernier.patientNom || '—';
+        $('sm-total').textContent = (dernier.total || '—') + ' FCFA';
+        $('sm-remise').textContent = (dernier.recuFmt || '—') + ' FCFA';
+        $('sm-monnaie').textContent = (dernier.monnaieFmt || '—') + ' FCFA';
+        $('sm-sub').textContent = dernier.imprime ? 'Le ticket ordonnance a été généré et imprimé.' : 'Le ticket ordonnance a été généré (sans impression).';
+        $('sm-med-list').innerHTML = (dernier.lignes || []).map(l => `<div class="sy-med-row"><span>${l.qte}× ${escHtml(l.nom)}</span><b>${escHtml(l.montant)} FCFA</b></div>`).join('');
+        overlay.classList.add('open');
+    });
+    const ferme = () => overlay.classList.remove('open');
+    $('sm-close')?.addEventListener('click', () => { ferme(); montre(1); });
+    $('sm-close-x')?.addEventListener('click', () => { ferme(); montre(1); });
+    $('sm-new')?.addEventListener('click', () => { ferme(); montre(1); });
+    overlay?.addEventListener('click', ev => { if (ev.target === overlay) ferme(); });
+    $('sm-print')?.addEventListener('click', () => { if (dernier?.key && typeof window.reimprimerMed === 'function') window.reimprimerMed(dernier.key); });
+    $('sm-view')?.addEventListener('click', () => {
+        const contenu = document.getElementById('print-content');
+        if (!contenu || !contenu.innerHTML.trim()) return;
+        let vue = document.getElementById('su-view-overlay');
+        if (!vue) {
+            vue = document.createElement('div');
+            vue.id = 'su-view-overlay'; vue.className = 'su-overlay';
+            vue.innerHTML = '<div class="su-card su-view-card"><button type="button" class="su-x" aria-label="Fermer"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button><div class="su-view-body"></div></div>';
+            document.body.appendChild(vue);
+            vue.addEventListener('click', ev => { if (ev.target === vue || ev.target.closest('.su-x')) vue.classList.remove('open'); });
+        }
+        vue.querySelector('.su-view-body').innerHTML = contenu.innerHTML;
+        vue.classList.add('open');
+    });
+
+    montre(1, false);
+}

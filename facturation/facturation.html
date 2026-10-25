@@ -311,89 +311,105 @@
     <div class="tab-pane" id="pane-med">
         <div class="tab-body">
             <div class="section-block active" data-section="nouvelle">
-                <div>
-                    <div class="card">
-                        <div class="card-head" style="border-left:4px solid var(--purple);">
-                            <div class="card-head-icon" style="background:var(--purple-bg);color:var(--purple);">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-                            </div>
-                            <div><h3>Paiement des Médicaments</h3><p>Sélectionnez les médicaments de l'ordonnance</p></div>
+                <div class="wiz" id="wiz-med">
+                    <div class="wiz-steps" role="list" aria-label="Progression">
+                        <div class="wiz-dot purple active" data-dot="1"><span class="wiz-dot-n">1</span><span class="wiz-dot-l">Patient</span></div>
+                        <div class="wiz-bar purple" data-bar="1"></div>
+                        <div class="wiz-dot purple" data-dot="2"><span class="wiz-dot-n">2</span><span class="wiz-dot-l">Médicaments</span></div>
+                        <div class="wiz-bar purple" data-bar="2"></div>
+                        <div class="wiz-dot purple" data-dot="3"><span class="wiz-dot-n">3</span><span class="wiz-dot-l">Paiement</span></div>
+                    </div>
+
+                    <!-- ÉTAPE 1 — Patient -->
+                    <section class="wiz-step active" data-step="1" aria-label="Étape 1 : patient">
+                        <div class="wiz-head purple">
+                            <div class="wiz-head-ico"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+                            <div><div class="wiz-step-tag">Étape 1/3</div><h3>Patient de l'ordonnance</h3><p>Ticket du jour ou saisie libre du nom</p></div>
                         </div>
-                        <div class="card-body">
-                            <div class="patient-lookup">
-                                <div class="fg">
-                                    <label>Nom du patient <span class="req">*</span> <span style="color:var(--muted);font-weight:400;text-transform:none;">(ticket du jour ou saisie libre)</span></label>
-                                    <input type="text" id="m-search-patient" class="fc" placeholder="Rechercher un ticket du jour ou saisir le nom…" oninput="filtrerPatients()">
-                                </div>
-                                <div id="patient-suggestions" class="patient-list"></div>
-                                <div class="recap-box" id="patient-selectionne" style="display:none;">
-                                    <div class="recap-row">
-                                        <span class="recap-lbl">Patient sélectionné</span>
-                                        <span class="recap-val" id="ps-nom">—</span>
-                                    </div>
-                                    <div class="recap-row">
-                                        <span class="recap-lbl">N° d'attente</span>
-                                        <span class="recap-val" id="ps-attente">—</span>
-                                    </div>
-                                </div>
+                        <div class="fg">
+                            <label>Nom du patient <span class="req">*</span></label>
+                            <input type="text" id="m-search-patient" class="fc" placeholder="Rechercher un ticket du jour ou saisir le nom…" oninput="filtrerPatients()" autocomplete="off">
+                        </div>
+                        <div id="patient-suggestions" class="patient-list"></div>
+                        <div class="recap-box" id="patient-selectionne" style="display:none;">
+                            <div class="recap-row"><span class="recap-lbl">Patient sélectionné</span><span class="recap-val" id="ps-nom">—</span></div>
+                            <div class="recap-row"><span class="recap-lbl">N° d'attente</span><span class="recap-val" id="ps-attente">—</span></div>
+                        </div>
+                        <p class="wiz-err" id="wiz-med-err-1" hidden></p>
+                        <div class="wiz-nav">
+                            <button type="button" class="wiz-btn purple wiz-next" data-next="1">Suivant <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+                        </div>
+                    </section>
+
+                    <!-- ÉTAPE 2 — Médicaments -->
+                    <section class="wiz-step" data-step="2" aria-label="Étape 2 : médicaments">
+                        <div class="wiz-head purple">
+                            <div class="wiz-head-ico"><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></div>
+                            <div><div class="wiz-step-tag">Étape 2/3</div><h3>Sélection des médicaments</h3><p>Ajoutez les médicaments de l'ordonnance</p></div>
+                        </div>
+                        <div class="fg">
+                            <label>Rechercher un médicament</label>
+                            <input type="text" id="m-search" class="fc" placeholder="Nom du médicament…" oninput="filtrerMeds()" autocomplete="off">
+                        </div>
+                        <div id="med-liste" class="med-grid"><div class="med-empty" id="med-loading">Chargement des médicaments…</div></div>
+                        <h4 class="panier-title">Médicaments sélectionnés</h4>
+                        <div id="panier-liste" class="panier-vide">Aucun médicament sélectionné</div>
+                        <div class="recap-box" style="margin-top:12px;">
+                            <div class="recap-row"><span class="recap-lbl">Nombre d'articles</span><span class="recap-val" id="panier-count">0</span></div>
+                            <div class="recap-row"><span class="recap-lbl">TOTAL À PAYER</span><span class="recap-big" id="panier-total">0 FCFA</span></div>
+                        </div>
+                        <p class="wiz-err" id="wiz-med-err-2" hidden></p>
+                        <div class="wiz-nav">
+                            <button type="button" class="wiz-btn ghost wiz-prev" data-prev="2"><svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> Précédent</button>
+                            <button type="button" class="wiz-btn purple wiz-next" data-next="2">Suivant <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+                        </div>
+                    </section>
+
+                    <!-- ÉTAPE 3 — Paiement & synthèse -->
+                    <section class="wiz-step" data-step="3" aria-label="Étape 3 : paiement et synthèse">
+                        <div class="wiz-head purple">
+                            <div class="wiz-head-ico"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg></div>
+                            <div><div class="wiz-step-tag">Étape 3/3</div><h3>Paiement et synthèse</h3><p>Vérifiez avant d'encaisser l'ordonnance</p></div>
+                        </div>
+
+                        <div class="sy-block">
+                            <div class="sy-block-head"><span class="sy-ico purple"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span> Patient<button type="button" class="sy-edit" data-goto="1"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Modifier</button></div>
+                            <div class="sy-rows">
+                                <div class="sy-row"><span>Nom</span><b id="sy-m-patient">—</b></div>
+                                <div class="sy-row"><span>N° d'attente</span><b id="sy-m-attente">—</b></div>
                             </div>
+                        </div>
 
-                            <div class="divider"></div>
+                        <div class="sy-block">
+                            <div class="sy-block-head"><span class="sy-ico purple"><svg class="icon" viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></span> Médicaments<button type="button" class="sy-edit" data-goto="2"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Modifier</button></div>
+                            <div class="sy-med-list" id="sy-med-list"></div>
+                            <div class="sy-row hl" style="margin-top:10px;"><span>Total à payer</span><b id="sy-m-total">0 FCFA</b></div>
+                        </div>
 
-                            <div class="fg">
-                                <label>Rechercher un médicament</label>
-                                <input type="text" id="m-search" class="fc" placeholder="Nom du médicament…" oninput="filtrerMeds()">
+                        <div class="wiz-pay purple">
+                            <div class="wiz-pay-title">Calcul de la monnaie</div>
+                            <label class="wiz-pay-lbl" for="m-recu">Somme remise par le patient (FCFA)</label>
+                            <input type="number" id="m-recu" class="fc" inputmode="numeric" placeholder="Ex: 5 000" oninput="calcMonnaieM()">
+                            <div class="montant-rapide">
+                                <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(1000)">1 000</button>
+                                <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(2000)">2 000</button>
+                                <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(5000)">5 000</button>
+                                <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(10000)">10 000</button>
                             </div>
-
-                            <div id="med-liste" class="med-grid">
-                                <div class="med-empty" id="med-loading">Chargement des médicaments…</div>
+                            <div class="wiz-monnaie purple">
+                                <div class="wiz-monnaie-ico"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5a2.5 2.5 0 0 1 2.5-1.5c1.4 0 2.5.9 2.5 2s-1 1.8-2.5 2-2.5.9-2.5 2 1.1 2 2.5 2a2.5 2.5 0 0 0 2.5-1.5"/></svg></div>
+                                <div><div class="wiz-monnaie-lbl">Monnaie à rendre</div><div class="monnaie-result" id="m-monnaie">—</div></div>
                             </div>
-
-                            <div class="divider"></div>
-
-                            <h4 class="panier-title">Médicaments sélectionnés</h4>
-                            <div id="panier-liste" class="panier-vide">Aucun médicament sélectionné</div>
-
-                            <div class="recap-box" style="margin-top:12px;">
-                                <div class="recap-row">
-                                    <span class="recap-lbl">Nombre d'articles</span>
-                                    <span class="recap-val" id="panier-count">0</span>
-                                </div>
-                                <div class="recap-row">
-                                    <span class="recap-lbl">TOTAL À PAYER</span>
-                                    <span class="recap-big" id="panier-total">0 FCFA</span>
-                                </div>
-                            </div>
-
-                            <div class="monnaie-box">
-                                <div class="monnaie-title">Calcul de la monnaie</div>
-                                <div class="monnaie-row">
-                                    <div class="monnaie-field">
-                                        <label>Somme remise par le patient (FCFA)</label>
-                                        <input type="number" id="m-recu" class="fc" inputmode="numeric" placeholder="Ex: 5 000" oninput="calcMonnaieM()">
-                                    </div>
-                                    <div>
-                                        <div class="monnaie-result" id="m-monnaie">—</div>
-                                        <div class="monnaie-hint">Monnaie à rendre</div>
-                                    </div>
-                                </div>
-                                <div class="montant-rapide">
-                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(1000)">1 000</button>
-                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(2000)">2 000</button>
-                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(5000)">5 000</button>
-                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuM(10000)">10 000</button>
-                                </div>
-                            </div>
-
-                            <button class="btn btn-purple" id="btn-med" onclick="encaisserMedicaments()" disabled>
-                                <span class="btn-row">
-                                    <svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-                                    <span id="btn-med-label">Encaisser</span>
-                                </span>
+                        </div>
+                        <p class="wiz-err" id="wiz-med-err-3" hidden></p>
+                        <div class="wiz-nav">
+                            <button type="button" class="wiz-btn ghost wiz-prev" data-prev="3"><svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> Précédent</button>
+                            <button class="btn btn-purple wiz-cta" id="btn-med" onclick="encaisserMedicaments()" disabled>
+                                <span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg><span id="btn-med-label">Encaisser</span></span>
                                 <span class="btn-sub">et générer le ticket ordonnance</span>
                             </button>
                         </div>
-                    </div>
+                    </section>
                 </div>
             </div><!-- /section-block nouvelle -->
 
@@ -575,6 +591,32 @@
             <button type="button" class="btn su-ghost" id="su-view"><span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Voir le ticket</span></button>
             <button type="button" class="btn su-ghost" id="su-new"><span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Nouvelle opération</span></button>
             <button type="button" class="su-close-link" id="su-close">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation d'encaissement — médicaments -->
+<div class="su-overlay" id="sm-overlay" role="dialog" aria-modal="true" aria-labelledby="sm-title">
+    <div class="su-card">
+        <button type="button" class="su-x" id="sm-close-x" aria-label="Fermer"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+        <div class="su-check purple"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h3 id="sm-title">Vente enregistrée&nbsp;!</h3>
+        <p class="su-sub" id="sm-sub">Le ticket ordonnance a été généré et imprimé.</p>
+        <div class="su-ticket">
+            <div class="su-ticket-top"><b id="sm-num">Ordonnance —</b><span id="sm-datetime">—</span></div>
+            <div class="su-med-list" id="sm-med-list"></div>
+            <div class="su-ticket-rows" style="margin-top:10px;">
+                <div class="su-trow"><span>Patient</span><b id="sm-patient">—</b></div>
+                <div class="su-trow"><span>Total</span><b id="sm-total">—</b></div>
+                <div class="su-trow"><span>Somme remise</span><b id="sm-remise">—</b></div>
+                <div class="su-trow hl"><span>Monnaie</span><b id="sm-monnaie">—</b></div>
+            </div>
+        </div>
+        <div class="su-actions">
+            <button type="button" class="btn btn-purple" id="sm-print"><span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg> Imprimer à nouveau</span></button>
+            <button type="button" class="btn su-ghost" id="sm-view"><span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Voir le ticket</span></button>
+            <button type="button" class="btn su-ghost" id="sm-new"><span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Nouvelle opération</span></button>
+            <button type="button" class="su-close-link" id="sm-close">Fermer</button>
         </div>
     </div>
 </div>
