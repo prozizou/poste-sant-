@@ -16,6 +16,7 @@ async function identity(db, user) {
  if(!ROLE.includes(record.role) || !SLUG.test(record.village_id||'')) throw forbidden('Rôle ou village invalide.');
  const village=(await db.ref('villages_registry/'+record.village_id).once('value')).val();
  if(village?.active!==true) throw forbidden('Village inactif.');
+ if(Number(village.expires_ts)>0 && Number(village.expires_ts)<Date.now()) throw forbidden('Accès du village expiré.');
  return {uid:user.uid,email:user.email,role:record.role,villageId:record.village_id,global:false};
 }
 function mayManage(actor, role, villageId) {

@@ -36,13 +36,29 @@ export async function villagePourUtilisateur(user) {
   const metaSnap = await get(ref(db, `villages_registry/${id}`));
   const meta = metaSnap.val();
   if (meta?.active !== true || typeof meta.nom !== 'string' || !meta.nom.trim()) return null;
+  // Accès expiré : le village existe et reste actif, mais sa période d'accès est terminée.
+  if (Number(meta.expires_ts) > 0 && Number(meta.expires_ts) < Date.now()) return null;
   // Une réponse périmée d'un autre compte ne doit pas installer son contexte.
   if (auth.currentUser?.uid !== user.uid) return null;
   contexte = { id, nom: meta.nom.trim().slice(0,100), role: fiche.role, uid: user.uid };
   sessionStorage.setItem('villageId', id);
   sessionStorage.setItem('villageNom', contexte.nom);
   sessionStorage.setItem('userRole', fiche.role);
+  planifierExpiration(Number(meta.expires_ts) || 0);
   return contexte;
+}
+
+// Session déjà ouverte au moment où l'accès expire : on recoupe l'accès (dans la limite d'un délai sûr).
+let timerExpiration = null;
+function planifierExpiration(ts) {
+  if (timerExpiration) { clearTimeout(timerExpiration); timerExpiration = null; }
+  if (typeof window === 'undefined' || !(ts > 0)) return;
+  const delai = ts - Date.now();
+  if (delai <= 0 || delai > 86400000) return; // au-delà de 24 h : un rechargement rebloquera de toute façon
+  timerExpiration = setTimeout(() => {
+    contexte = null;
+    if (location.pathname !== '/' && !location.pathname.endsWith('/index.html')) location.replace('/index.html');
+  }, delai + 1000);
 }
 
 export function villageActuel() {

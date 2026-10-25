@@ -132,14 +132,23 @@ async function perform(db,auth,actor,b){
  }
  if(action==='renewVillage'){
   if(!actor.global||!SLUG.test(b.villageId||'')) throw forbidden();
-  const duree=val(b.duree,4);
-  if(!DUREES[duree]) throw fail(422,'Durée d’accès invalide.');
   const v=db.ref('villages_registry/'+b.villageId);
   const current=(await v.once('value')).val();
   if(!current) throw fail(404,'Village introuvable.');
-  // Prolongation : à partir de l'échéance en cours si elle est future, sinon à partir d'aujourd'hui.
-  const base=Math.max(Date.now(),Number(current.expires_ts)||0);
-  const expires_ts=ajouterMois(base,DUREES[duree]);
+  let expires_ts,duree;
+  if(b.date){
+   // Date précise choisie par le super administrateur (fin de la journée indiquée).
+   const t=Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(String(b.date))?(String(b.date)+'T23:59:59'):'');
+   if(!Number.isFinite(t)) throw fail(422,'Date d’expiration invalide.');
+   if(t<=Date.now()) throw fail(422,'La date d’expiration doit être dans le futur.');
+   if(t>Date.now()+10*365*86400000) throw fail(422,'Date d’expiration trop lointaine (10 ans maximum).');
+   expires_ts=t;duree='perso';
+  } else {
+   const d=val(b.duree,4);
+   if(!DUREES[d]) throw fail(422,'Durée d’accès invalide.');
+   // Prolongation : à partir de l'échéance en cours si elle est future, sinon à partir d'aujourd'hui.
+   expires_ts=ajouterMois(Math.max(Date.now(),Number(current.expires_ts)||0),DUREES[d]);duree=d;
+  }
   await v.set({...current,duree,expires_ts,updated_by:actor.uid,updated_ts:Date.now()});
   return {villageId:b.villageId,expires_ts};
  }
@@ -168,6 +177,7 @@ async function statut(req,db,auth){
  if(!SLUG.test(fiche.village_id||'')) return {statut:'non_configure'};
  const village=(await db.ref('villages_registry/'+fiche.village_id).once('value')).val();
  if(village?.active!==true) return {statut:'village_suspendu',village:String(village?.nom||fiche.village_id),motif:String(village?.suspension?.motif||'')};
+ if(Number(village.expires_ts)>0 && Number(village.expires_ts)<Date.now()) return {statut:'village_expire',village:String(village?.nom||fiche.village_id),expires_ts:Number(village.expires_ts)};
  return {statut:'actif'};
 }
 async function handler(req,res){

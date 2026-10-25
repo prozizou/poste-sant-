@@ -58,6 +58,22 @@ test('Création de village : durée d’accès obligatoire et échéance, prolon
  const r2=await perform(db,{},owner,{action:'renewVillage',villageId:'keur-moussa',duree:'1a'});
  assert.ok(r2.expires_ts>avant);
  await assert.rejects(perform(db,{},owner,{action:'renewVillage',villageId:'inconnu',duree:'1m'}),/introuvable/);
+ // Date précise : future acceptée, passée refusée.
+ await assert.rejects(perform(db,{},owner,{action:'renewVillage',villageId:'keur-moussa',date:'2000-01-01'}),/futur/);
+ const r3=await perform(db,{},owner,{action:'renewVillage',villageId:'keur-moussa',date:'2030-06-15'});
+ assert.equal(new Date(r3.expires_ts).getFullYear(),2030);
+ assert.equal(db.state.villages_registry['keur-moussa'].duree,'perso');
+});
+test('Accès du village expiré : le personnel est bloqué, le super administrateur non',async()=>{
+ const passe=Date.now()-86400000;
+ const db=mk({owner:{role:'superadmin',active:true},cash:{role:'caissier',active:true,village_id:'diandioly'}},
+   {diandioly:{nom:'Diandioly',active:true,expires_ts:passe}},{owner:{active:true,email:OWNER_EMAIL}});
+ await assert.rejects(identity(db,user('cash')),/expiré/i);
+ assert.equal((await identity(db,user('owner',OWNER_EMAIL))).global,true);
+ // Après prolongation, l'accès est rétabli.
+ const owner=await identity(db,user('owner',OWNER_EMAIL));
+ await perform(db,{},owner,{action:'renewVillage',villageId:'diandioly',duree:'6m'});
+ assert.equal((await identity(db,user('cash'))).role,'caissier');
 });
 test('API: désactivation du village, lecture limitée aux admins',async()=>{
  const db=mk({owner:{role:'superadmin',active:true},admin:{role:'admin',active:true,village_id:'diandioly'},cash:{role:'caissier',active:true,village_id:'diandioly'}},undefined,{owner:{active:true,email:OWNER_EMAIL}});

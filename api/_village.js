@@ -18,6 +18,7 @@ async function identifierVillage(db, user, roles = [...ROLES]) {
     throw Object.assign(new Error('Compte sans affectation valide au village ou rôle non autorisé.'), {status:403});
   const v = (await db.ref(`villages_registry/${fiche.village_id}`).once('value')).val();
   if (!v || v.active !== true) throw Object.assign(new Error('Village inactif ou non répertorié.'), {status:403});
+  if (Number(v.expires_ts) > 0 && Number(v.expires_ts) < Date.now()) throw Object.assign(new Error('Accès du village expiré.'), {status:403});
   return {villageId:fiche.village_id, role:fiche.role, db:scopedDatabase(db,fiche.village_id)};
 }
 module.exports = { cheminVillage, scopedDatabase, identifierVillage };
