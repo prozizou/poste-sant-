@@ -40,11 +40,24 @@ test('API création village réservée au superadmin et refuse tout écrasement'
  const db=mk({owner:{role:'superadmin',active:true},admin:{role:'admin',active:true,village_id:'diandioly'}},undefined,{owner:{active:true,email:OWNER_EMAIL}});
  const superActor=await identity(db,user('owner',OWNER_EMAIL));
  const local=await identity(db,user('admin'));
- await assert.rejects(perform(db,{},local,{action:'createVillage',villageId:'new-post',nom:'Village Nouveau'}),/Accès/);
- const result=await perform(db,{},superActor,{action:'createVillage',villageId:'new-post',nom:'Village Nouveau'});
+ await assert.rejects(perform(db,{},local,{action:'createVillage',villageId:'new-post',nom:'Village Nouveau',duree:'1a'}),/Accès/);
+ const result=await perform(db,{},superActor,{action:'createVillage',villageId:'new-post',nom:'Village Nouveau',duree:'1a'});
  assert.equal(result.villageId,'new-post');
- await assert.rejects(perform(db,{},superActor,{action:'createVillage',villageId:'new-post',nom:'Village Nouveau'}),/existant/);
+ await assert.rejects(perform(db,{},superActor,{action:'createVillage',villageId:'new-post',nom:'Village Nouveau',duree:'1a'}),/existant/);
  assert.equal(db.state.villages_registry['new-post'].active,true);
+});
+test('Création de village : durée d’accès obligatoire et échéance, prolongation',async()=>{
+ const db=mk({owner:{role:'superadmin',active:true}},{},{owner:{active:true,email:OWNER_EMAIL}});
+ const owner=await identity(db,user('owner',OWNER_EMAIL));
+ await assert.rejects(perform(db,{},owner,{action:'createVillage',villageId:'keur-moussa',nom:'Keur Moussa'}),/Durée/);
+ const r=await perform(db,{},owner,{action:'createVillage',villageId:'keur-moussa',nom:'Keur Moussa',duree:'3m'});
+ assert.ok(r.expires_ts>Date.now());
+ const reg=db.state.villages_registry['keur-moussa'];
+ assert.equal(reg.duree,'3m');
+ const avant=reg.expires_ts;
+ const r2=await perform(db,{},owner,{action:'renewVillage',villageId:'keur-moussa',duree:'1a'});
+ assert.ok(r2.expires_ts>avant);
+ await assert.rejects(perform(db,{},owner,{action:'renewVillage',villageId:'inconnu',duree:'1m'}),/introuvable/);
 });
 test('API: désactivation du village, lecture limitée aux admins',async()=>{
  const db=mk({owner:{role:'superadmin',active:true},admin:{role:'admin',active:true,village_id:'diandioly'},cash:{role:'caissier',active:true,village_id:'diandioly'}},undefined,{owner:{active:true,email:OWNER_EMAIL}});

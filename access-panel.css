@@ -45,3 +45,15 @@
 .zone-off{border-color:#efc3bd;background:#fdeeed}
 .zone .motif{margin:0 0 10px}
 @media(max-width:670px){.admin-line{flex-wrap:wrap}.admin-line button{width:100%;padding:10px}.zone .buttons button{width:100%}}
+
+/* Échéance d'accès d'un village : indicateur de surveillance */
+.expiry{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin-top:12px}
+.exp-pill{font-size:12px;font-weight:700;border-radius:20px;padding:5px 11px;background:#e1f5e7;color:#176b3e}
+.exp-pill.ok{background:#e1f5e7;color:#176b3e}
+.exp-pill.off{background:#fae5e5;color:#9f2929}
+.exp-detail{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.renew{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin-top:10px}
+.renew-label{font-size:13px;font-weight:650;color:var(--ink)}
+.renew select{width:auto;min-width:120px;min-height:38px;margin:0}
+.renew button{min-height:38px;padding:8px 14px}
+@media(max-width:670px){.renew select{flex:1;min-width:0}}

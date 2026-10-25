@@ -17,6 +17,16 @@ function firebase(){
  return {db:getDatabase(getApp()),auth:getAuth(getApp())};
 }
 const val=(s,max)=>String(s||'').trim().slice(0,max);
+// Durées d'accès proposées au super administrateur, en mois.
+const DUREES=Object.freeze({'1m':1,'3m':3,'6m':6,'1a':12});
+// Ajout de mois en gardant une date valide (fin de mois ramenée au dernier jour réel).
+function ajouterMois(ts,mois){
+ const d=new Date(ts),jour=d.getDate();
+ d.setDate(1); d.setMonth(d.getMonth()+mois);
+ const dernier=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+ d.setDate(Math.min(jour,dernier));
+ return d.getTime();
+}
 async function authActor(req,db,auth){
  const token=(req.headers.authorization||'').match(/^Bearer (\S+)$/i)?.[1];
  if(!token) throw fail(401,'Jeton de connexion obligatoire.');
@@ -36,6 +46,7 @@ async function listing(db,auth,actor,scope){
   const users=(await db.ref('db_users').once('value')).val()||{};
   const villages=await Promise.all(Object.entries(registry).map(async([id,meta])=>({
    id,nom:String(meta?.nom||id),active:meta?.active===true,motif:meta?.active===true?'':String(meta?.suspension?.motif||''),
+   expires_ts:Number(meta?.expires_ts)||null,duree:String(meta?.duree||''),
    admins:await Promise.all(Object.entries(users).filter(([,u])=>u?.village_id===id && u.role==='admin').map(([uid,u])=>userDTO(auth,uid,u)))
   })));
   return {villages: villages.sort((a,b)=>a.nom.localeCompare(b.nom)),scope:'overview'};
@@ -110,12 +121,27 @@ async function perform(db,auth,actor,b){
  const action=String(b.action||'');
  if(action==='createVillage'){
   if(!actor.global) throw forbidden();
-  const id=val(b.villageId,42),nom=val(b.nom,100);
+  const id=val(b.villageId,42),nom=val(b.nom,100),duree=val(b.duree,4);
   if(!SLUG.test(id)||nom.length<2) throw fail(422,'Nom ou identifiant de village invalide.');
+  if(!DUREES[duree]) throw fail(422,'Durée d’accès invalide (1 mois, 3 mois, 6 mois ou 1 an).');
   if((await db.ref('villages/'+id).once('value')).exists()) throw fail(409,'Village possédant déjà des données : création refusée.');
-  const result=await db.ref('villages_registry/'+id).transaction(cur=>cur===null?{nom,active:true,created_by:actor.uid,created_ts:Date.now()}:undefined,undefined,false);
+  const now=Date.now(),expires_ts=ajouterMois(now,DUREES[duree]);
+  const result=await db.ref('villages_registry/'+id).transaction(cur=>cur===null?{nom,active:true,created_by:actor.uid,created_ts:now,duree,expires_ts}:undefined,undefined,false);
   if(!result.committed) throw fail(409,'Village existant.');
-  return {villageId:id,nom};
+  return {villageId:id,nom,expires_ts};
+ }
+ if(action==='renewVillage'){
+  if(!actor.global||!SLUG.test(b.villageId||'')) throw forbidden();
+  const duree=val(b.duree,4);
+  if(!DUREES[duree]) throw fail(422,'Durée d’accès invalide.');
+  const v=db.ref('villages_registry/'+b.villageId);
+  const current=(await v.once('value')).val();
+  if(!current) throw fail(404,'Village introuvable.');
+  // Prolongation : à partir de l'échéance en cours si elle est future, sinon à partir d'aujourd'hui.
+  const base=Math.max(Date.now(),Number(current.expires_ts)||0);
+  const expires_ts=ajouterMois(base,DUREES[duree]);
+  await v.set({...current,duree,expires_ts,updated_by:actor.uid,updated_ts:Date.now()});
+  return {villageId:b.villageId,expires_ts};
  }
  if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,auth,actor,{villageId:b.villageId,action,motif:b.motif});
  if(action==='assignAdmin'||action==='createStaff'){
