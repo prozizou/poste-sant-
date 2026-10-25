@@ -3,7 +3,7 @@ import { villageRef, chargerVillage, villageActuel } from '../village-client.js'
 await chargerVillage();
 import { roleServeur } from '../role-server.js';
 import { desabonnerPushAdmin } from '../notifications-admin.js';
-import { ref, push, onValue, off, get, update, remove, runTransaction }
+import { ref, push, onValue, off, get, update, runTransaction }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -853,25 +853,11 @@ window.renderHistTickets = function() {
     }).join('');
 };
 
-// Suppression définitive d'un ticket saisi par erreur (administrateur uniquement).
-// Les règles RTDB n'autorisent le retrait que pour un administrateur du village actif.
-window.supprimerTicket = async function(key) {
-    if (sessionStorage.getItem('userRole') !== 'admin') { toast('Suppression réservée à l’administrateur.', 'err'); return; }
+// Suppression d'un ticket saisi par erreur (administrateur) : ouvre la modale de motif.
+window.supprimerTicket = function(key) {
     const t = allTickets.find(x => x._key === key);
     if (!t) { toast('Ticket introuvable.', 'err'); return; }
-    const nom = t.name ? ` de ${t.name}` : '';
-    if (!confirm(`Supprimer définitivement ce ticket${nom} (${fmt(t.prix || 0)} FCFA) ?\n\nCette action est irréversible.`)) return;
-    try {
-        await remove(villageRef(db, 'ticket_dbase/' + key));
-        notifierAdmin({
-            action: 'suppression', type: 'ticket', ref_key: key,
-            patient_nom: t.name || '', num_attente: t.num_attente || '',
-            montant: t.prix || 0, detail: 'Ticket supprimé définitivement'
-        });
-        toast('Ticket supprimé définitivement.', 'ok');
-    } catch (e) {
-        console.error(e); toast('Suppression impossible : ' + (e.message || 'accès refusé.'), 'err');
-    }
+    ouvrirModalSuppr('ticket', key, (t.num_attente ? t.num_attente + ' · ' : '') + (t.name || '—'), t.prix || 0);
 };
 
 window.reimprimerTicket = async function(key) {
@@ -1304,20 +1290,55 @@ window.renderHistMeds = function() {
     }).join('');
 };
 
-// Suppression définitive d'une vente saisie par erreur (administrateur uniquement).
-// Si la vente est encore active, le stock est restitué par le serveur, comme à l'annulation.
-window.supprimerMed = async function(key) {
-    if (sessionStorage.getItem('userRole') !== 'admin') { toast('Suppression réservée à l’administrateur.', 'err'); return; }
+// Suppression d'une vente saisie par erreur (administrateur) : ouvre la modale de motif.
+window.supprimerMed = function(key) {
     const v = allMedVentes.find(x => x._key === key);
     if (!v) { toast('Vente introuvable.', 'err'); return; }
-    const nom = v.patient_nom ? ` de ${v.patient_nom}` : '';
-    const stockMsg = v.annule ? '' : 'Le stock des médicaments sera restitué. ';
-    if (!confirm(`Supprimer définitivement cette vente${nom} (${fmt(v.total || 0)} FCFA) ?\n\n${stockMsg}Cette action est irréversible et tracée.`)) return;
+    ouvrirModalSuppr('med', key, v.patient_nom || '—', v.total || 0, !v.annule);
+};
+
+// ── Modale de suppression (motif obligatoire) ──────────────────────────
+// La suppression déplace l'enregistrement dans la corbeille du village, côté
+// serveur, et restitue le stock si une vente de médicaments était encore active.
+let pendingSuppr = null;
+function ouvrirModalSuppr(type, key, resume, montant, restitueStock = false) {
+    if (sessionStorage.getItem('userRole') !== 'admin') { toast('Suppression réservée à l’administrateur.', 'err'); return; }
+    pendingSuppr = { type, key };
+    document.getElementById('suppr-summary').innerHTML =
+        `<div><strong>${type === 'ticket' ? 'Ticket' : 'Vente'} :</strong> ${esc(resume)}</div>` +
+        `<div><strong>Montant :</strong> ${esc(fmt(montant))} FCFA</div>`;
+    document.getElementById('suppr-stock-note').style.display = restitueStock ? 'block' : 'none';
+    document.getElementById('suppr-motif').value = 'Erreur de saisie';
+    document.getElementById('suppr-obs').value = '';
+    document.getElementById('modal-suppr-overlay').classList.add('visible');
+}
+window.closeModalSuppr = function() {
+    document.getElementById('modal-suppr-overlay').classList.remove('visible');
+    pendingSuppr = null;
+};
+window.confirmerSuppression = async function() {
+    if (!pendingSuppr) return;
+    const sel = document.getElementById('suppr-motif').value;
+    const obs = document.getElementById('suppr-obs').value.trim();
+    const motif = (sel + (obs ? ' — ' + obs : '')).slice(0, 300);
+    if (motif.trim().length < 3) { toast('Précisez le motif de la suppression.', 'err'); return; }
+    const btn = document.getElementById('suppr-confirm-btn');
+    btn.disabled = true; document.getElementById('suppr-confirm-label').textContent = 'Suppression…';
+    const { type, key } = pendingSuppr;
     try {
-        await operationPharmacie('supprimer', { key }, nouvelIdOperation());
-        toast('Vente supprimée définitivement.', 'ok');
+        const v = (type === 'med') ? allMedVentes.find(x => x._key === key) : allTickets.find(x => x._key === key);
+        await operationPharmacie(type === 'med' ? 'supprimer' : 'supprimer_ticket', { key, motif }, nouvelIdOperation());
+        notifierAdmin({
+            action: 'suppression', type, ref_key: key,
+            patient_nom: (v?.patient_nom || v?.name || ''), num_attente: (v?.num_attente || ''),
+            montant: (v?.total || v?.prix || 0), detail: 'Supprimé (corbeille) — ' + motif
+        });
+        toast(type === 'ticket' ? 'Ticket déplacé dans la corbeille.' : 'Vente déplacée dans la corbeille.', 'ok');
+        closeModalSuppr();
     } catch (e) {
         console.error(e); toast(e.message || 'Suppression impossible.', 'err');
+    } finally {
+        btn.disabled = false; document.getElementById('suppr-confirm-label').textContent = 'Supprimer définitivement';
     }
 };
 

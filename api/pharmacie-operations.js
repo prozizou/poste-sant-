@@ -9,7 +9,7 @@ const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getDatabase } = require('firebase-admin/database');
 const DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://poste-sante-280b2-default-rtdb.firebaseio.com';
-const OPS = new Set(['encaisser', 'annuler', 'restaurer', 'modifier', 'reappro', 'supprimer']);
+const OPS = new Set(['encaisser', 'annuler', 'restaurer', 'modifier', 'reappro', 'supprimer', 'supprimer_ticket']);
 class BusinessError extends Error { constructor(status, message) { super(message); this.status = status; } }
 function err(status, message) { throw new BusinessError(status, message); }
 function init() {
@@ -186,6 +186,26 @@ async function execute(db, action, body, user, role) {
       await db.ref('/').update(updates);
       return {ok:true,key,avant,apres};
     }
+    if (action === 'supprimer_ticket') {
+      // Suppression d'un ticket de consultation saisi par erreur (administrateur).
+      // Le ticket est déplacé dans la corbeille du village avant d'être retiré.
+      if (role !== 'admin') err(403, 'Suppression réservée à l’administrateur.');
+      const tkey = String(body.key || '');
+      if (!/^[-_A-Za-z0-9]{8,80}$/.test(tkey)) err(422, 'Référence de ticket invalide.');
+      const motif = String(body.motif || '').trim();
+      if (motif.length < 3) err(422, 'Motif de suppression obligatoire.');
+      const ticket = (await db.ref(`ticket_dbase/${tkey}`).once('value')).val();
+      if (!ticket) err(404, 'Ticket introuvable.');
+      updates[`corbeille/${db.ref('corbeille').push().key}`] = {
+        type: 'ticket_dbase', ref: tkey, donnee: ticket,
+        motif: motif.slice(0, 300), etait_annule: !!ticket.annule,
+        supprime_par: user.email || '', supprime_uid: user.uid, supprime_ts: Date.now()
+      };
+      updates[`ticket_dbase/${tkey}`] = null;
+      updates[`pharmacie_operations/${id}`] = { uid:user.uid, action, vente_key:tkey, total:0, ts:Date.now() };
+      await db.ref('/').update(updates);
+      return { ok:true, key:tkey };
+    }
     if (action === 'encaisser') {
       const rows = getRows(body.medicaments);
       const lines = lineItems(rows, stock, role);
@@ -274,15 +294,17 @@ async function execute(db, action, body, user, role) {
         // Suppression définitive d'une vente saisie par erreur. Réservée à l'administrateur
         // (le caissier dispose de l'annulation, qui laisse une trace vérifiable).
         if (role !== 'admin') err(403, 'Suppression réservée à l’administrateur.');
+        const motif = String(body.motif || '').trim();
+        if (motif.length < 3) err(422, 'Motif de suppression obligatoire.');
         // Vente encore active : on restitue d'abord le stock, comme à l'annulation.
         if (!sale.annule) applyStockDeltas(stock, buildStockDeltas(old, []), updates);
-        // Journal d'audit conservé même après disparition de la vente.
-        updates[`suppressions_log/${db.ref('suppressions_log').push().key}`] = {
-          kind:'med', vente_key:key, patient_nom:String(sale.patient_nom || '').slice(0,180),
-          total:Number(sale.total) || 0, etait_annule:!!sale.annule,
-          motif:String(body.motif || '').slice(0,200), par:user.email || '', uid:user.uid, ts:Date.now()
+        // Déplacée dans la corbeille du village avant retrait (restauration possible).
+        updates[`corbeille/${db.ref('corbeille').push().key}`] = {
+          type:'vente_medicaments', ref:key, donnee:sale,
+          motif:motif.slice(0,300), etait_annule:!!sale.annule,
+          supprime_par:user.email || '', supprime_uid:user.uid, supprime_ts:Date.now()
         };
-        updates[`vente_medicaments/${key}`] = null; // suppression définitive
+        updates[`vente_medicaments/${key}`] = null; // retiré de la liste active
         total = Number(sale.total) || 0;
       }
     }

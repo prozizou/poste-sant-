@@ -500,6 +500,44 @@
     </div>
 </div>
 
+<!-- ══ MODALE DE SUPPRESSION (CORBEILLE) — administrateur ══
+     La suppression déplace l'enregistrement dans la corbeille du village et
+     exige un motif. Le stock est restitué si une vente était encore active. -->
+<div class="modal-overlay" id="modal-suppr-overlay">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="m-icon" style="background:var(--danger-bg);color:var(--danger);"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/></svg></div>
+            <div>
+                <h3>Supprimer définitivement</h3>
+                <p>Déplacé dans la corbeille du village — restauration possible</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="modal-summary" id="suppr-summary"></div>
+            <div class="fg">
+                <label>Motif de la suppression <span class="req">*</span></label>
+                <select id="suppr-motif" class="fc">
+                    <option value="Erreur de saisie">Erreur de saisie</option>
+                    <option value="Doublon">Doublon (enregistré deux fois)</option>
+                    <option value="Test / essai">Test / essai</option>
+                    <option value="Autre motif">Autre motif</option>
+                </select>
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+                <label>Observation <span style="color:var(--muted);font-weight:400;text-transform:none;">(optionnel)</span></label>
+                <textarea id="suppr-obs" class="fc" rows="2" placeholder="Précisions complémentaires…" style="resize:vertical;"></textarea>
+            </div>
+            <p id="suppr-stock-note" style="display:none;margin-top:12px;font-size:.8rem;color:var(--accent-dark,#0b7d54);font-weight:600;">↩ Le stock des médicaments sera automatiquement restitué.</p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);" onclick="closeModalSuppr()">Fermer</button>
+            <button type="button" class="btn" style="background:var(--danger);color:white;" id="suppr-confirm-btn" onclick="confirmerSuppression()">
+                <span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg> <span id="suppr-confirm-label">Supprimer définitivement</span></span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ══ MODALE DE MODIFICATION D'UNE VENTE (AJOUT / RETRAIT DE MÉDICAMENTS) ══
      Corrige une erreur de saisie (médicament oublié ou ajouté par erreur)
      sans annuler toute la vente ni créer un nouvel enregistrement : la vente
