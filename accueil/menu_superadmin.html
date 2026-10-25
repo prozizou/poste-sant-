@@ -1,36 +1,429 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Super administration — Postes de santé</title>
-<link rel="icon" href="../icons/icon-192x192.png"><link rel="stylesheet" href="../access-panel.css"></head>
-<body><header><div><span class="eyebrow">GESTION CENTRALE</span><h1>Tous les postes de santé</h1><p>Création des villages et gestion exclusive des administrateurs locaux</p></div><button id="logout" class="subtle">Déconnexion</button></header>
-<main><section class="notice"><strong>Super administrateur</strong><span>Vous contrôlez les villages et leurs administrateurs. Chaque administrateur gère ensuite son équipe, indépendamment des autres villages.</span></section>
-<section class="card"><h2>Ajouter un village</h2><form id="create-village" class="form-grid"><label>Nom du village<input name="nom" required maxlength="100" placeholder="Ex. Keur Moussa"></label><label>Identifiant stable (sans espaces)<input name="villageId" required maxlength="40" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="keur-moussa"></label><label>Durée d'accès<select name="duree" required><option value="1m">1 mois</option><option value="3m">3 mois</option><option value="6m">6 mois</option><option value="1a">1 an</option></select></label><button type="submit">Créer le village</button></form></section>
-<section class="card" id="requests-card" hidden><div class="section-head"><h2>Demandes d'accès administrateur</h2><span class="pill" id="requests-count"></span></div><p class="req-hint">Personnes ayant demandé un accès depuis la page de connexion. Contactez-les, puis créez leur village et leur accès administrateur ci-dessous.</p><div id="requests" class="items"></div></section>
-<section class="card"><div class="section-head"><h2>Villages enregistrés</h2><button class="subtle" id="refresh">Actualiser</button></div><div id="villages" class="items">Chargement…</div></section>
-<p id="status" role="status" aria-live="polite"></p></main>
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1a3a5c">
+<title>Super administration — Postes de santé</title>
+<link rel="icon" href="../icons/icon-192x192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+    --blue:#1a3a5c;--blue2:#274e74;--blue-soft:#eaf0f6;
+    --green:#059669;--green-soft:#ecfdf5;--green-ring:#a7f3d0;
+    --red:#dc2626;--red-soft:#fef2f2;--red-ring:#fecaca;
+    --amber:#d97706;--amber-soft:#fffbeb;--amber-ring:#fde68a;
+    --wa:#25d366;
+    --bg:#f1f5f9;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;
+    --shadow:0 1px 2px rgba(15,23,42,.04),0 2px 8px rgba(15,23,42,.05);--radius:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{max-width:100%;overflow-x:hidden;overflow-x:clip;}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+svg{display:block;}
+.icon{width:1.25em;height:1.25em;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+
+/* En-tête */
+.topbar{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;
+    padding:12px max(16px,calc((100% - 760px)/2));padding-top:max(12px,env(safe-area-inset-top));
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    box-shadow:0 4px 16px rgba(26,58,92,.25);position:sticky;top:0;z-index:100;}
+.brand{display:flex;align-items:center;gap:11px;min-width:0;}
+.brand-logo{width:40px;height:40px;background:rgba(255,255,255,.18);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-logo .icon{width:22px;height:22px;}
+.brand-txt{min-width:0;}
+.brand-txt h1{font-size:1.02rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brand-txt p{font-size:.72rem;font-weight:500;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.top-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:700;}
+.btn-logout{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);color:#fff;padding:8px 14px;border-radius:10px;font-size:.82rem;font-family:inherit;font-weight:600;cursor:pointer;transition:background .18s,transform .18s;display:flex;align-items:center;gap:7px;}
+.btn-logout .icon{width:17px;height:17px;}
+.btn-logout:hover{background:rgba(255,255,255,.28);}
+.btn-logout:active{transform:scale(.97);}
+
+.main{padding:16px max(14px,calc((100% - 760px)/2)) 48px;}
+
+/* Bandeau statistiques */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:11px 8px;text-align:center;box-shadow:var(--shadow);animation:rise .4s ease both;}
+.stat b{display:block;font-size:1.3rem;font-weight:800;line-height:1;letter-spacing:-.02em;}
+.stat span{display:block;font-size:.64rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:5px;}
+.stat.v b{color:var(--blue);}.stat.a b{color:var(--green);}.stat.e b{color:var(--red);}.stat.d b{color:var(--amber);}
+
+/* Section repliable */
+.sec{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;animation:rise .45s ease both;}
+.sec-head{display:flex;align-items:center;gap:11px;width:100%;padding:15px 16px;background:none;border:none;font-family:inherit;cursor:pointer;text-align:left;color:var(--ink);}
+.sec-head .s-ico{width:34px;height:34px;border-radius:10px;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sec-head .s-ico .icon{width:18px;height:18px;}
+.sec-head h2{font-size:.98rem;font-weight:800;flex:1;min-width:0;}
+.sec-head .count{background:var(--amber-soft);color:var(--amber);font-size:.72rem;font-weight:800;padding:3px 9px;border-radius:20px;border:1px solid var(--amber-ring);}
+.sec-head .chev{color:var(--muted);transition:transform .25s;flex-shrink:0;}
+.sec-head .chev .icon{width:18px;height:18px;}
+.sec.open .sec-head .chev{transform:rotate(180deg);}
+.sec-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease;}
+.sec.open .sec-wrap{grid-template-rows:1fr;}
+.sec-body{overflow:hidden;}
+.sec-inner{padding:0 16px 16px;}
+
+/* Formulaires */
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:.78rem;font-weight:700;margin-bottom:5px;}
+.fg label .opt{color:var(--muted);font-weight:500;}
+.fc{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.9rem;color:var(--ink);background:var(--card);}
+.fc:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);}
+select.fc{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'><path d='m6 9 6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:34px;}
+.form-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.hint{font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.4;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 16px;border:none;border-radius:11px;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .15s,transform .12s,opacity .15s;background:var(--blue);color:#fff;}
+.btn .icon{width:17px;height:17px;}
+.btn:hover{background:var(--blue2);}
+.btn:active{transform:scale(.98);}
+.btn:disabled{opacity:.55;cursor:wait;}
+.btn.block{width:100%;}
+.btn.ghost{background:var(--blue-soft);color:var(--blue);}
+.btn.ghost:hover{background:#dde7f2;}
+.btn.danger{background:var(--red-soft);color:var(--red);}
+.btn.danger:hover{background:#fbdcdc;}
+.btn.green{background:var(--green);}
+.btn.green:hover{background:#047857;}
+.btn.wa{background:var(--wa);color:#fff;}
+.btn.wa:hover{background:#1da851;}
+.btn.sm{padding:9px 12px;font-size:.8rem;border-radius:9px;}
+
+/* Demandes */
+.req{border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:10px;animation:rise .4s ease both;}
+.req:last-child{margin-bottom:0;}
+.req-top{display:flex;align-items:flex-start;gap:10px;}
+.req-ava{width:38px;height:38px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0;}
+.req-id{flex:1;min-width:0;}
+.req-id b{font-size:.95rem;display:block;overflow-wrap:anywhere;}
+.req-id .meta{font-size:.78rem;color:var(--muted);margin-top:2px;display:flex;flex-direction:column;gap:1px;}
+.req-id .meta span{overflow-wrap:anywhere;}
+.badge{font-size:.66rem;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.badge.new{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-ring);}
+.badge.done{background:var(--green-soft);color:var(--green);border:1px solid var(--green-ring);}
+.req-acts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px;}
+.req-acts .btn.wa{grid-column:1 / -1;}
+
+/* Village */
+.v-card{border:1px solid var(--line);border-radius:14px;margin-bottom:11px;overflow:hidden;animation:rise .4s ease both;}
+.v-head{display:flex;align-items:center;gap:11px;width:100%;padding:13px 14px;background:none;border:none;font-family:inherit;cursor:pointer;text-align:left;color:var(--ink);}
+.v-badge-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--blue-soft);color:var(--blue);}
+.v-badge-ico .icon{width:19px;height:19px;}
+.v-head-txt{flex:1;min-width:0;}
+.v-head-txt h3{font-size:.98rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere;}
+.v-head-txt .sub{font-size:.74rem;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px;}
+.pill{font-size:.64rem;font-weight:800;padding:2px 8px;border-radius:20px;}
+.pill.on{background:var(--green-soft);color:var(--green);border:1px solid var(--green-ring);}
+.pill.off{background:var(--red-soft);color:var(--red);border:1px solid var(--red-ring);}
+.pill.exp-ok{background:var(--green-soft);color:var(--green);}
+.pill.exp-ko{background:var(--red-soft);color:var(--red);}
+.pill.exp-none{background:var(--bg);color:var(--muted);}
+.v-chev{color:var(--muted);transition:transform .25s;flex-shrink:0;}
+.v-card.open .v-chev{transform:rotate(180deg);}
+.v-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease;}
+.v-card.open .v-wrap{grid-template-rows:1fr;}
+.v-body{overflow:hidden;}
+.v-inner{padding:2px 14px 14px;border-top:1px solid var(--line);}
+.block{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:12px;margin-top:11px;}
+.block-t{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:9px;}
+.exp-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-bottom:10px;}
+.renew-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.renew-row .fc{flex:1;min-width:110px;}
+.admin-line{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.85rem;overflow-wrap:anywhere;}
+.admin-line:last-child{border-bottom:none;}
+.admin-line .adot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.assign-form{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.assign-form .fc{flex:1;min-width:150px;}
+.danger-zone{background:var(--red-soft);border-color:var(--red-ring);}
+.off-zone{background:var(--amber-soft);border-color:var(--amber-ring);}
+.motif-txt{font-size:.82rem;color:#92400e;margin-bottom:9px;overflow-wrap:anywhere;}
+
+/* Skeleton */
+.sk{background:linear-gradient(90deg,#eef2f6 25%,#e2e8f0 37%,#eef2f6 63%);background-size:400% 100%;animation:shimmer 1.3s ease-in-out infinite;border-radius:10px;}
+.sk-card{height:62px;margin-bottom:11px;}
+
+/* Toast */
+.toasts{position:fixed;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px;z-index:2000;padding:0 14px;pointer-events:none;}
+.toast{background:var(--ink);color:#fff;padding:12px 16px;border-radius:12px;font-size:.84rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:420px;width:100%;display:flex;align-items:center;gap:9px;animation:toastIn .25s ease;}
+.toast .icon{width:18px;height:18px;flex-shrink:0;}
+.toast.ok{background:#065f46;}
+.toast.err{background:#991b1b;}
+.empty{text-align:center;color:var(--muted);font-size:.85rem;padding:14px;}
+
+@keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+@keyframes shimmer{0%{background-position:100% 0;}100%{background-position:-100% 0;}}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+@media(max-width:400px){.stat b{font-size:1.15rem;}.btn-logout span{display:none;}.btn-logout{padding:9px 11px;}}
+@media(max-width:340px){.form-2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<nav class="topbar">
+    <div class="brand">
+        <div class="brand-logo" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <div class="brand-txt"><h1>Super administration</h1><p>Gestion centrale des postes</p></div>
+    </div>
+    <div class="top-actions">
+        <div class="avatar" id="user-initials" aria-label="Compte connecté">SA</div>
+        <button class="btn-logout" id="logout" aria-label="Se déconnecter"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg><span>Déconnexion</span></button>
+    </div>
+</nav>
+<main class="main">
+
+    <div class="stats" id="stats" aria-label="Résumé">
+        <div class="stat v"><b id="st-villages">–</b><span>Villages</span></div>
+        <div class="stat a"><b id="st-actifs">–</b><span>Actifs</span></div>
+        <div class="stat e"><b id="st-expires">–</b><span>Expirés</span></div>
+        <div class="stat d"><b id="st-demandes">–</b><span>Demandes</span></div>
+    </div>
+
+    <!-- Demandes d'accès -->
+    <section class="sec" id="sec-req">
+        <button type="button" class="sec-head" data-toggle="sec-req">
+            <span class="s-ico"><svg class="icon" viewBox="0 0 24 24"><path d="M15 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></span>
+            <h2>Demandes d'accès</h2>
+            <span class="count" id="req-count" hidden>0</span>
+            <span class="chev"><svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+        </button>
+        <div class="sec-wrap"><div class="sec-body"><div class="sec-inner" id="requests"></div></div></div>
+    </section>
+
+    <!-- Ajouter un village -->
+    <section class="sec" id="sec-create">
+        <button type="button" class="sec-head" data-toggle="sec-create">
+            <span class="s-ico"><svg class="icon" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M12 9v.01M9 13h6M9 17h6"/></svg></span>
+            <h2>Ajouter un village</h2>
+            <span class="chev"><svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+        </button>
+        <div class="sec-wrap"><div class="sec-body"><div class="sec-inner">
+            <form id="create-village">
+                <div class="fg"><label for="cv-nom">Nom du village</label><input id="cv-nom" class="fc" maxlength="100" placeholder="Ex : Keur Moussa" required></div>
+                <div class="fg"><label for="cv-id">Identifiant <span class="opt">(généré automatiquement)</span></label><input id="cv-id" class="fc" maxlength="40" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="keur-moussa" required><div class="hint">Minuscules, chiffres et tirets. Stable et unique, il ne pourra plus changer.</div></div>
+                <div class="fg"><label for="cv-duree">Durée d'accès</label><select id="cv-duree" class="fc" required><option value="1m">1 mois</option><option value="3m">3 mois</option><option value="6m">6 mois</option><option value="1a">1 an</option></select></div>
+                <button type="submit" class="btn green block">Créer le village</button>
+            </form>
+        </div></div></div>
+    </section>
+
+    <!-- Villages enregistrés -->
+    <section class="sec open" id="sec-villages">
+        <button type="button" class="sec-head" data-toggle="sec-villages">
+            <span class="s-ico"><svg class="icon" viewBox="0 0 24 24"><path d="M3 21h18M9 21V9l-6 3v9M21 21V5l-9-4v20M9 9h.01M9 13h.01M15 7h.01M15 11h.01M15 15h.01"/></svg></span>
+            <h2>Villages enregistrés</h2>
+            <span class="count" id="v-count" hidden>0</span>
+            <span class="chev"><svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span>
+        </button>
+        <div class="sec-wrap"><div class="sec-body"><div class="sec-inner" id="villages"></div></div></div>
+    </section>
+
+</main>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
 <script type="module">
 import {auth} from '../firebase-config.js';
 import {onAuthStateChanged,signOut,sendPasswordResetEmail} from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-const $=id=>document.getElementById(id);let running=false;
-const status=(s,bad=false)=>{const e=$('status');e.textContent=s;e.className=bad?'error':'success'};
-async function api(data,scope){const u=auth.currentUser;if(!u)throw Error('Session expirée');
-const rsp=await fetch('/api/access-management'+(scope?'?scope='+encodeURIComponent(scope):''),{method:scope?'GET':'POST',headers:{Authorization:'Bearer '+await u.getIdToken(),...(scope?{}:{'Content-Type':'application/json'})},body:scope?undefined:JSON.stringify(data),cache:'no-store'});
-const out=await rsp.json();if(!rsp.ok||!out.ok)throw Error(out.error||'Erreur serveur');return out;}
-function elm(tag,txt,cls){const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cls)n.className=cls;return n;}
-function addButton(parent,label,callback,css='subtle'){const b=elm('button',label,css);b.type='button';b.addEventListener('click',async()=>{if(running)return;running=true;b.disabled=true;try{await callback();}catch(e){status(e.message,true)}finally{running=false;b.disabled=false}});parent.append(b);return b;}
-function addAdminForm(root,v){const form=elm('form',undefined,'form-grid');const label=elm('label','Adresse e-mail du nouvel administrateur');const input=elm('input');input.type='email';input.required=true;input.placeholder='administrateur@exemple.sn';label.append(input);const btn=elm('button','Donner accès administrateur');btn.type='submit';form.append(label,btn);form.addEventListener('submit',async e=>{e.preventDefault();if(running)return;running=true;btn.disabled=true;try{const result=await api({action:'assignAdmin',email:input.value.trim(),villageId:v.id});if(result.needsPasswordSetup){try{await sendPasswordResetEmail(auth,result.email);status('Compte créé. Un e-mail de définition du mot de passe a été demandé à Firebase. Vérifiez sa réception.');}catch{status('Accès enregistré, mais l’e-mail de configuration n’a pas pu être envoyé : réessayer depuis Mot de passe oublié.',true)}}else status('Accès administrateur enregistré.');input.value='';await load();}catch(ex){status(ex.message,true)}finally{running=false;btn.disabled=false}});root.append(form);}
-function renderRequests(list){const card=$('requests-card'),root=$('requests'),cnt=$('requests-count');root.replaceChildren();if(!list||!list.length){card.hidden=true;return;}card.hidden=false;cnt.textContent=list.length;for(const r of list){const item=elm('article',undefined,'req');const info=elm('div',undefined,'req-info');info.append(elm('strong',((r.prenom||'')+' '+(r.nom||'')).trim()||'—'));const meta=elm('div',undefined,'req-meta');meta.append(elm('span','Village : '+(r.village||'—')),elm('span','WhatsApp : '+(r.whatsapp||'—')),elm('span',r.ts?new Date(r.ts).toLocaleString('fr-FR'):''));info.append(meta);item.append(info);const actions=elm('div',undefined,'req-actions');const wa=elm('a','Contacter sur WhatsApp','subtle wa');wa.href='https://wa.me/'+String(r.whatsapp||'').replace(/[^0-9]/g,'');wa.target='_blank';wa.rel='noopener';actions.append(wa);addButton(actions,'Marquer traité',async()=>{if(!confirm('Marquer la demande de '+((r.prenom||'')+' '+(r.nom||'')).trim()+' comme traitée ? Elle sera retirée de la liste.'))return;await api({action:'resolveAdminRequest',id:r.id});status('Demande traitée.');await load();});item.append(actions);root.append(item);}}
-async function load(){const data=await api(null,'overview');renderRequests(data.requests);const root=$('villages');root.replaceChildren();if(!data.villages?.length){root.append(elm('p','Aucun village pour le moment.'));return;}for(const v of data.villages){const card=elm('article',undefined,'village');const bar=elm('div',undefined,'section-head');const title=elm('div');title.append(elm('h3',v.nom),elm('small',v.id));bar.append(title,elm('span',v.active?'Actif':'Suspendu',v.active?'pill':'pill off'));card.append(bar);
-// Surveillance de l'échéance d'accès : vert si encore valide, rouge si la date est atteinte.
-const exp=elm('div',undefined,'expiry');
-if(v.expires_ts){const reste=v.expires_ts-Date.now();const jours=Math.ceil(reste/86400000);const date=new Date(v.expires_ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});const expire=reste<=0;exp.append(elm('span',expire?'Accès expiré':'Accès valide',expire?'exp-pill off':'exp-pill ok'),elm('span',expire?('Échéance dépassée le '+date+' (depuis '+Math.abs(jours)+' j)'):('Expire le '+date+' (dans '+jours+' j)'),'exp-detail'));}
-else{exp.append(elm('span','Sans échéance','exp-pill'),elm('span','Aucune date d’expiration définie.','exp-detail'));}
-card.append(exp);
-const renew=elm('div',undefined,'renew');const sel=elm('select');sel.setAttribute('aria-label','Durée de prolongation');for(const [k,lbl] of [['1m','1 mois'],['3m','3 mois'],['6m','6 mois'],['1a','1 an'],['perso','Date précise…']]){const o=elm('option',lbl);o.value=k;sel.append(o)}const dateInput=elm('input');dateInput.type='date';dateInput.style.display='none';dateInput.setAttribute('aria-label','Date d’expiration précise');const demain=new Date(Date.now()+86400000);dateInput.min=demain.toISOString().slice(0,10);sel.addEventListener('change',()=>{dateInput.style.display=sel.value==='perso'?'':'none';});renew.append(elm('span','Prolonger :','renew-label'),sel,dateInput);addButton(renew,'Appliquer',async()=>{if(sel.value==='perso'){const d=dateInput.value;if(!d){status('Choisissez une date d’expiration.',true);dateInput.focus();return;}if(!confirm('Fixer l’expiration du village « '+v.nom+' » au '+new Date(d+'T23:59:59').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})+' ?'))return;await api({action:'renewVillage',villageId:v.id,date:d});}else{if(!confirm('Prolonger l’accès du village « '+v.nom+' » de '+sel.selectedOptions[0].textContent+' ?'))return;await api({action:'renewVillage',villageId:v.id,duree:sel.value});}status('Accès mis à jour.');await load();});card.append(renew);
-const admins=elm('div',undefined,'admin-list');admins.append(elm('strong','Administrateurs du village'));for(const a of v.admins||[]){const line=elm('div',undefined,'admin-line');const who=elm('div',undefined,'who');who.append(elm('strong',a.email||a.uid));line.append(who);admins.append(line)}if(!(v.admins||[]).length)admins.append(elm('p','Aucun administrateur affecté.'));card.append(admins);if(v.active)addAdminForm(card,v);const zone=elm('div',undefined,v.active?'zone zone-danger':'zone zone-off');
-if(v.active){zone.append(elm('h4','Suspendre tout le village'),elm('p','Bloque immédiatement l’administrateur et toute l’équipe de « '+v.nom+' ». Le motif ci-dessous leur sera affiché à la connexion.'));const motif=elm('input');motif.placeholder='Motif de la suspension';motif.maxLength=300;motif.setAttribute('aria-label','Motif de la suspension');zone.append(motif);const actions=elm('div',undefined,'buttons');addButton(actions,'Suspendre le village et son équipe',async()=>{const m=motif.value.trim();if(m.length<3){status('Indiquez le motif de la suspension.',true);motif.focus();return;}if(!confirm('Suspendre « '+v.nom+' » ? Toute son équipe sera déconnectée et bloquée.'))return;await api({action:'deactivateVillage',villageId:v.id,motif:m});status('Village suspendu : l’équipe est bloquée.');await load();},'subtle danger');zone.append(actions);}
-else{zone.append(elm('h4','Village suspendu'),elm('p','Aucun membre de l’équipe ne peut se connecter.'));if(v.motif)zone.append(elm('p','Motif : '+v.motif,'motif'));const actions=elm('div',undefined,'buttons');addButton(actions,'Réactiver le village',async()=>{if(!confirm('Réactiver « '+v.nom+' » ? Son équipe pourra de nouveau se connecter.'))return;await api({action:'activateVillage',villageId:v.id});status('Village réactivé.');await load();});zone.append(actions);}
-card.append(zone);root.append(card);}}
-$('create-village').addEventListener('submit',async e=>{e.preventDefault();if(running)return;running=true;const form=e.currentTarget,btn=form.querySelector('button');btn.disabled=true;try{const v=Object.fromEntries(new FormData(form));await api({action:'createVillage',...v});form.reset();status('Village créé : '+v.nom);await load()}catch(ex){status(ex.message,true)}finally{running=false;btn.disabled=false}});
-$('refresh').addEventListener('click',()=>load().catch(e=>status(e.message,true)));
-$('logout').addEventListener('click',async()=>{await signOut(auth);location.replace('../index.html')});
-onAuthStateChanged(auth,async user=>{if(!user){location.replace('../index.html');return;}try{await load()}catch(e){status('Accès central refusé : '+e.message,true);setTimeout(()=>location.replace('../index.html'),2000)}});
-</script></body></html>
+const $=id=>document.getElementById(id);
+let running=false;
+
+// ── Toasts ──────────────────────────────────────────────────────────────
+const ICON_OK='<svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_ERR='<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>';
+function toast(msg,type='ok'){
+    const t=document.createElement('div');t.className='toast '+type;
+    t.innerHTML=(type==='err'?ICON_ERR:ICON_OK)+'<span></span>';
+    t.querySelector('span').textContent=msg;
+    $('toasts').appendChild(t);
+    setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='.3s';setTimeout(()=>t.remove(),300);},type==='err'?4500:2800);
+}
+
+// ── Appels API (super administrateur uniquement) ────────────────────────
+async function api(data,scope){
+    const u=auth.currentUser;if(!u)throw Error('Session expirée');
+    const rsp=await fetch('/api/access-management'+(scope?'?scope='+encodeURIComponent(scope):''),{
+        method:scope?'GET':'POST',
+        headers:{Authorization:'Bearer '+await u.getIdToken(),...(scope?{}:{'Content-Type':'application/json'})},
+        body:scope?undefined:JSON.stringify(data),cache:'no-store'});
+    const out=await rsp.json();if(!rsp.ok||!out.ok)throw Error(out.error||'Erreur serveur');return out;
+}
+function el(tag,txt,cls){const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cls)n.className=cls;return n;}
+// Exécute une action protégée (anti double-clic) avec retour toast.
+async function run(fn,okMsg){if(running)return;running=true;try{await fn();if(okMsg)toast(okMsg);}catch(e){toast(e.message,'err');}finally{running=false;}}
+
+// ── Sections repliables ─────────────────────────────────────────────────
+document.querySelectorAll('.sec-head[data-toggle]').forEach(h=>h.addEventListener('click',()=>$(h.dataset.toggle).classList.toggle('open')));
+
+// ── Création de village : identifiant auto depuis le nom ────────────────
+const slug=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+let idTouche=false;
+$('cv-id').addEventListener('input',()=>{idTouche=true;});
+$('cv-nom').addEventListener('input',e=>{if(!idTouche)$('cv-id').value=slug(e.target.value);});
+$('create-village').addEventListener('submit',e=>{e.preventDefault();
+    const nom=$('cv-nom').value.trim(),villageId=$('cv-id').value.trim(),duree=$('cv-duree').value;
+    if(nom.length<2){toast('Indiquez le nom du village.','err');return;}
+    if(!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(villageId)){toast('Identifiant invalide (minuscules, chiffres, tirets).','err');return;}
+    const btn=e.target.querySelector('button');btn.disabled=true;
+    run(async()=>{await api({action:'createVillage',nom,villageId,duree});$('create-village').reset();idTouche=false;await load();},'Village créé : '+nom).finally(()=>btn.disabled=false);
+});
+
+// ── Rendu des demandes d'accès ──────────────────────────────────────────
+function initiales(p,n){return ((p||'?').charAt(0)+(n||'').charAt(0)).toUpperCase();}
+function renderRequests(list){
+    const root=$('requests');root.replaceChildren();
+    const nouv=(list||[]).filter(r=>r.status!=='traite').length;
+    const badge=$('req-count');badge.hidden=!nouv;badge.textContent=nouv;
+    if(!list||!list.length){root.append(el('p','Aucune demande pour le moment.','empty'));return;}
+    for(const r of list){
+        const nom=((r.prenom||'')+' '+(r.nom||'')).trim()||'—';
+        const card=el('article',undefined,'req');
+        const top=el('div',undefined,'req-top');
+        top.append(el('div',initiales(r.prenom,r.nom),'req-ava'));
+        const id=el('div',undefined,'req-id');
+        id.append(el('b',nom));
+        const meta=el('div',undefined,'meta');
+        meta.append(el('span','📍 '+(r.village||'—')),el('span','📞 '+(r.whatsapp||'—')),el('span','🕑 '+(r.ts?new Date(r.ts).toLocaleString('fr-FR'):'—')));
+        id.append(meta);top.append(id);
+        top.append(el('span',r.status==='traite'?'Traité':'Nouveau',r.status==='traite'?'badge done':'badge new'));
+        card.append(top);
+        const acts=el('div',undefined,'req-acts');
+        const wa=el('a','Contacter sur WhatsApp','btn wa sm');wa.href='https://wa.me/'+String(r.whatsapp||'').replace(/[^0-9]/g,'');wa.target='_blank';wa.rel='noopener';
+        wa.insertAdjacentHTML('afterbegin','<svg class="icon" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.5L3 21l2-5.7A8.4 8.4 0 1 1 21 11.5Z"/></svg>');
+        acts.append(wa);
+        const mark=el('button',r.status==='traite'?'Rouvrir':'Marquer traité','btn ghost sm');mark.type='button';
+        mark.addEventListener('click',()=>run(async()=>{await api({action:'markAdminRequest',id:r.id,status:r.status==='traite'?'nouveau':'traite'});await load();},'Demande mise à jour.'));
+        const del=el('button','Supprimer','btn danger sm');del.type='button';
+        del.addEventListener('click',()=>{if(!confirm('Supprimer définitivement la demande de '+nom+' ? Cette action est irréversible.'))return;run(async()=>{await api({action:'resolveAdminRequest',id:r.id});await load();},'Demande supprimée.');});
+        acts.append(mark,del);
+        card.append(acts);root.append(card);
+    }
+}
+
+// ── Rendu d'un village ──────────────────────────────────────────────────
+function assignForm(v){
+    const form=el('form',undefined,'assign-form');
+    const input=el('input',undefined,'fc');input.type='email';input.required=true;input.placeholder='administrateur@exemple.sn';
+    const btn=el('button','Donner accès','btn sm');btn.type='submit';
+    form.append(input,btn);
+    form.addEventListener('submit',e=>{e.preventDefault();const email=input.value.trim();if(!email){toast('Saisissez une adresse e-mail.','err');return;}btn.disabled=true;
+        run(async()=>{const res=await api({action:'assignAdmin',email,villageId:v.id});
+            if(res.needsPasswordSetup){try{await sendPasswordResetEmail(auth,res.email);toast('Compte créé. E-mail de mot de passe envoyé.');}catch{toast('Accès enregistré ; l’e-mail de configuration a échoué (voir « Code oublié »).','err');}}
+            else toast('Accès administrateur enregistré.');
+            input.value='';await load();}).finally(()=>btn.disabled=false);
+    });
+    return form;
+}
+function renderVillage(v){
+    const card=el('article',undefined,'v-card');
+    const head=el('button',undefined,'v-head');head.type='button';
+    head.append(el('span','',( 'v-badge-ico')));
+    head.querySelector('.v-badge-ico').innerHTML='<svg class="icon" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>';
+    const htxt=el('div',undefined,'v-head-txt');
+    htxt.append(el('h3',v.nom));
+    const sub=el('div',undefined,'sub');
+    sub.append(el('span',v.active?'Actif':'Suspendu',v.active?'pill on':'pill off'));
+    // Échéance
+    let expPill;
+    if(v.expires_ts){const reste=v.expires_ts-Date.now();const exp=reste<=0;const j=Math.ceil(Math.abs(reste)/86400000);
+        expPill=el('span',exp?('Expiré (−'+j+' j)'):('Expire dans '+j+' j'),exp?'pill exp-ko':'pill exp-ok');}
+    else expPill=el('span','Sans échéance','pill exp-none');
+    sub.append(expPill,el('span',v.id));
+    htxt.append(sub);head.append(htxt);
+    head.append(el('span','',( 'v-chev')));
+    head.querySelector('.v-chev').innerHTML='<svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+    head.addEventListener('click',()=>card.classList.toggle('open'));
+    card.append(head);
+
+    const inner=el('div',undefined,'v-inner');
+
+    // Bloc échéance + prolongation
+    const bExp=el('div',undefined,'block');
+    bExp.append(el('div','Accès',( 'block-t')));
+    const expLine=el('div',undefined,'exp-line');
+    if(v.expires_ts){const d=new Date(v.expires_ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});expLine.append(expPill.cloneNode(true),el('span','Échéance : '+d));}
+    else expLine.append(expPill.cloneNode(true),el('span','Aucune date d’expiration définie.'));
+    bExp.append(expLine);
+    const renew=el('div',undefined,'renew-row');
+    const sel=el('select',undefined,'fc');for(const[k,l] of [['1m','+1 mois'],['3m','+3 mois'],['6m','+6 mois'],['1a','+1 an'],['perso','Date précise…']]){const o=el('option',l);o.value=k;sel.append(o);}
+    const dateI=el('input',undefined,'fc');dateI.type='date';dateI.style.display='none';dateI.min=new Date(Date.now()+86400000).toISOString().slice(0,10);
+    sel.addEventListener('change',()=>dateI.style.display=sel.value==='perso'?'':'none');
+    const btnR=el('button','Prolonger','btn ghost sm');btnR.type='button';
+    btnR.addEventListener('click',()=>{
+        if(sel.value==='perso'){const d=dateI.value;if(!d){toast('Choisissez une date.','err');return;}if(!confirm('Fixer l’expiration de « '+v.nom+' » au '+new Date(d+'T23:59:59').toLocaleDateString('fr-FR')+' ?'))return;run(async()=>{await api({action:'renewVillage',villageId:v.id,date:d});await load();},'Accès mis à jour.');}
+        else{if(!confirm('Prolonger « '+v.nom+' » de '+sel.selectedOptions[0].textContent.replace('+','')+' ?'))return;run(async()=>{await api({action:'renewVillage',villageId:v.id,duree:sel.value});await load();},'Accès prolongé.');}
+    });
+    renew.append(sel,dateI,btnR);bExp.append(renew);inner.append(bExp);
+
+    // Bloc administrateurs
+    const bAdm=el('div',undefined,'block');
+    bAdm.append(el('div','Administrateurs',( 'block-t')));
+    if((v.admins||[]).length){for(const a of v.admins){const line=el('div',undefined,'admin-line');line.append(el('span','',( 'adot')),el('span',(a.email||a.uid)));bAdm.append(line);}}
+    else bAdm.append(el('p','Aucun administrateur affecté.','empty'));
+    if(v.active)bAdm.append(assignForm(v));
+    inner.append(bAdm);
+
+    // Bloc suspension / réactivation
+    if(v.active){
+        const bSusp=el('div',undefined,'block danger-zone');
+        bSusp.append(el('div','Suspendre le village',( 'block-t')));
+        const motif=el('input',undefined,'fc');motif.placeholder='Motif (affiché à toute l’équipe)';motif.maxLength=300;motif.style.marginBottom='9px';
+        bSusp.append(motif);
+        const bS=el('button','Suspendre le village et son équipe','btn danger sm block');bS.type='button';
+        bS.addEventListener('click',()=>{const m=motif.value.trim();if(m.length<3){toast('Indiquez le motif de la suspension.','err');motif.focus();return;}if(!confirm('Suspendre « '+v.nom+' » ? Toute son équipe sera déconnectée et bloquée.'))return;run(async()=>{await api({action:'deactivateVillage',villageId:v.id,motif:m});await load();},'Village suspendu.');});
+        bSusp.append(bS);inner.append(bSusp);
+    }else{
+        const bReact=el('div',undefined,'block off-zone');
+        bReact.append(el('div','Village suspendu',( 'block-t')));
+        if(v.motif)bReact.append(el('p','Motif : '+v.motif,'motif-txt'));
+        const bR=el('button','Réactiver le village','btn green sm block');bR.type='button';
+        bR.addEventListener('click',()=>{if(!confirm('Réactiver « '+v.nom+' » ? Son équipe pourra de nouveau se connecter.'))return;run(async()=>{await api({action:'activateVillage',villageId:v.id});await load();},'Village réactivé.');});
+        bReact.append(bR);inner.append(bReact);
+    }
+
+    const body=el('div',undefined,'v-body');const wrap=el('div',undefined,'v-wrap');
+    wrap.append(body);body.append(inner);card.append(wrap);
+    return card;
+}
+
+// ── Chargement + synchronisation ────────────────────────────────────────
+function skeleton(root,n){root.replaceChildren();for(let i=0;i<n;i++)root.append(el('div',undefined,'sk sk-card'));}
+async function load(){
+    try{
+        const data=await api(null,'overview');
+        // Demandes
+        renderRequests(data.requests);
+        // Villages
+        const root=$('villages');root.replaceChildren();
+        const villages=data.villages||[];
+        $('v-count').hidden=!villages.length;$('v-count').textContent=villages.length;
+        $('v-count').style.background='var(--blue-soft)';$('v-count').style.color='var(--blue)';$('v-count').style.borderColor='#c7d6e5';
+        if(!villages.length)root.append(el('p','Aucun village enregistré.','empty'));
+        else for(const v of villages)root.append(renderVillage(v));
+        // Stats
+        const actifs=villages.filter(v=>v.active).length;
+        const expires=villages.filter(v=>v.expires_ts&&v.expires_ts<Date.now()).length;
+        const demandes=(data.requests||[]).filter(r=>r.status!=='traite').length;
+        $('st-villages').textContent=villages.length;
+        $('st-actifs').textContent=actifs;
+        $('st-expires').textContent=expires;
+        $('st-demandes').textContent=demandes;
+        // Ouvre la section demandes s'il y en a de nouvelles.
+        if(demandes>0)$('sec-req').classList.add('open');
+    }catch(e){toast('Accès central refusé : '+e.message,'err');setTimeout(()=>location.replace('../index.html'),2200);}
+}
+
+$('logout').addEventListener('click',async()=>{await signOut(auth);location.replace('../index.html');});
+
+onAuthStateChanged(auth,async user=>{
+    if(!user){location.replace('../index.html');return;}
+    const email=user.email||'';const av=$('user-initials');av.textContent=email.slice(0,2).toUpperCase();av.title=email;
+    skeleton($('villages'),3);
+    await load();
+    // Rafraîchissement périodique léger (les demandes et échéances évoluent).
+    setInterval(()=>{if(!running&&document.visibilityState==='visible')load();},60000);
+});
+</script>
+</body>
+</html>

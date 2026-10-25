@@ -52,7 +52,7 @@ async function listing(db,auth,actor,scope){
   const demandes=(await db.ref('admin_requests').once('value')).val()||{};
   const requests=Object.entries(demandes).map(([id,r])=>({
    id,prenom:String(r?.prenom||''),nom:String(r?.nom||''),village:String(r?.village||''),
-   whatsapp:String(r?.whatsapp||''),ts:Number(r?.ts)||0
+   whatsapp:String(r?.whatsapp||''),ts:Number(r?.ts)||0,status:String(r?.status||'nouveau')
   })).sort((a,b)=>b.ts-a.ts);
   return {villages: villages.sort((a,b)=>a.nom.localeCompare(b.nom)),requests,scope:'overview'};
  }
@@ -163,6 +163,16 @@ async function perform(db,auth,actor,b){
   if(!/^[\w-]{1,64}$/.test(id)) throw fail(422,'Demande invalide.');
   await db.ref('admin_requests/'+id).remove();
   return {id,resolved:true};
+ }
+ if(action==='markAdminRequest'){
+  if(!actor.global) throw forbidden();
+  const id=val(b.id,64),statut=val(b.status,12);
+  if(!/^[\w-]{1,64}$/.test(id)) throw fail(422,'Demande invalide.');
+  if(!['nouveau','traite'].includes(statut)) throw fail(422,'Statut invalide.');
+  const r=db.ref('admin_requests/'+id);
+  if(!(await r.once('value')).exists()) throw fail(404,'Demande introuvable.');
+  await r.update({status:statut,updated_by:actor.uid,updated_ts:Date.now()});
+  return {id,status:statut};
  }
  if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,auth,actor,{villageId:b.villageId,action,motif:b.motif});
  if(action==='assignAdmin'||action==='createStaff'){
