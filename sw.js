@@ -4,7 +4,7 @@
 //  Stratégie : Cache-First pour assets statiques, Network-First pour données
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v54-hierarchy-20261024';
+const APP_VERSION     = 'v55-equipe-ui-20261025';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
