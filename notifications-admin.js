@@ -60,7 +60,7 @@ export function initNotifCaisseAdmin() {
 }
 
 // L'enregistrement sur appareil partagé est effacé AVANT la sortie de session.
-export async function desabonnerPushAdmin() {
+async function desabonnerPushAdminInterne() {
     if (!auth.currentUser || !('serviceWorker' in navigator) || !('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
     try {
@@ -72,6 +72,15 @@ export async function desabonnerPushAdmin() {
         if (token) await remove(villageRef(db, 'fcm_tokens_admin/' + token.replace(/[.#$[\]/]/g, '_')));
         await deleteToken(msg);
     } catch (e) { console.warn('[notif] désinscription push incomplète :', e?.message || e); }
+}
+
+// Nettoyage « au mieux » : borné dans le temps pour ne jamais bloquer la déconnexion
+// (serviceWorker.ready ou getToken peuvent ne jamais répondre sur certains téléphones).
+export function desabonnerPushAdmin(delaiMs = 2500) {
+    return Promise.race([
+        desabonnerPushAdminInterne().catch(() => {}),
+        new Promise(resolve => setTimeout(resolve, delaiMs))
+    ]);
 }
 
 
