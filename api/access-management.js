@@ -35,7 +35,7 @@ async function listing(db,auth,actor,scope){
   const registry=(await db.ref('villages_registry').once('value')).val()||{};
   const users=(await db.ref('db_users').once('value')).val()||{};
   const villages=await Promise.all(Object.entries(registry).map(async([id,meta])=>({
-   id,nom:String(meta?.nom||id),active:meta?.active===true,
+   id,nom:String(meta?.nom||id),active:meta?.active===true,motif:meta?.active===true?'':String(meta?.suspension?.motif||''),
    admins:await Promise.all(Object.entries(users).filter(([,u])=>u?.village_id===id && u.role==='admin').map(([uid,u])=>userDTO(auth,uid,u)))
   })));
   return {villages: villages.sort((a,b)=>a.nom.localeCompare(b.nom)),scope:'overview'};
@@ -103,14 +103,28 @@ async function changeAdmin(db,actor,{uid,villageId,action}){
  if(!result.committed) throw fail(403,problem||'Compte administrateur protégé.');
  return {uid,villageId,active:action==='reactivateAdmin'};
 }
-async function changeVillage(db,actor,{villageId,action}){
+async function changeVillage(db,auth,actor,{villageId,action,motif}){
  if(!actor.global || !SLUG.test(villageId||'')) throw forbidden();
  const v=db.ref('villages_registry/'+villageId);
  if(action==='createVillage') throw fail(422,'Utiliser une création avec nom.');
  if(!['activateVillage','deactivateVillage'].includes(action)) throw fail(422,'Action invalide.');
- const result=await v.transaction(current=>current?{...current,active:action==='activateVillage',updated_by:actor.uid,updated_ts:Date.now()}:undefined,undefined,false);
+ const raison=val(motif,300);
+ if(action==='deactivateVillage' && raison.length<3) throw fail(422,'Indiquer le motif de la suspension (3 caractères minimum).');
+ const activer=action==='activateVillage';
+ const result=await v.transaction(current=>{
+  if(!current) return undefined;
+  const next={...current,active:activer,updated_by:actor.uid,updated_ts:Date.now()};
+  if(activer) delete next.suspension; else next.suspension={motif:raison,ts:Date.now(),by:actor.uid};
+  return next;
+ },undefined,false);
  if(!result.committed) throw fail(404,'Village introuvable.');
- return {villageId,active:action==='activateVillage'};
+ if(!activer){
+  // Toute l'équipe est déconnectée : les jetons existants sont révoqués, et les règles
+  // RTDB + les API refusent déjà tout accès tant que le village est suspendu.
+  const users=(await db.ref('db_users').once('value')).val()||{};
+  await Promise.allSettled(Object.entries(users).filter(([,u])=>u?.village_id===villageId).map(([uid])=>auth.revokeRefreshTokens(uid)));
+ }
+ return {villageId,active:activer};
 }
 async function perform(db,auth,actor,b){
  const action=String(b.action||'');
@@ -124,7 +138,7 @@ async function perform(db,auth,actor,b){
   return {villageId:id,nom};
  }
  if(action==='revokeAdmin'||action==='reactivateAdmin') return changeAdmin(db,actor,{uid:b.uid,villageId:b.villageId,action});
- if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,actor,{villageId:b.villageId,action});
+ if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,auth,actor,{villageId:b.villageId,action,motif:b.motif});
  if(action==='assignAdmin'||action==='createStaff'){
   if((action==='assignAdmin')!==actor.global) throw forbidden();
   const role=action==='assignAdmin'?'admin':val(b.role,30);
@@ -136,12 +150,29 @@ async function perform(db,auth,actor,b){
  }
  throw fail(422,'Action non reconnue.');
 }
+// Explique à un compte authentifié pourquoi son accès est refusé (village ou compte suspendu).
+// Ne vérifie pas la révocation : un jeton révoqué doit pouvoir lire son propre motif.
+async function statut(req,db,auth){
+ const token=(req.headers.authorization||'').match(/^Bearer (\S+)$/i)?.[1];
+ if(!token) throw fail(401,'Jeton de connexion obligatoire.');
+ const user=await auth.verifyIdToken(token,false);
+ const fiche=(await db.ref('db_users/'+user.uid).once('value')).val();
+ if(!fiche) return {statut:'non_configure'};
+ if(fiche.role==='superadmin') return {statut:'actif'};
+ if(fiche.active===false) return {statut:'compte_suspendu'};
+ if(!SLUG.test(fiche.village_id||'')) return {statut:'non_configure'};
+ const village=(await db.ref('villages_registry/'+fiche.village_id).once('value')).val();
+ if(village?.active!==true) return {statut:'village_suspendu',village:String(village?.nom||fiche.village_id),motif:String(village?.suspension?.motif||'')};
+ return {statut:'actif'};
+}
 async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
  res.setHeader('Content-Type','application/json; charset=utf-8');
  try {
   if(!['GET','POST'].includes(req.method)) throw fail(405,'Méthode non autorisée.');
-  const {db,auth}=firebase(), actor=await authActor(req,db,auth);
+  const {db,auth}=firebase();
+  if(req.method==='GET' && req.query?.scope==='statut') return res.status(200).json({ok:true,...await statut(req,db,auth)});
+  const actor=await authActor(req,db,auth);
   const data=req.method==='GET'?await listing(db,auth,actor,req.query?.scope):await perform(db,auth,actor,req.body||{});
   res.status(200).json({ok:true,...data});
  }catch(e){

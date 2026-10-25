@@ -98,8 +98,12 @@ function afficherVillage() {
 }
 
 let arreterSurveillance = null;
+let arreterVillage = null;
+let arreterMeta = null;
 onAuthStateChanged(auth, u => {
   if (arreterSurveillance) { arreterSurveillance(); arreterSurveillance = null; }
+  if (arreterVillage) { arreterVillage(); arreterVillage = null; }
+  if (arreterMeta) { arreterMeta(); arreterMeta = null; }
   if (u) {
     arreterSurveillance = onValue(ref(db, `db_users/${u.uid}`), snapshot => {
       const data = snapshot.val();
@@ -112,6 +116,24 @@ onAuthStateChanged(auth, u => {
         if(location.pathname!=='/' && !location.pathname.endsWith('/index.html')) location.replace('/index.html');
       }
     }, () => { contexte = null; });
+    // Village suspendu pendant la session : l'accès est coupé, l'équipe est déconnectée avec le motif.
+    arreterVillage = onValue(ref(db, `db_users/${u.uid}/village_id`), async vs => {
+      const id = vs.val();
+      if (!id) return;
+      if (arreterMeta) { arreterMeta(); arreterMeta = null; }
+      arreterMeta = onValue(ref(db, `villages_registry/${id}/active`), () => {}, async () => {
+        arreterMeta = null; contexte = null;
+        try {
+          const r = await fetch('/api/access-management?scope=statut', { headers: { Authorization: 'Bearer ' + await u.getIdToken() }, cache: 'no-store' });
+          const d = await r.json();
+          if (d?.statut === 'village_suspendu') sessionStorage.setItem('refusAcces', JSON.stringify({ msg: 'Accès suspendu : le village « ' + d.village + ' » est bloqué.', sub: d.motif ? 'Motif : ' + d.motif : 'Contactez le super administrateur.' }));
+        } catch (e) {}
+        const msg = sessionStorage.getItem('refusAcces');
+        localStorage.removeItem('savedRole'); sessionStorage.clear();
+        if (msg) sessionStorage.setItem('refusAcces', msg);
+        signOut(auth).finally(() => { if (location.pathname !== '/' && !location.pathname.endsWith('/index.html')) location.replace('/index.html'); });
+      });
+    }, () => {});
   }
 
   if (!u || (contexte && contexte.uid !== u.uid)) {

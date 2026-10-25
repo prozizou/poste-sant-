@@ -466,6 +466,25 @@ import { auth, db } from './firebase-config.js'; // db est maintenant la Realtim
             return reel && ROLE_HOME[reel] ? [reel] : [];
         }
 
+        // Explique un refus d'accès : village suspendu (avec le motif du super administrateur) ou compte suspendu.
+        async function expliquerRefus() {
+            try {
+                const u = auth.currentUser; if (!u) return null;
+                const r = await fetch('/api/access-management?scope=statut', { headers: { Authorization: 'Bearer ' + await u.getIdToken() }, cache: 'no-store' });
+                const d = await r.json(); if (!r.ok || !d.ok) return null;
+                if (d.statut === 'village_suspendu') return { msg: 'Accès suspendu : le village « ' + d.village + ' » est bloqué.', sub: d.motif ? 'Motif : ' + d.motif : 'Contactez le super administrateur.' };
+                if (d.statut === 'compte_suspendu') return { msg: 'Votre compte est suspendu.', sub: "Contactez l'administrateur de votre poste." };
+            } catch (e) {}
+            return null;
+        }
+        function afficherRefusMemorise() {
+            try {
+                const m = sessionStorage.getItem('refusAcces'); if (!m) return;
+                sessionStorage.removeItem('refusAcces');
+                const o = JSON.parse(m); showMessage(o.msg, 'error', o.sub);
+            } catch (e) {}
+        }
+
         function memoriserRole(email, role) {
             sessionStorage.setItem('userRole', role);
             sessionStorage.setItem('userEmail', email);
@@ -703,11 +722,14 @@ import { auth, db } from './firebase-config.js'; // db est maintenant la Realtim
                     dejaTraite = true;
                     afficherChoixEspace(user.email, roles);
                 }
-                // roles.length === 0 : compte authentifié mais non configuré
-                // dans administration/auth_db → on reste sur l'écran de
-                // connexion plutôt que de rediriger nulle part.
+                else {
+                    // Aucun accès : village ou compte suspendu ? On l'explique puis on ferme la session.
+                    const refus = await expliquerRefus();
+                    if (refus) { await signOut(auth); localStorage.removeItem('savedRole'); sessionStorage.clear(); showMessage(refus.msg, 'error', refus.sub); }
+                }
             } catch (e) { /* réseau/permissions : on reste sur l'écran de connexion */ }
         });
+        afficherRefusMemorise();
 
         // 9. MOT DE PASSE OUBLIÉ — envoie un lien de réinitialisation Firebase
         // (jeton à usage unique) ; l'ancien code n'est jamais révélé.
@@ -751,8 +773,10 @@ import { auth, db } from './firebase-config.js'; // db est maintenant la Realtim
                 const roles = await rolesPourEmail(email);
 
                 if (!roles.length) {
+                    const refus = await expliquerRefus();
                     await signOut(auth);
-                    showMessage('Ce compte est authentifié mais ne possède aucun accès configuré.', 'error', "Contactez l'administration.");
+                    if (refus) showMessage(refus.msg, 'error', refus.sub);
+                    else showMessage('Ce compte est authentifié mais ne possède aucun accès configuré.', 'error', "Contactez l'administration.");
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<span id="submit-btn-label">Se connecter</span>';
                     return;
