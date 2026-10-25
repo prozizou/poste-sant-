@@ -462,7 +462,10 @@ import { auth, db } from './firebase-config.js'; // db est maintenant la Realtim
         async function rolesPourEmail(email) {
             // Ne pas interroger les anciens rôles globaux : l'affectation
             // village + rôle provient maintenant exclusivement de db_users/UID.
-            const reel = await roleServeur(auth.currentUser);
+            // Un village suspendu interdit la lecture de villages_registry par
+            // les règles : on renvoie alors « aucun rôle » pour que l'écran
+            // affiche le motif (via expliquerRefus) au lieu d'une erreur brute.
+            const reel = await roleServeur(auth.currentUser).catch(() => '');
             return reel && ROLE_HOME[reel] ? [reel] : [];
         }
 
