@@ -49,7 +49,12 @@ async function listing(db,auth,actor,scope){
    expires_ts:Number(meta?.expires_ts)||null,duree:String(meta?.duree||''),
    admins:await Promise.all(Object.entries(users).filter(([,u])=>u?.village_id===id && u.role==='admin').map(([uid,u])=>userDTO(auth,uid,u)))
   })));
-  return {villages: villages.sort((a,b)=>a.nom.localeCompare(b.nom)),scope:'overview'};
+  const demandes=(await db.ref('admin_requests').once('value')).val()||{};
+  const requests=Object.entries(demandes).map(([id,r])=>({
+   id,prenom:String(r?.prenom||''),nom:String(r?.nom||''),village:String(r?.village||''),
+   whatsapp:String(r?.whatsapp||''),ts:Number(r?.ts)||0
+  })).sort((a,b)=>b.ts-a.ts);
+  return {villages: villages.sort((a,b)=>a.nom.localeCompare(b.nom)),requests,scope:'overview'};
  }
  if(actor.role!=='admin'||scope!=='team') throw forbidden();
  const users=(await db.ref('db_users').once('value')).val()||{};
@@ -151,6 +156,13 @@ async function perform(db,auth,actor,b){
   }
   await v.set({...current,duree,expires_ts,updated_by:actor.uid,updated_ts:Date.now()});
   return {villageId:b.villageId,expires_ts};
+ }
+ if(action==='resolveAdminRequest'){
+  if(!actor.global) throw forbidden();
+  const id=val(b.id,64);
+  if(!/^[\w-]{1,64}$/.test(id)) throw fail(422,'Demande invalide.');
+  await db.ref('admin_requests/'+id).remove();
+  return {id,resolved:true};
  }
  if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,auth,actor,{villageId:b.villageId,action,motif:b.motif});
  if(action==='assignAdmin'||action==='createStaff'){

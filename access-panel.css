@@ -59,3 +59,17 @@
 @media(max-width:670px){.renew select{flex:1;min-width:0}}
 .renew input[type=date]{width:auto;min-width:150px;min-height:38px;margin:0}
 @media(max-width:670px){.renew .renew-label{flex:1 1 100%}.renew select{flex:1 1 44%;min-width:0}.renew input[type=date]{flex:1 1 44%;min-width:0}.renew button{flex:1 1 100%}}
+
+/* Demandes d'accès administrateur (super administration) */
+.req-hint{margin:-4px 0 14px;color:var(--muted);font-size:13px;line-height:1.5}
+.req{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.req-info{min-width:0;flex:1 1 220px}
+.req-info strong{font-size:15px;display:block;overflow-wrap:anywhere}
+.req-meta{display:flex;flex-direction:column;gap:3px;margin-top:5px}
+.req-meta span{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.req-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.req-actions .wa{background:#25d366;color:#fff;white-space:nowrap}
+.req-actions .wa:hover{background:#1da851}
+#requests-count{background:#fde9c8;color:#8a5200}
+@media(prefers-color-scheme:dark){.req{background:#112538}}
+@media(max-width:670px){.req-actions{width:100%}.req-actions .wa,.req-actions button{flex:1;text-align:center}}

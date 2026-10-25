@@ -309,6 +309,36 @@
             .passcode-container { gap: 4px; }
             .passcode-container input { height: 42px; font-size: 1.05rem; }
         }
+        /* Demander un accès administrateur */
+        .request-link{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:14px;padding:11px;border:1px dashed var(--border);border-radius:11px;background:transparent;color:var(--primary);font-family:inherit;font-size:.84rem;font-weight:700;cursor:pointer;transition:background .18s,border-color .18s;}
+        .request-link .icon{width:1.05em;height:1.05em;}
+        .request-link:hover{background:var(--primary-bg);border-color:var(--primary-light);}
+        .req-overlay{position:fixed;inset:0;background:rgba(26,58,92,.5);display:none;align-items:center;justify-content:center;padding:18px;z-index:1000;}
+        .req-overlay.open{display:flex;animation:reqFade .2s ease;}
+        .req-modal{background:var(--card-bg);border-radius:18px;width:100%;max-width:400px;padding:22px 20px 20px;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.25);animation:reqPop .22s ease;max-height:92vh;overflow:auto;}
+        .req-x{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:none;background:var(--bg);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+        .req-x .icon{width:16px;height:16px;}
+        .req-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;padding-right:28px;}
+        .req-head-ico{width:44px;height:44px;border-radius:12px;background:var(--primary-bg);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+        .req-head-ico .icon{width:22px;height:22px;}
+        .req-head h3{font-size:1.05rem;font-weight:800;color:var(--primary);line-height:1.2;}
+        .req-head p{font-size:.78rem;color:var(--muted);line-height:1.45;margin-top:3px;}
+        .req-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+        .req-fg{margin-bottom:12px;}
+        .req-fg label{display:block;font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:5px;}
+        .req-fg label span{color:var(--danger);}
+        .req-fg input{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:.9rem;color:var(--text);background:var(--card-bg);}
+        .req-fg input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-bg);}
+        .req-help{display:block;font-size:.72rem;color:var(--muted);margin-top:4px;}
+        .req-msg{border-radius:9px;padding:9px 12px;font-size:.8rem;font-weight:600;margin-bottom:12px;}
+        .req-msg.err{background:var(--danger-bg);color:var(--danger);}
+        .req-msg.ok{background:var(--accent-bg);color:var(--accent);}
+        .req-submit{width:100%;padding:13px;border:none;border-radius:11px;background:var(--primary);color:#fff;font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;transition:background .18s;}
+        .req-submit:hover{background:var(--primary-light);}
+        .req-submit:disabled{opacity:.6;cursor:wait;}
+        @keyframes reqFade{from{opacity:0}to{opacity:1}}
+        @keyframes reqPop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+        @media(prefers-reduced-motion:reduce){.req-overlay.open,.req-modal{animation:none;}}
     </style>
 </head>
 <body>
@@ -370,12 +400,38 @@
                 </button>
             </form>
 
+            <button type="button" class="request-link" onclick="ouvrirDemandeAdmin()">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><path d="M19 8v6M22 11h-6"/></svg>
+                Demander un accès administrateur
+            </button>
+
             <div class="footer-note">
                 Besoin d'assistance ?<br>
                 <a href="tel:+221773500595">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
                     +221 77 350 05 95
                 </a>
+            </div>
+        </div>
+
+        <!-- ══ DEMANDE D'ACCÈS ADMINISTRATEUR ══ -->
+        <div class="req-overlay" id="req-overlay" role="dialog" aria-modal="true" aria-labelledby="req-title">
+            <div class="req-modal">
+                <button type="button" class="req-x" id="req-x" aria-label="Fermer"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+                <div class="req-head">
+                    <div class="req-head-ico"><svg class="icon" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><path d="M19 8v6M22 11h-6"/></svg></div>
+                    <div><h3 id="req-title">Demander un accès administrateur</h3><p>Le super administrateur vous contactera sur WhatsApp pour activer votre accès.</p></div>
+                </div>
+                <form id="req-form">
+                    <div class="req-row">
+                        <div class="req-fg"><label for="req-prenom">Prénom <span>*</span></label><input type="text" id="req-prenom" maxlength="60" placeholder="Ex : Aminata" autocomplete="given-name" required></div>
+                        <div class="req-fg"><label for="req-nom">Nom <span>*</span></label><input type="text" id="req-nom" maxlength="60" placeholder="Ex : Diallo" autocomplete="family-name" required></div>
+                    </div>
+                    <div class="req-fg"><label for="req-village">Village / Poste de santé <span>*</span></label><input type="text" id="req-village" maxlength="80" placeholder="Ex : Keur Moussa" required></div>
+                    <div class="req-fg"><label for="req-whatsapp">Numéro WhatsApp <span>*</span></label><input type="tel" id="req-whatsapp" maxlength="25" inputmode="tel" placeholder="Ex : +221 77 000 00 00" required><small class="req-help">Format international, avec l'indicatif du pays.</small></div>
+                    <p class="req-msg" id="req-msg" hidden></p>
+                    <button type="submit" class="req-submit" id="req-submit">Envoyer la demande</button>
+                </form>
             </div>
         </div>
 
@@ -751,6 +807,40 @@ import { auth, db } from './firebase-config.js'; // db est maintenant la Realtim
                 showMessage("Impossible d'envoyer l'e-mail de réinitialisation.", "error", "Vérifiez que l'adresse est correcte.");
             }
         };
+
+        // 9b. DEMANDE D'ACCÈS ADMINISTRATEUR — envoyée au super administrateur,
+        // qui recontacte la personne sur WhatsApp. Aucune authentification requise.
+        const reqOverlay = document.getElementById('req-overlay');
+        const reqMsg = document.getElementById('req-msg');
+        function reqMessage(txt, ok) { if (!txt) { reqMsg.hidden = true; return; } reqMsg.textContent = txt; reqMsg.className = 'req-msg ' + (ok ? 'ok' : 'err'); reqMsg.hidden = false; }
+        window.ouvrirDemandeAdmin = function() { reqMessage(''); reqOverlay.classList.add('open'); setTimeout(() => document.getElementById('req-prenom').focus(), 50); };
+        function fermerDemandeAdmin() { reqOverlay.classList.remove('open'); }
+        document.getElementById('req-x').addEventListener('click', fermerDemandeAdmin);
+        reqOverlay.addEventListener('click', (ev) => { if (ev.target === reqOverlay) fermerDemandeAdmin(); });
+        document.getElementById('req-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('req-submit');
+            const prenom = document.getElementById('req-prenom').value.trim();
+            const nom = document.getElementById('req-nom').value.trim();
+            const village = document.getElementById('req-village').value.trim();
+            const whatsapp = document.getElementById('req-whatsapp').value.trim();
+            if (prenom.length < 2 || nom.length < 2) { reqMessage('Renseignez votre prénom et votre nom.'); return; }
+            if (village.length < 2) { reqMessage('Indiquez votre village ou poste de santé.'); return; }
+            if (!/^\+?[0-9\s().-]{8,20}$/.test(whatsapp)) { reqMessage('Numéro WhatsApp invalide (format international, ex : +221 77 000 00 00).'); return; }
+            reqMessage(''); btn.disabled = true; btn.textContent = 'Envoi…';
+            try {
+                const rsp = await fetch('/api/request-admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prenom, nom, village, whatsapp }) });
+                const out = await rsp.json().catch(() => ({}));
+                if (!rsp.ok || !out.ok) throw new Error(out.error || 'Envoi impossible pour le moment.');
+                document.getElementById('req-form').reset();
+                reqMessage('Demande envoyée. Le super administrateur vous contactera sur WhatsApp.', true);
+                setTimeout(fermerDemandeAdmin, 3500);
+            } catch (ex) {
+                reqMessage(ex.message || 'Envoi impossible. Vérifiez votre connexion et réessayez.');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Envoyer la demande';
+            }
+        });
 
         // 10. SOUMISSION DU FORMULAIRE (Auth + détermination du rôle)
         document.getElementById('login-form').addEventListener('submit', async (e) => {
