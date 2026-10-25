@@ -519,6 +519,20 @@ async function prochainNumeroAttente(refTs = Date.now()) {
         throw new Error('Numéro d’attente non attribué : connexion requise pour éviter les doublons.');
     }
 }
+// Numéro d'attente prévisionnel (lecture seule, sans incrément) pour l'aperçu
+// de la synthèse. Le numéro définitif est attribué de façon atomique à l'encaissement.
+window.numeroAttentePrevisionnel = function() {
+    try {
+        const refTs = getOpTimestamp();
+        let max = 0;
+        allTickets.filter(x => isSameDay(x._ts, refTs)).forEach(t => {
+            const n = parseInt(String(t.num_attente || '').replace(/\D/g, ''), 10);
+            if (!isNaN(n) && n > max) max = n;
+        });
+        return 'N° ' + String(max + 1).padStart(3, '0');
+    } catch (e) { return '—'; }
+};
+
 // ── STATS GLOBALES (TICKETS + MÉDICAMENTS) ───────
 // Les tickets/ventes annulés (retour pharmacie, erreur de caisse…) sont
 // exclus de toutes les statistiques pour ne pas fausser le bilan.
@@ -752,6 +766,15 @@ window.encaisserTicket = async function() {
         } else {
             toast('Ticket enregistré avec succès (sans impression).','ok');
         }
+
+        // L'assistant de facturation écoute cet évènement pour afficher la confirmation.
+        document.dispatchEvent(new CustomEvent('ticket:success', { detail: {
+            key: newRef.key, numAttente, choix,
+            prenom, nom, age,
+            total: fmt(prixActuel), recuFmt: fmt(recu), monnaieFmt: fmt(monnaie),
+            dateAffiche: new Date(opTs).toLocaleDateString('fr-FR') + ' • ' + new Date(opTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+            validiteStr, imprime: imprimer
+        }}));
 
         document.getElementById('t-prenom').value='';
         document.getElementById('t-nom').value='';

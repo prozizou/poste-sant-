@@ -135,116 +135,132 @@
     <div class="tab-pane active" id="pane-ticket">
         <div class="tab-body">
             <div class="section-block active" data-section="nouvelle">
-                <div>
-                    <div class="card">
-                        <div class="card-head" style="border-left:4px solid var(--primary);">
-                            <div class="card-head-icon" style="background:var(--blue-bg);color:var(--primary);"><svg class="icon" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
-                            <div><h3>Nouveau Ticket de Consultation</h3><p>Enregistrez le patient et émettez le ticket</p></div>
+                <div class="wiz" id="wiz-ticket">
+                    <!-- Indicateur de progression 1/3 -->
+                    <div class="wiz-steps" role="list" aria-label="Progression">
+                        <div class="wiz-dot active" data-dot="1"><span class="wiz-dot-n">1</span><span class="wiz-dot-l">Patient</span></div>
+                        <div class="wiz-bar" data-bar="1"></div>
+                        <div class="wiz-dot" data-dot="2"><span class="wiz-dot-n">2</span><span class="wiz-dot-l">Prestation</span></div>
+                        <div class="wiz-bar" data-bar="2"></div>
+                        <div class="wiz-dot" data-dot="3"><span class="wiz-dot-n">3</span><span class="wiz-dot-l">Synthèse</span></div>
+                    </div>
+
+                    <!-- ÉTAPE 1 — Patient -->
+                    <section class="wiz-step active" data-step="1" aria-label="Étape 1 : patient">
+                        <div class="wiz-head">
+                            <div class="wiz-head-ico"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+                            <div><div class="wiz-step-tag">Étape 1/3</div><h3>Informations du patient</h3><p>Enregistrez le patient pour créer le ticket</p></div>
                         </div>
-                        <div class="card-body">
-                            <div class="form-row-2">
-                                <div class="fg">
-                                    <label>Prénom <span class="req">*</span></label>
-                                    <input type="text" id="t-prenom" class="fc" placeholder="Ex: Aminata">
-                                </div>
-                                <div class="fg">
-                                    <label>Nom <span class="req">*</span></label>
-                                    <input type="text" id="t-nom" class="fc" placeholder="Ex: Diallo">
-                                </div>
-                            </div>
-                            <div class="fg">
-                                <label>Âge <span class="req">*</span></label>
-                                <input type="number" id="t-age" class="fc" inputmode="numeric" pattern="[0-9]*" placeholder="Ex: 35" min="0" max="120">
-                            </div>
+                        <div class="form-row-2">
+                            <div class="fg"><label>Prénom <span class="req">*</span></label><input type="text" id="t-prenom" class="fc" placeholder="Ex: Aminata" autocomplete="off"></div>
+                            <div class="fg"><label>Nom <span class="req">*</span></label><input type="text" id="t-nom" class="fc" placeholder="Ex: Diallo" autocomplete="off"></div>
+                        </div>
+                        <div class="fg wiz-age"><label>Âge <span class="req">*</span></label><div class="wiz-age-row"><input type="number" id="t-age" class="fc" inputmode="numeric" pattern="[0-9]*" placeholder="Ex: 35" min="0" max="120"><span class="wiz-age-unit">ans</span></div></div>
+                        <p class="wiz-err" id="wiz-err-1" hidden></p>
+                        <div class="wiz-nav">
+                            <button type="button" class="wiz-btn wiz-next" data-next="1">Suivant <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+                        </div>
+                    </section>
 
-                            <div class="divider"></div>
-
-                            <div class="tarif-label">Choisir le type de consultation <span style="color:var(--danger);">*</span></div>
-                            <div class="tarif-grid">
-                                <div class="tarif-card" data-prest="Consultation Générale – Adulte" data-prix="500" onclick="selectTarif(this)">
-                                    <svg class="icon" viewBox="0 0 24 24"><path d="M8 2h8"/><path d="M9 2v2.789a4 4 0 0 1-.672 2.219l-.656.984A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.789a4 4 0 0 0-.672-2.219l-.656-.984A4 4 0 0 1 15 4.788V2"/><path d="M7 15a6.472 6.472 0 0 1 5 0 6.47 6.47 0 0 0 5 0"/></svg>
-                                    <div class="tarif-nom">Consultation – Adulte</div>
-                                    <div class="tarif-prix">500 FCFA</div>
-                                    <div class="tarif-sub">≥ 15 ans</div>
-                                </div>
-                                <div class="tarif-card" data-prest="Consultation Générale – Enfant" data-prix="300" onclick="selectTarif(this)">
-                                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-                                    <div class="tarif-nom">Consultation – Enfant</div>
-                                    <div class="tarif-prix">300 FCFA</div>
-                                    <div class="tarif-sub">&lt; 15 ans</div>
-                                </div>
-                                <div class="tarif-card" data-prest="CPN – Consultation Prénatale" data-prix="700" onclick="selectTarif(this)">
-                                    <svg class="icon" viewBox="0 0 24 24"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
-                                    <div class="tarif-nom">CPN</div>
-                                    <div class="tarif-prix">700 FCFA</div>
-                                    <div class="tarif-sub">Consultation prénatale</div>
-                                </div>
-                                <div class="tarif-card" data-prest="Pansement" data-prix="200" onclick="selectTarif(this)">
-                                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 12h.01"/><path d="m14.305 7.53.923-.382"/><path d="m15.228 4.852-.923-.383"/><path d="m16.852 3.228-.383-.923"/><path d="m16.852 8.772-.383.924"/><path d="m19.148 3.228.383-.923"/><path d="m19.53 9.696-.382-.924"/><path d="m20.772 4.852.924-.383"/><path d="m20.772 7.148.924.383"/><path d="M6 12a6 6 0 0 0 12 0 6 6 0 0 0-12 0"/><path d="m4 20 1.5-1.5"/><path d="m20 20-1.5-1.5"/><path d="M2 22h20"/></svg>
-                                    <div class="tarif-nom">Pansement</div>
-                                    <div class="tarif-prix">200 FCFA</div>
-                                    <div class="tarif-sub">Soins locaux</div>
-                                </div>
-                                <div class="tarif-card full" data-prest="Accouchement" data-prix="5000" onclick="selectTarif(this)">
-                                    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-                                    <div class="tarif-nom">Accouchement</div>
-                                    <div class="tarif-sub">Prise en charge complète</div>
-                                    <div class="tarif-prix">5 000 FCFA</div>
-                                </div>
+                    <!-- ÉTAPE 2 — Prestation & paiement -->
+                    <section class="wiz-step" data-step="2" aria-label="Étape 2 : prestation et paiement">
+                        <div class="wiz-head">
+                            <div class="wiz-head-ico"><svg class="icon" viewBox="0 0 24 24"><path d="M4.8 2.3A.3.3 0 1 0 5 2a.3.3 0 0 0-.2.3"/><path d="M8 2h8"/><path d="M9 2v2.8a4 4 0 0 1-.7 2.2l-.6 1A4 4 0 0 0 7 10.2V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.8a4 4 0 0 0-.7-2.2l-.6-1A4 4 0 0 1 15 4.8V2"/><path d="M7 15a6.5 6.5 0 0 1 5 0 6.5 6.5 0 0 0 5 0"/></svg></div>
+                            <div><div class="wiz-step-tag">Étape 2/3</div><h3>Choisir la prestation</h3><p>Sélectionnez le type de consultation</p></div>
+                        </div>
+                        <div class="tarif-grid">
+                            <div class="tarif-card" data-prest="Consultation Générale – Adulte" data-prix="500" onclick="selectTarif(this)">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M8 2h8"/><path d="M9 2v2.789a4 4 0 0 1-.672 2.219l-.656.984A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.789a4 4 0 0 0-.672-2.219l-.656-.984A4 4 0 0 1 15 4.788V2"/><path d="M7 15a6.472 6.472 0 0 1 5 0 6.47 6.47 0 0 0 5 0"/></svg>
+                                <div class="tarif-nom">Consultation – Adulte</div><div class="tarif-prix">500 FCFA</div><div class="tarif-sub">≥ 15 ans</div>
                             </div>
-
-                            <div class="recap-box" style="margin-top:16px;">
-                                <div class="recap-patient" id="r-patient-wrap" hidden>
-                                    <span id="r-patient-nom">—</span>
-                                    <span class="sub" id="r-patient-sub"></span>
-                                </div>
-                                <div class="recap-row">
-                                    <span class="recap-lbl">Prestation</span>
-                                    <span class="recap-val" id="r-prest">—</span>
-                                </div>
-                                <div class="recap-row">
-                                    <span class="recap-lbl">Montant dû</span>
-                                    <span class="recap-big" id="r-prix">— FCFA</span>
-                                </div>
-                                <div class="recap-row">
-                                    <span class="recap-lbl">N° d'attente</span>
-                                    <span class="recap-big" id="r-attente" style="color:var(--accent);">—</span>
-                                </div>
-                                <div class="recap-row">
-                                    <span class="recap-lbl">Validité</span>
-                                    <span class="recap-val" id="r-validite">24 heures</span>
-                                </div>
+                            <div class="tarif-card" data-prest="Consultation Générale – Enfant" data-prix="300" onclick="selectTarif(this)">
+                                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                                <div class="tarif-nom">Consultation – Enfant</div><div class="tarif-prix">300 FCFA</div><div class="tarif-sub">&lt; 15 ans</div>
                             </div>
-
-                            <div class="monnaie-box">
-                                <div class="monnaie-title">Calcul de la monnaie</div>
-                                <div class="monnaie-row">
-                                    <div class="monnaie-field">
-                                        <label>Argent remis par le patient (FCFA)</label>
-                                        <input type="number" id="t-recu" class="fc" inputmode="numeric" placeholder="Ex: 1 000" oninput="calcMonnaieT()">
-                                    </div>
-                                    <div>
-                                        <div class="monnaie-result" id="t-monnaie">—</div>
-                                        <div class="monnaie-hint">Monnaie à rendre</div>
-                                    </div>
-                                </div>
-                                <div class="montant-rapide" id="t-montant-rapide">
-                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(500)">500</button>
-                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(1000)">1 000</button>
-                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(2000)">2 000</button>
-                                    <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(5000)">5 000</button>
-                                </div>
+                            <div class="tarif-card" data-prest="CPN – Consultation Prénatale" data-prix="700" onclick="selectTarif(this)">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
+                                <div class="tarif-nom">CPN</div><div class="tarif-prix">700 FCFA</div><div class="tarif-sub">Consultation prénatale</div>
                             </div>
+                            <div class="tarif-card" data-prest="Pansement" data-prix="200" onclick="selectTarif(this)">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M12 12h.01"/><path d="M6 12a6 6 0 0 0 12 0 6 6 0 0 0-12 0"/><path d="m4 20 1.5-1.5"/><path d="m20 20-1.5-1.5"/><path d="M2 22h20"/></svg>
+                                <div class="tarif-nom">Pansement</div><div class="tarif-prix">200 FCFA</div><div class="tarif-sub">Soins locaux</div>
+                            </div>
+                            <div class="tarif-card full" data-prest="Accouchement" data-prix="5000" onclick="selectTarif(this)">
+                                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                                <div class="tarif-nom">Accouchement</div><div class="tarif-sub">Prise en charge complète</div><div class="tarif-prix">5 000 FCFA</div>
+                            </div>
+                        </div>
+                        <div class="wiz-pay">
+                            <div class="wiz-pay-title">Calcul de la monnaie</div>
+                            <label class="wiz-pay-lbl" for="t-recu">Somme remise par le patient (FCFA)</label>
+                            <input type="number" id="t-recu" class="fc" inputmode="numeric" placeholder="Ex: 1 000" oninput="calcMonnaieT()">
+                            <div class="montant-rapide" id="t-montant-rapide">
+                                <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(500)">500</button>
+                                <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(1000)">1 000</button>
+                                <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(2000)">2 000</button>
+                                <button type="button" class="montant-rapide-btn" onclick="setMontantRecuT(5000)">5 000</button>
+                            </div>
+                            <div class="wiz-monnaie">
+                                <div class="wiz-monnaie-ico"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5a2.5 2.5 0 0 1 2.5-1.5c1.4 0 2.5.9 2.5 2s-1 1.8-2.5 2-2.5.9-2.5 2 1.1 2 2.5 2a2.5 2.5 0 0 0 2.5-1.5"/></svg></div>
+                                <div><div class="wiz-monnaie-lbl">Monnaie à rendre</div><div class="monnaie-result" id="t-monnaie">—</div></div>
+                            </div>
+                        </div>
+                        <p class="wiz-err" id="wiz-err-2" hidden></p>
+                        <div class="wiz-nav">
+                            <button type="button" class="wiz-btn ghost wiz-prev" data-prev="2"><svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> Précédent</button>
+                            <button type="button" class="wiz-btn wiz-next" data-next="2">Suivant <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+                        </div>
+                    </section>
 
-                            <button class="btn btn-green" id="btn-ticket" onclick="encaisserTicket()" disabled>
-                                <span class="btn-row">
-                                    <svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-                                    <span id="btn-ticket-label">Encaisser</span>
-                                </span>
+                    <!-- ÉTAPE 3 — Synthèse -->
+                    <section class="wiz-step" data-step="3" aria-label="Étape 3 : synthèse">
+                        <div class="wiz-head">
+                            <div class="wiz-head-ico"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg></div>
+                            <div><div class="wiz-step-tag">Étape 3/3</div><h3>Synthèse de l'opération</h3><p>Vérifiez les informations avant d'encaisser</p></div>
+                        </div>
+
+                        <div class="sy-block">
+                            <div class="sy-block-head"><span class="sy-ico"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span> Informations du patient<button type="button" class="sy-edit" data-goto="1"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Modifier</button></div>
+                            <div class="sy-rows">
+                                <div class="sy-row"><span>Prénom</span><b id="sy-prenom">—</b></div>
+                                <div class="sy-row"><span>Nom</span><b id="sy-nom">—</b></div>
+                                <div class="sy-row"><span>Âge</span><b id="sy-age">—</b></div>
+                            </div>
+                        </div>
+
+                        <div class="sy-block">
+                            <div class="sy-block-head"><span class="sy-ico"><svg class="icon" viewBox="0 0 24 24"><path d="M8 2h8"/><path d="M9 2v2.8a4 4 0 0 1-.7 2.2l-.6 1A4 4 0 0 0 7 10.2V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.8a4 4 0 0 0-.7-2.2l-.6-1A4 4 0 0 1 15 4.8V2"/></svg></span> Prestation sélectionnée<button type="button" class="sy-edit" data-goto="2"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Modifier</button></div>
+                            <div class="sy-prest"><span class="recap-val" id="r-prest">—</span><span class="recap-big" id="r-prix">— FCFA</span></div>
+                        </div>
+
+                        <div class="sy-block">
+                            <div class="sy-block-head"><span class="sy-ico"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span> Détails du paiement<button type="button" class="sy-edit" data-goto="2"><svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Modifier</button></div>
+                            <div class="sy-rows">
+                                <div class="sy-row"><span>Montant dû</span><b id="sy-du">—</b></div>
+                                <div class="sy-row"><span>Somme remise</span><b id="sy-recu">—</b></div>
+                                <div class="sy-row hl"><span>Monnaie à rendre</span><b id="sy-monnaie">—</b></div>
+                            </div>
+                        </div>
+
+                        <div class="sy-attente">
+                            <div class="sy-attente-ico"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+                            <div class="sy-attente-grid">
+                                <div><span>N° d'attente</span><b id="r-attente">—</b></div>
+                                <div><span>Validité du ticket</span><b id="r-validite">24 heures</b></div>
+                            </div>
+                        </div>
+
+                        <!-- recap patient masqué, maintenu pour la logique existante -->
+                        <div class="recap-patient" id="r-patient-wrap" hidden><span id="r-patient-nom">—</span><span class="sub" id="r-patient-sub"></span></div>
+
+                        <div class="wiz-nav">
+                            <button type="button" class="wiz-btn ghost wiz-prev" data-prev="3"><svg class="icon" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> Précédent</button>
+                            <button class="btn btn-green wiz-cta" id="btn-ticket" onclick="encaisserTicket()" disabled>
+                                <span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg><span id="btn-ticket-label">Encaisser</span></span>
                                 <span class="btn-sub">et imprimer le ticket</span>
                             </button>
                         </div>
-                    </div>
+                    </section>
                 </div>
             </div><!-- /section-block nouvelle -->
 
@@ -536,6 +552,34 @@
     </div>
 </div>
 
+<!-- Confirmation d'encaissement -->
+<div class="su-overlay" id="su-overlay" role="dialog" aria-modal="true" aria-labelledby="su-title">
+    <div class="su-card">
+        <button type="button" class="su-x" id="su-close-x" aria-label="Fermer"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+        <div class="su-check"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <h3 id="su-title">Opération réussie&nbsp;!</h3>
+        <p class="su-sub" id="su-sub">Le ticket a été généré et imprimé.</p>
+        <div class="su-ticket">
+            <div class="su-ticket-top"><b id="su-num">Ticket N° —</b><span id="su-datetime">—</span></div>
+            <div class="su-ticket-rows">
+                <div class="su-trow"><span>Patient</span><b id="su-patient">—</b></div>
+                <div class="su-trow"><span>Âge</span><b id="su-age">—</b></div>
+                <div class="su-trow"><span>Prestation</span><b id="su-prest">—</b></div>
+                <div class="su-trow"><span>Montant</span><b id="su-montant">—</b></div>
+                <div class="su-trow"><span>Somme remise</span><b id="su-remise">—</b></div>
+                <div class="su-trow hl"><span>Monnaie</span><b id="su-monnaie">—</b></div>
+            </div>
+        </div>
+        <div class="su-actions">
+            <button type="button" class="btn btn-green" id="su-print"><span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg> Imprimer à nouveau</span></button>
+            <button type="button" class="btn su-ghost" id="su-view"><span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Voir le ticket</span></button>
+            <button type="button" class="btn su-ghost" id="su-new"><span class="btn-row"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Nouvelle opération</span></button>
+            <button type="button" class="su-close-link" id="su-close">Fermer</button>
+        </div>
+    </div>
+</div>
+
 <script type="module" src="script.js"></script>
+<script type="module" src="wizard.js"></script>
 </body>
 </html>
