@@ -1,0 +1,52 @@
+name: Import complete multi-village application
+on:
+  push:
+    branches:
+      - feat/multi-villages-superadmin-20261024
+    paths:
+      - poste-sante-phase3-superadmin-complet.zip
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Verify and extract approved archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "d9ee4434fd7eb32d3fffd5c28041515afab7863484ade819cc5a0ebba181dd1b  poste-sante-phase3-superadmin-complet.zip" | sha256sum -c -
+          python3 - <<'PY'
+          import os, shutil, zipfile
+          from pathlib import PurePosixPath
+          archive="poste-sante-phase3-superadmin-complet.zip"
+          with zipfile.ZipFile(archive) as z:
+              paths=[info for info in z.infolist() if not info.is_dir()]
+              assert len(paths)==78, f"unexpected file count: {len(paths)}"
+              for info in paths:
+                  name=info.filename
+                  p=PurePosixPath(name)
+                  if p.is_absolute() or ".." in p.parts or name.startswith(".git/") or name.startswith(".github/") or info.file_size>2_000_000:
+                      raise RuntimeError("disallowed archive path")
+                  lowered=name.lower()
+                  if any(x in lowered for x in ("service-account","service_account","firebase-adminsdk","rtdb-export","private-key",".env")):
+                      raise RuntimeError("secret/private data filename not allowed")
+                  content=z.read(info)
+                  if b"-----BEGIN PRIVATE KEY-----" in content:
+                      raise RuntimeError("private key content not allowed")
+              for info in paths:
+                  name=info.filename
+                  os.makedirs(os.path.dirname(name) or ".",exist_ok=True)
+                  with open(name,"wb") as dest:
+                      dest.write(z.read(info))
+          PY
+          rm -f poste-sante-phase3-superadmin-complet.zip
+          rm -f .github/workflows/import-poste-sante.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: import multi-village and superadmin app [unpacked]'
+          git push origin HEAD:feat/multi-villages-superadmin-20261024
