@@ -30,6 +30,7 @@ const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getDatabase } = require('firebase-admin/database');
 const { identifierVillage } = require('./_village.js');
+const { readJsonBody, privateResponse } = require('./_http.js');
 const { getMessaging } = require('firebase-admin/messaging');
 
 const DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://poste-sante-280b2-default-rtdb.firebaseio.com';
@@ -57,6 +58,7 @@ function contenu(n) {
 }
 
 module.exports = async (req, res) => {
+    privateResponse(res);
     // Appel depuis l'application (autre domaine) : CORS ouvert, la sécurité
     // repose sur le jeton Firebase, pas sur l'origine.
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -84,7 +86,7 @@ module.exports = async (req, res) => {
         const db = getDatabase();
         const { db: villageDb, villageId } = await identifierVillage(db, user, ROLES_AUTORISES);
 
-        const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+        const body = readJsonBody(req, 4096);
         const nkey = String(body.nkey || '');
         if (!/^[-_A-Za-z0-9]{8,40}$/.test(nkey)) return res.status(400).json({ error: 'nkey invalide' });
 

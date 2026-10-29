@@ -1,3 +1,4 @@
+import { recordTimestamp, amount, sumAmounts } from '../domain-values.mjs';
 import { villageActuel } from '../village-client.js';
 /* ═══════════════════════════════════════════════════════════════
    RAPPORT-LIB.JS
@@ -35,21 +36,7 @@ export function dateHeure(ts) {
 // ── HORODATAGE ROBUSTE ───────────────────────────
 // Les enregistrements anciens n'ont pas toujours date_heure_ts : on
 // reconstruit alors l'instant depuis les champs "date" et "heure".
-export function getSafeTs(val) {
-    if (val.date_heure_ts) return val.date_heure_ts;
-    if (val.date) {
-        const p = String(val.date).split('/');
-        if (p.length === 3) {
-            let hr = 0, min = 0;
-            if (val.heure) {
-                const hp = String(val.heure).split(':');
-                if (hp.length >= 2) { hr = parseInt(hp[0], 10); min = parseInt(hp[1], 10); }
-            }
-            return new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10), hr, min).getTime();
-        }
-    }
-    return Date.now();
-}
+export function getSafeTs(val) { return recordTimestamp(val); }
 
 // ── PÉRIODES ─────────────────────────────────────
 export const PERIODES = {
@@ -77,10 +64,10 @@ export function bornes(periode, ref = new Date()) {
         case 'mois':      debut.setDate(1); break;
         case 'trimestre': debut.setMonth(Math.floor(n.getMonth() / 3) * 3, 1); break;
         case 'annee':     debut.setMonth(0, 1); break;
-        case 'tout':      return [0, Infinity];
+        case 'tout':      return [0, n.getTime()+1];
         default: break;
     }
-    return [debut.getTime(), Infinity];
+    return [debut.getTime(), n.getTime()+1];
 }
 
 export function dansPeriode(ts, periode) {
@@ -101,11 +88,11 @@ export function libellePeriode(periode) {
 // Les tickets/ventes annulés (retour à la pharmacie, erreur de caisse,
 // désistement du client…) sont exclus de toutes les agrégations : un
 // enregistrement annulé ne doit jamais fausser le bilan.
-const actifs = list => list.filter(x => !x.annule);
+const actifs = list => list.filter(x => x.annule !== true);
 
-export const totalTickets = list => actifs(list).reduce((s, x) => s + Number(x.prix || 0), 0);
-export const totalVentes  = list => actifs(list).reduce((s, x) => s + Number(x.total || 0), 0);
-export const totalDepenses = list => list.reduce((s, x) => s + Number(x.montant || 0), 0);
+export const totalTickets = list => sumAmounts(list, 'prix', true);
+export const totalVentes  = list => sumAmounts(list, 'total', true);
+export const totalDepenses = list => sumAmounts(list, 'montant');
 
 // Répartition des consultations par type de prestation.
 export function parPrestation(tickets) {
@@ -113,7 +100,7 @@ export function parPrestation(tickets) {
     for (const t of actifs(tickets)) {
         const k = t.choix || 'Non précisé';
         const e = m.get(k) || { nom: k, nb: 0, montant: 0 };
-        e.nb++; e.montant += Number(t.prix || 0);
+        e.nb++; e.montant = amount(e.montant + amount(t.prix, 'Prix'), 'Montant cumulé');
         m.set(k, e);
     }
     return [...m.values()].sort((a, b) => b.montant - a.montant);
@@ -124,10 +111,10 @@ export function parMedicament(ventes) {
     const m = new Map();
     for (const v of actifs(ventes)) {
         for (const li of (v.medicaments || [])) {
-            const k = li.nom || '(sans nom)';
-            const e = m.get(k) || { nom: k, qte: 0, montant: 0 };
-            e.qte += Number(li.qte || 0);
-            e.montant += Number(li.prix || 0) * Number(li.qte || 0);
+            const k = li.stock_key ? 'ref:'+li.stock_key : 'ancien:'+JSON.stringify([li.nom || '',li.dosage || '',li.forme || '']);
+            const e = m.get(k) || { nom: li.nom || '(sans nom)', stock_key:li.stock_key || null, qte: 0, montant: 0 };
+            e.qte = amount(e.qte + amount(li.qte, 'Quantité'), 'Quantité cumulée');
+            e.montant = amount(e.montant + amount(li.prix, 'Prix') * amount(li.qte, 'Quantité'), 'Montant cumulé');
             m.set(k, e);
         }
     }
@@ -139,7 +126,7 @@ export function parCategorie(depenses) {
     for (const d of depenses) {
         const k = d.categorie || 'Autre';
         const e = m.get(k) || { nom: k, nb: 0, montant: 0 };
-        e.nb++; e.montant += Number(d.montant || 0);
+        e.nb++; e.montant = amount(e.montant + amount(d.montant, 'Dépense'), 'Montant cumulé');
         m.set(k, e);
     }
     return [...m.values()].sort((a, b) => b.montant - a.montant);

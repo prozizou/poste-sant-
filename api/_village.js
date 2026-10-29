@@ -13,6 +13,7 @@ function scopedDatabase(db, id) {
 }
 async function identifierVillage(db, user, roles = [...ROLES]) {
   if (!user?.uid) throw Object.assign(new Error('Authentification requise.'), {status:401});
+  if (user.firebase?.sign_in_provider==='anonymous') throw Object.assign(new Error('Un compte nominatif est requis.'), {status:403});
   const fiche = (await db.ref(`db_users/${user.uid}`).once('value')).val();
   if (!fiche || fiche.active === false || !ROLES.has(fiche.role) || !roles.includes(fiche.role) || !ID.test(fiche.village_id || ''))
     throw Object.assign(new Error('Compte sans affectation valide au village ou rôle non autorisé.'), {status:403});

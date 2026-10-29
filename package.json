@@ -1,11 +1,18 @@
 {
   "name": "postes-sante-multivillages",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "description": "Gestion des postes de santé multi-villages : données et accès isolés via Firebase RTDB.",
   "dependencies": {
-    "firebase-admin": "^12.7.0"
+    "firebase-admin": "14.5.0"
   },
   "scripts": {
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "test:browser": "node tests/browser-workflow.cjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.64.1"
   }
 }

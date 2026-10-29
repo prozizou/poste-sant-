@@ -62,3 +62,16 @@ test('Interdit les produits archivés', () => {
   const s=med(10);s.archive=true;
   assert.throws(() => logic.applyStockDeltas({'med-001':s},new Map([['med-001',-2]]),{}));
 });
+
+test('Les dates de péremption impossibles ou non canoniques bloquent la délivrance', () => {
+  for(const date of ['2099-02-30','2099-13-01','zzz','2099-1-01']) {
+    assert.throws(()=>logic.applyStockDeltas({'med-001':med(5,date)},new Map([['med-001',-1]]),{}));
+    const s=med(5);s.lots={a:{qte_recue:5,date_peremption:date}};
+    assert.throws(()=>logic.qtyFromLots(s));
+  }
+});
+
+test('Des lignes nulles ou primitives renvoient une erreur métier explicite', () => {
+  for(const line of [null,1,'medicament',[]])
+    assert.throws(()=>logic.getRows([line]),e=>e.status===422);
+});

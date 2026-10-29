@@ -516,6 +516,7 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
+import { operationMetier, completeOperation } from '../business-client.js';
 import { auth, db } from '../firebase-config.js';
 import { villageRef, chargerVillage } from '../village-client.js';
 await chargerVillage();
@@ -620,7 +621,6 @@ function message(id, type, txt) {
 function invalide(id) { document.getElementById(id)?.classList.add('is-invalid'); }
 document.addEventListener('input', e => e.target.closest('.f.is-invalid')?.classList.remove('is-invalid'));
 document.addEventListener('change', e => e.target.closest('.f.is-invalid')?.classList.remove('is-invalid'));
-const genKey = () => push(villageRef(db, 'db_pharmacie_stock')).key;   // clé seule, aucune écriture
 
 // ── Auth : réservé à l'administration ───────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -698,22 +698,22 @@ function synchro(ok) {
 }
 onValue(villageRef(db, 'db_pharmacie_stock'), (snap) => {
     allStock = {};
-    snap.forEach(c => { allStock[c.key] = { id: c.key, ...c.val() }; });
+    snap.forEach(c => { allStock[c.key] = { ...c.val(), id: c.key }; });
     charge.s = true; synchro(true);
-    resynchroniserPeremptions();
+
     toutRendre();
     planifierImages();
 }, () => synchro(false));
 onValue(villageRef(db, 'db_pharmacie_reappro'), (snap) => {
     journalLog = [];
-    snap.forEach(c => { journalLog.push({ id: c.key, ...c.val() }); });
+    snap.forEach(c => { journalLog.push({ ...c.val(), id: c.key }); });
     charge.j = true;
     rendreMouvements(); rendreHistoReappro(); majFournisseurs();
     if (ficheId) rendreFiche();
 });
 onValue(villageRef(db, 'vente_medicaments'), (snap) => {
     ventes = [];
-    snap.forEach(c => { ventes.push({ id: c.key, ...c.val() }); });
+    snap.forEach(c => { ventes.push({ ...c.val(), id: c.key }); });
     charge.v = true;
     rendreMouvements();
     if (ficheId && ficheOnglet === 'mvt') rendreFiche();
@@ -722,20 +722,7 @@ onValue(villageRef(db, 'vente_medicaments'), (snap) => {
 // Les ventes ne mettent à jour que « quantite » : le prochain lot à sortir
 // peut donc changer. On réaligne date_peremption / lot du produit (lus par
 // la facturation et les tableaux de bord) sur le lot FEFO courant.
-const enCoursSync = new Set();
-function resynchroniserPeremptions() {
-    Object.values(allStock).forEach(m => {
-        if (!lotsReels(m).length || enCoursSync.has(m.id)) return;
-        const e = etat(m);
-        const ref0 = e.lots.find(l => l.restant > 0 && !l.hors) || e.lots.filter(l => !l.hors).slice(-1)[0];
-        if (!ref0) return;
-        const date = ref0.date_peremption || '', lot = ref0.numero || '';
-        if ((m.date_peremption || '') === date && (m.lot || '') === lot) return;
-        enCoursSync.add(m.id);
-        update(villageRef(db, `db_pharmacie_stock/${m.id}`), { date_peremption: date, lot })
-            .catch(() => {}).finally(() => enCoursSync.delete(m.id));
-    });
-}
+// Les résumés FEFO sont recalculés dans la transaction serveur.
 
 // ════════════════════════════════════════════════════════════════════════
 //  MINIATURES — image enregistrée, sinon recherche automatique (une seule
@@ -838,33 +825,8 @@ async function traiterImages() {
 // ── Écritures traçables ─────────────────────────────────────────────────
 // Ajout (ou retrait si négatif) sur le total, par transaction : une vente
 // encaissée au même moment n'est jamais écrasée. Renvoie avant / après.
-async function ajusterTotal(id, delta) {
-    let avant = 0;
-    const res = await runTransaction(villageRef(db, `db_pharmacie_stock/${id}/quantite`), cur => {
-        const n = parseInt(cur, 10); avant = isNaN(n) ? 0 : n;
-        if (!Number.isSafeInteger(avant + delta) || avant + delta < 0) return;
-        return avant + delta;
-    });
-    if (!res.committed) throw new Error('Ajustement refusé : stock insuffisant ou quantité invalide.');
-    return { avant, apres: num(res.snapshot.val()) };
-}
-function journaliser(e) {
-    return push(villageRef(db, 'db_pharmacie_reappro'), {
-        date: isoJour(), timestamp: Date.now(), par: moi(),
-        ...e,
-    });
-}
 // Avant le premier lot réel d'un produit « ancien format », son stock
 // existant devient un lot à part entière (sinon il serait confondu).
-function lotInitialSiBesoin(m, qteExistante) {
-    if (lotsReels(m).length || qteExistante <= 0) return {};
-    const k = genKey();
-    return { [`lots/${k}`]: {
-        numero: m.lot || 'Stock initial', date_peremption: m.date_peremption || '', qte_recue: qteExistante,
-        fournisseur: m.source || '', date_reception: m.date_entree || '', initial: true,
-        par: m.cree_par || m.agent || '', ts: m.timestamp || Date.now(),
-    } };
-}
 
 // Réapprovisionnement d'un produit existant (formulaire et import Excel).
 async function reapprovisionner(id, { qte, numero, date_peremption, fournisseur, date_reception, prix_achat, obs, operationId }) {
@@ -872,7 +834,7 @@ async function reapprovisionner(id, { qte, numero, date_peremption, fournisseur,
     if (!m) throw new Error('Médicament introuvable.');
     return operationPharmacie('reappro', {
         key:id, qte:Number(qte), numero, date_peremption, fournisseur, date_reception,
-        prix_achat:Math.round(num(prix_achat)), obs
+        prix_achat:Number(prix_achat || 0), obs
     }, operationId || nouvelIdOperation());
 }
 
@@ -1208,19 +1170,16 @@ function dialogueAjuster(id) {
     sheet2.onclick = async (ev) => {
         const b = ev.target.closest('[data-d]'); if (!b) return;
         if (b.dataset.d === 'fermer') return fermer2();
-        const cible = Math.round(num(q.value)), motif = sheet2.querySelector('#a-m').value;
+        const cible = Number(q.value), motif = sheet2.querySelector('#a-m').value;
         let ok = true;
-        if (q.value === '' || cible < 0) { invalide('fa-q'); ok = false; }
+        if (q.value === '' || !Number.isSafeInteger(cible) || cible < 0) { invalide('fa-q'); ok = false; }
         if (!motif) { invalide('fa-m'); ok = false; }
         if (!ok) return;
-        const delta = cible - num(allStock[id].quantite);
+        const delta = cible - e.Q;
         if (!delta) { fermer2(); return toast('Aucun écart : rien à enregistrer.'); }
         b.disabled = true;
         try {
-            const { avant, apres } = await ajusterTotal(id, delta);
-            await update(villageRef(db, `db_pharmacie_stock/${id}`), { modifie_par: qui(moi()), modifie_le: Date.now() });
-            await journaliser({ type: 'ajustement', med_id: id, nom_medicament: m.nom || '—', quantite_ajoutee: apres - avant,
-                ancienne_quantite: avant, nouvelle_quantite: apres, observations: [motif, sheet2.querySelector('#a-o').value.trim()].filter(Boolean).join(' — ') });
+            const {avant,apres}=await operationMetier('stock_ajuster',{key:id,expectedQuantity:e.Q,quantite:cible,motif:[motif,sheet2.querySelector('#a-o').value.trim()].filter(Boolean).join(' — ')});
             fermer2(); toast(`Stock ajusté : ${fmt(avant)} → ${fmt(apres)}`, 'ok');
         } catch (err) { b.disabled = false; toast('Erreur : ' + err.message, 'err'); }
     };
@@ -1248,17 +1207,7 @@ function dialogueRetirerLot(id, lotId) {
         if (!motif) return invalide('fr-m');
         b.disabled = true;
         try {
-            const r = etat(allStock[id]).lots.find(x => x.id === lotId)?.restant || 0;
-            const { avant, apres } = await ajusterTotal(id, -r);
-            const maj = { modifie_par: qui(moi()), modifie_le: Date.now() };
-            if (!l.virtuel) Object.assign(maj, {
-                [`lots/${lotId}/retire`]: true, [`lots/${lotId}/qte_retiree`]: avant - apres,
-                [`lots/${lotId}/retire_motif`]: motif, [`lots/${lotId}/retire_par`]: moi(), [`lots/${lotId}/retire_ts`]: Date.now(),
-            });
-            await update(villageRef(db, `db_pharmacie_stock/${id}`), maj);
-            await journaliser({ type: 'retrait', med_id: id, nom_medicament: m.nom || '—', quantite_ajoutee: apres - avant,
-                ancienne_quantite: avant, nouvelle_quantite: apres, lot: l.hors ? 'Sans lot' : (l.numero || '—'), lot_id: lotId,
-                nouvelle_peremption: l.date_peremption || '—', observations: motif });
+            const {avant,apres}=await operationMetier('stock_retirer_lot',{key:id,lotId,motif});
             fermer2(); toast(`${fmt(avant - apres)} unité(s) retirée(s) du stock.`, 'ok');
         } catch (err) { b.disabled = false; toast('Erreur : ' + err.message, 'err'); }
     };
@@ -1285,16 +1234,7 @@ function dialogueModifierLot(id, lotId) {
         const n = sheet2.querySelector('#ml-n').value.trim(), fo = sheet2.querySelector('#ml-f').value.trim();
         b.disabled = true;
         try {
-            await update(villageRef(db, `db_pharmacie_stock/${id}`), {
-                [`lots/${lotId}/numero`]: n, [`lots/${lotId}/date_peremption`]: d, [`lots/${lotId}/fournisseur`]: fo,
-                modifie_par: qui(moi()), modifie_le: Date.now(),
-            });
-            const ch = [];
-            if ((l.numero || '') !== n) ch.push(`n° ${l.numero || '—'} → ${n || '—'}`);
-            if ((l.date_peremption || '') !== d) ch.push(`péremption ${dateFR(l.date_peremption)} → ${dateFR(d)}`);
-            if ((l.fournisseur || '') !== fo) ch.push(`fournisseur ${l.fournisseur || '—'} → ${fo || '—'}`);
-            if (ch.length) await journaliser({ type: 'modification', med_id: id, nom_medicament: m.nom || '—', quantite_ajoutee: 0,
-                lot: n || '—', lot_id: lotId, observations: 'Lot modifié : ' + ch.join(', ') });
+            await operationMetier('stock_modifier_lot',{key:id,lotId,numero:n,date_peremption:d,fournisseur:fo});
             fermer2(); toast('Lot modifié.', 'ok');
         } catch (err) { b.disabled = false; toast('Erreur : ' + err.message, 'err'); }
     };
@@ -1304,15 +1244,13 @@ async function supprimerProduit(id) {
     const m = allStock[id];
     if (m.archive) {
         if (!confirm(`Restaurer « ${m.nom} » dans l'inventaire actif ?`)) return;
-        await update(villageRef(db, `db_pharmacie_stock/${id}`), {archive:false, archive_ts:null, archive_par:null});
+        await operationMetier('stock_restaurer',{key:id});
         fermer(); toast('Produit restauré dans l’inventaire.', 'ok'); return;
     }
     if (num(m.quantite) !== 0) { toast('Archiver seulement lorsque le stock atteint zéro. Retirez ou transférez d’abord les unités restantes.', 'err'); return; }
     if (!confirm(`Archiver « ${m.nom} » ? L'historique sera conservé.`)) return;
     try {
-        await journaliser({ type: 'suppression', med_id: id, nom_medicament: m.nom || '—', quantite_ajoutee: -num(m.quantite),
-            ancienne_quantite: num(m.quantite), nouvelle_quantite: 0, observations: 'Produit supprimé du stock' });
-        await update(villageRef(db, `db_pharmacie_stock/${id}`), { archive:true, archive_ts:Date.now(), archive_par:moi() });
+        await operationMetier('stock_archiver',{key:id});
         // Image Cloudinary + fiche gallery du produit supprimé.
         if (m.image_cloudinary_id) versCloudinary(id, { action: 'retirer', sans_produit: true }).catch(() => {});
         fermer(); toast('Produit archivé.', 'ok');
@@ -1402,18 +1340,15 @@ sheet.addEventListener('click', async (ev) => {
 
     const champs = {
         nom, forme, dosage: g('p-dosage').value.trim(),
-        prix_unitaire: Math.round(num(prix)), seuil_alerte: seuil === '' ? SEUIL_DEFAUT : Math.round(num(seuil)),
+        prix_unitaire: Number(prix), seuil_alerte: seuil === '' ? SEUIL_DEFAUT : Number(seuil),
         categorie: g('p-cat').value, unite: g('p-unite').value || 'unité(s)', conditionnement: g('p-cond').value.trim(),
-        prix_achat: Math.round(num(g('p-achat').value)), fabricant: g('p-fab').value.trim(), amm: g('p-amm').value.trim(),
+        prix_achat: Number(g('p-achat').value || 0), fabricant: g('p-fab').value.trim(), amm: g('p-amm').value.trim(),
         ordonnance: g('p-ord').value, conditions_stockage: g('p-stock').value, observations: g('p-obs').value.trim(),
     };
     b.disabled = true;
     try {
         if (m) {
-            await update(villageRef(db, `db_pharmacie_stock/${id}`), { ...champs, modifie_par: qui(moi()), modifie_le: Date.now() });
-            const lib = { nom: 'nom', prix_unitaire: 'prix de vente', seuil_alerte: 'seuil', prix_achat: 'prix d\'achat', forme: 'forme', dosage: 'dosage' };
-            const ch = Object.keys(lib).filter(k => String(m[k] ?? '') !== String(champs[k] ?? '')).map(k => `${lib[k]} ${m[k] ?? '—'} → ${champs[k] || '—'}`);
-            if (ch.length) await journaliser({ type: 'modification', med_id: id, nom_medicament: nom, quantite_ajoutee: 0, observations: 'Fiche modifiée : ' + ch.join(', ') });
+            await operationMetier('stock_modifier',{key:id,champs});
             toast('Fiche modifiée.', 'ok');
             ficheMode = 'fiche'; rendreFiche();
         } else {
@@ -1425,18 +1360,11 @@ sheet.addEventListener('click', async (ev) => {
                 document.getElementById('r-lot').value = g('p-lot').value.trim(); document.getElementById('r-fournisseur').value = g('p-four').value.trim();
                 majCalc(); return;
             }
-            const q = Math.round(num(qte)), lotKey = genKey(), numero = g('p-lot').value.trim(), four = g('p-four').value.trim();
-            const nouveau = {
-                ...champs, quantite: q, date_peremption: exp, lot: numero, source: four,
-                date_entree: isoJour(), heure_entree: new Date().toTimeString().slice(0, 5),
-                agent: qui(moi()), cree_par: moi(), timestamp: Date.now(),
-                lots: { [lotKey]: { numero, date_peremption: exp, qte_recue: q, fournisseur: four, date_reception: isoJour(), prix_achat: champs.prix_achat || 0, par: moi(), ts: Date.now() } },
-            };
-            const r = await push(villageRef(db, 'db_pharmacie_stock'), nouveau);
-            await journaliser({ type: 'entree', med_id: r.key, nom_medicament: nom, quantite_ajoutee: q, ancienne_quantite: 0, nouvelle_quantite: q,
-                lot: numero || '—', lot_id: lotKey, nouvelle_peremption: exp, source: four, observations: 'Nouveau produit' });
+            const produit={...champs,quantite:Number(qte),date_peremption:exp,lot:g('p-lot').value.trim(),source:g('p-four').value.trim()};
+            await operationMetier('stock_creer',{produit});
             toast(`« ${nom} » ajouté au stock.`, 'ok');
             fermer();
+            completeOperation('stock_creer');
         }
     } catch (err) {
         b.disabled = false; message('p-msg', 'err', 'Erreur : ' + err.message);
@@ -1513,16 +1441,16 @@ function viderReappro() {
 document.getElementById('r-reset').addEventListener('click', viderReappro);
 let reapproFormOperationId = null;
 document.getElementById('r-save').addEventListener('click', async (ev) => {
-    const qte = Math.round(num(document.getElementById('r-qte').value));
+    const qte = Number(document.getElementById('r-qte').value);
     const exp = document.getElementById('r-exp').value;
     let ok = true;
     if (!rSel) { invalide('fr-med'); ok = false; }
-    if (!(qte > 0)) { invalide('fr-qte'); ok = false; }
+    if (!Number.isSafeInteger(qte) || !(qte > 0)) { invalide('fr-qte'); ok = false; }
     if (!exp) { invalide('fr-exp'); ok = false; }
     if (!ok) return;
     if (joursAvant(exp) < 0 && !confirm('Ce lot est déjà expiré. Enregistrer quand même ?')) return;
     const btn = ev.currentTarget; btn.disabled = true;
-    const nom = allStock[rSel].nom;
+    const nom = allStock[rSel].nom, targetId=rSel;
     try {
         if (!reapproFormOperationId) reapproFormOperationId = nouvelIdOperation();
         const { avant, apres } = await reapprovisionner(rSel, {
@@ -1535,6 +1463,7 @@ document.getElementById('r-save').addEventListener('click', async (ev) => {
         });
         reapproFormOperationId = null; viderReappro();
         message('r-msg', 'ok', `${nom} : ${fmt(avant)} + ${fmt(qte)} = ${fmt(apres)} en stock.`);
+        completeOperation('reappro',{key:targetId});
     } catch (err) {
         message('r-msg', 'err', 'Erreur : ' + err.message);
     } finally { btn.disabled = false; }
@@ -1828,7 +1757,7 @@ document.getElementById('i-all').addEventListener('change', e => {
     majBoutonImport();
 });
 document.getElementById('i-run').addEventListener('click', async () => {
-    const mode = document.getElementById('i-mode').value, rows = iRows.filter(r => r.on);
+    const mode = document.getElementById('i-mode').value, rows = iRows.filter(r => r.on && !r.done);
     if (!rows.length || !confirm(`Importer ${rows.length} ligne(s) (${mode === 'reappro' ? 'réapprovisionnement' : 'nouveaux produits'}) ?`)) return;
     const btn = document.getElementById('i-run'), prog = document.getElementById('i-prog'), fill = document.getElementById('i-prog-fill');
     btn.disabled = true; prog.hidden = false;
@@ -1840,23 +1769,17 @@ document.getElementById('i-run').addEventListener('click', async () => {
             if (mode === 'reappro') {
                 await reapprovisionner(r.exId, { operationId: r.operationId || (r.operationId = nouvelIdOperation()), qte: r.qte, numero: r.lot, date_peremption: r.per, fournisseur: r.four || 'Import Excel', obs: `Import « ${iFile} »` });
             } else {
-                const lotKey = genKey();
-                const res = await push(villageRef(db, 'db_pharmacie_stock'), {
-                    nom: r.nom, forme: r.forme || 'Autre', dosage: r.dosage, quantite: r.qte, prix_unitaire: Math.round(r.prix),
-                    date_peremption: r.per, lot: r.lot, source: r.four || 'Import Excel', seuil_alerte: SEUIL_DEFAUT, unite: 'unité(s)',
-                    categorie: '', ordonnance: 'non', date_entree: isoJour(), agent: qui(moi()), cree_par: moi(), timestamp: Date.now(),
-                    observations: `Importé depuis « ${iFile} »`,
-                    lots: { [lotKey]: { numero: r.lot, date_peremption: r.per, qte_recue: r.qte, fournisseur: r.four || 'Import Excel', date_reception: isoJour(), par: moi(), ts: Date.now() } },
-                });
-                await journaliser({ type: 'entree', med_id: res.key, nom_medicament: r.nom, quantite_ajoutee: r.qte, ancienne_quantite: 0, nouvelle_quantite: r.qte,
-                    lot: r.lot || '—', lot_id: lotKey, nouvelle_peremption: r.per || '—', source: r.four || 'Import Excel', observations: `Import « ${iFile} »` });
+                await operationMetier('stock_creer',{produit:{nom:r.nom,forme:r.forme || 'Autre',dosage:r.dosage || '',quantite:r.qte,prix_unitaire:r.prix,date_peremption:r.per,lot:r.lot || '',source:r.four || 'Import Excel',seuil_alerte:SEUIL_DEFAUT,unite:'unité(s)',observations:`Importé depuis « ${iFile} »`}},r.operationId || (r.operationId=nouvelIdOperation()));
             }
+            r.done=true;
+            completeOperation(mode==='reappro'?'reappro':'stock_creer',mode==='reappro'?{key:r.exId}:{});
             ok++;
         } catch { ko++; }
         fill.style.width = Math.round((i + 1) / rows.length * 100) + '%';
     }
     message('i-msg', ko ? 'err' : 'ok', `Import terminé : ${ok} ligne(s) enregistrée(s)${ko ? `, ${ko} échec(s)` : ''}.`);
-    setTimeout(resetImport, 1500);
+    if (!ko) setTimeout(resetImport, 1500);
+    btn.disabled=false;
 });
 function resetImport() {
     wb = null; iHead = []; iData = []; iRows = []; iMap = {}; iFile = ''; iFileIn.value = '';

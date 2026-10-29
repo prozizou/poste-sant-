@@ -512,6 +512,10 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
+import { operationMetier } from '../business-client.js';
+import { recordTimestamp, amount, sumAmounts } from '../domain-values.mjs';
+import { checkDataQuality } from '../data-quality.js';
+
 import { auth, db } from '../firebase-config.js';
 import { villageRef, chargerVillage } from '../village-client.js';
 await chargerVillage();
@@ -560,19 +564,7 @@ function fmtCourt(v) {
     return String(v);
 }
 function maj1(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-function getSafeTs(val) {
-    if (val.date_heure_ts) return val.date_heure_ts;
-    if (val.date_ts) return val.date_ts;
-    if (val.date) {
-        const p = String(val.date).split('/');
-        if (p.length === 3) {
-            let hr = 0, min = 0;
-            if (val.heure) { const hp = String(val.heure).split(':'); if (hp.length >= 2) { hr = parseInt(hp[0],10); min = parseInt(hp[1],10); } }
-            return new Date(parseInt(p[2],10), parseInt(p[1],10) - 1, parseInt(p[0],10), hr, min).getTime();
-        }
-    }
-    return Date.now();
-}
+function getSafeTs(val) { return recordTimestamp(val); }
 function diffJours(dateStr) {
     if (!dateStr) return Infinity;
     const d = new Date(dateStr), auj = new Date(); auj.setHours(0,0,0,0);
@@ -631,7 +623,7 @@ function bornesPeriode() {
 function enPlage(list, a, b) { return list.filter(x => x._ts >= a && x._ts < b); }
 function filtrePeriode(list) {
     const { debut, fin } = bornesPeriode();
-    return list.filter(x => x._ts >= debut && x._ts < fin);
+    return list.filter(x => Number.isFinite(x._ts) && x._ts >= debut && x._ts < Math.min(fin, Date.now()+1));
 }
 
 document.getElementById('period-tabs').addEventListener('click', (e) => {
@@ -987,22 +979,22 @@ function afficherErreur(noeud, err) {
 
 onValue(villageRef(db, 'ticket_dbase'), snap => {
     allTickets = [];
-    snap.forEach(c => { const v = c.val(); if (!v.annule) allTickets.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
+    snap.forEach(c => { const v = c.val(); if (!v.annule) allTickets.push({ ...v, _key: c.key, _ts: getSafeTs(v) }); });
     loadedT = true; render();
 }, err => afficherErreur('ticket_dbase', err));
 onValue(villageRef(db, 'vente_medicaments'), snap => {
     allVentes = [];
-    snap.forEach(c => { const v = c.val(); if (!v.annule) allVentes.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
+    snap.forEach(c => { const v = c.val(); if (!v.annule) allVentes.push({ ...v, _key: c.key, _ts: getSafeTs(v) }); });
     loadedV = true; render();
 }, err => afficherErreur('vente_medicaments', err));
 onValue(villageRef(db, 'db_depenses'), snap => {
     allDepenses = [];
-    snap.forEach(c => { const v = c.val(); allDepenses.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
+    snap.forEach(c => { const v = c.val(); allDepenses.push({ ...v, _key: c.key, _ts: getSafeTs(v) }); });
     loadedD = true; render();
 }, err => afficherErreur('db_depenses', err));
 onValue(villageRef(db, 'db_pharmacie_stock'), snap => {
     allStock = [];
-    snap.forEach(c => { allStock.push({ _key: c.key, ...c.val() }); });
+    snap.forEach(c => { allStock.push({ ...c.val(), _key: c.key }); });
     loadedS = true; render();
 }, err => afficherErreur('db_pharmacie_stock', err));
 
@@ -1108,7 +1100,7 @@ function dateHeureCourte(ts) {
     const d = new Date(ts);
     return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · ' + hhmm(ts);
 }
-function entier(v) { const n = Number(String(v).replace(/\s/g, '').replace(',', '.')); return Number.isFinite(n) ? Math.round(n) : NaN; }
+function entier(v) { const n = Number(String(v).replace(/\s/g, '').replace(',', '.')); return Number.isSafeInteger(n) ? n : NaN; }
 
 // ── Données de la période (consultations / ventes / dépenses) ───────────
 let dataOnglet = 'tk';
@@ -1271,21 +1263,12 @@ function editerTicket(key) {
             const apres = { prenom, nom, age: Number.isFinite(ageN) ? ageN : (x.age ?? null), choix: val('f-choix'), prix, date_heure_ts: ts };
             const avant = { prenom: x.prenom ?? '', nom: x.nom ?? '', age: x.age ?? null, choix: x.choix ?? '', prix: Number(x.prix) || 0, date_heure_ts: x._ts };
             const recu = Number(x.argent_remis) || 0;
-            await update(villageRef(db, 'ticket_dbase/' + key), {
-                ...apres,
-                name: [prenom, nom].filter(Boolean).join(' '),
-                date: new Date(ts).toLocaleDateString('fr-FR'),
-                heure: hhmm(ts),
-                validite_ts: ts + 24 * 3600 * 1000,
-                ...(recu > 0 ? { monnaie_rendue: recu - prix } : {}),
-                modifie_par: moi(), modifie_ts: Date.now(),
-                modifications: [...(x.modifications || []), { ts: Date.now(), par: moi(), motif: 'Modification administration', obs: val('f-motif').trim(), avant, apres }],
-            });
+            await operationMetier('ticket_modifier',{key,prenom,nom,age:ageN,choix:val('f-choix'),prix,date_heure_ts:ts,motif:val('f-motif').trim()});
             toast('Consultation modifiée.', 'ok');
         },
         onDel: async () => {
             if (!confirm('Annuler ce ticket ? Il sera exclu des recettes (il reste consultable dans Annulations).')) return false;
-            await update(villageRef(db, 'ticket_dbase/' + key), ANNULE_ADMIN(val('f-motif').trim()));
+            await operationMetier('ticket_annuler',{key,motif:val('f-motif').trim() || 'Annulation administration'});
             toast('Ticket annulé.', 'ok');
         },
     });
@@ -1425,16 +1408,12 @@ function editerDepense(key) {
             // Date inchangée : on garde l'horodatage d'origine (sinon une
             // dépense du jour passerait à midi, donc « dans le futur » le matin).
             const ts = val('f-date') === isoDate(x._ts) ? x._ts : tsDepuis(val('f-date'), '12:00');
-            await update(villageRef(db, 'db_depenses/' + key), {
-                categorie, libelle, montant,
-                date_ts: ts, date: new Date(ts).toLocaleDateString('fr-FR'),
-                modifie_par: moi(), modifie_ts: Date.now(),
-            });
+            await operationMetier('depense_modifier',{key,categorie,libelle,montant,date_iso:val('f-date')});
             toast('Dépense modifiée.', 'ok');
         },
         onDel: async () => {
             if (!confirm(`Supprimer définitivement cette dépense de ${fcfa(x.montant)} ?`)) return false;
-            await remove(villageRef(db, 'db_depenses/' + key));
+            await operationMetier('depense_supprimer',{key});
             toast('Dépense supprimée.', 'ok');
         },
     });
@@ -1449,7 +1428,6 @@ function editerStock(key) {
     // elle se modifie lot par lot dans la page Stock.
     const parLots = !!(s.lots && Object.keys(s.lots).length);
     // Toute écriture est tracée dans le journal des mouvements de stock.
-    const journal = e => push(villageRef(db, 'db_pharmacie_reappro'), { date: isoDate(Date.now()), timestamp: Date.now(), par: moi(), med_id: key, nom_medicament: s.nom || '—', ...e });
     ouvrirModal({
         titre: 'Modifier le produit',
         sousTitre: [s.forme, s.dosage, s.lot ? 'Lot ' + s.lot : ''].filter(Boolean).join(' · '),
@@ -1470,37 +1448,24 @@ function editerStock(key) {
             const qte = entier(val('f-sqte')), prix = entier(val('f-sprix')), seuil = entier(val('f-sseuil'));
             if (!nom) { toast('Le nom est obligatoire.', 'err'); return false; }
             if (!(qte >= 0) || !(prix >= 0) || !(seuil >= 0)) { toast('Quantité, prix et seuil doivent être des nombres positifs.', 'err'); return false; }
-            await update(villageRef(db, 'db_pharmacie_stock/' + key), {
-                nom, prix_unitaire: prix, seuil_alerte: seuil,
-                ...(parLots ? {} : { date_peremption: val('f-sexp') || '' }),
-                modifie_par: moi(), modifie_ts: Date.now(),
-            });
-            const delta = qte - qteInitiale;
-            if (delta) {
-                let avant = 0;
-                const res = await runTransaction(villageRef(db, `db_pharmacie_stock/${key}/quantite`), cur => {
-                    const n = parseInt(cur, 10); avant = isNaN(n) ? 0 : n;
-                    return Math.max(0, avant + delta);
-                });
-                const apres = Number(res.snapshot.val()) || 0;
-                await journal({ type: 'ajustement', quantite_ajoutee: apres - avant, ancienne_quantite: avant, nouvelle_quantite: apres, observations: 'Correction depuis Planification & Rapports' });
-            }
-            if (nom !== (s.nom || '') || prix !== (Number(s.prix_unitaire) || 0)) {
-                await journal({ type: 'modification', quantite_ajoutee: 0, nom_medicament: nom, observations: `Fiche modifiée depuis Rapports : prix ${Number(s.prix_unitaire) || 0} → ${prix}${nom !== s.nom ? `, nom ${s.nom} → ${nom}` : ''}` });
+            if (qte !== qteInitiale) {
+                await operationMetier('stock_ajuster',{key,expectedQuantity:qteInitiale,quantite:qte,motif:'Correction depuis Planification & Rapports',champs:{nom,prix_unitaire:prix,seuil_alerte:seuil},...(parLots?{}:{date_peremption:val('f-sexp')})});
+            } else {
+                await operationMetier('stock_modifier',{key,champs:{nom,prix_unitaire:prix,seuil_alerte:seuil},...(parLots?{}:{date_peremption:val('f-sexp')})});
             }
             toast('Produit modifié.', 'ok');
         },
         onDel: async () => {
             if (!confirm(`Supprimer définitivement « ${s.nom || 'ce produit'} » du stock ?`)) return false;
             if (qteInitiale !== 0) { toast('Archivage refusé : le stock doit être à zéro.', 'err'); return false; }
-            await journal({ type: 'suppression', quantite_ajoutee: -qteInitiale, ancienne_quantite: qteInitiale, nouvelle_quantite: 0, observations: 'Produit supprimé depuis Planification & Rapports' });
-            await update(villageRef(db, 'db_pharmacie_stock/' + key), { archive:true, archive_ts:Date.now(), archive_par:moi() });
+            await operationMetier('stock_archiver',{key});
             toast('Produit archivé (historique conservé).', 'ok');
         },
     });
 }
 
 function render() {
+    if (!checkDataQuality([...allTickets,...allVentes,...allDepenses])) return;
     if (!(loadedT && loadedV && loadedD && loadedS)) return;
 
     const { debut, fin } = bornesPeriode();
@@ -1508,10 +1473,10 @@ function render() {
     const md = filtrePeriode(allVentes);
     const dep = filtrePeriode(allDepenses);
 
-    const caTk = tk.reduce((s, x) => s + (Number(x.prix) || 0), 0);
-    const caMd = md.reduce((s, x) => s + (Number(x.total) || 0), 0);
+    const caTk = sumAmounts(tk, 'prix');
+    const caMd = sumAmounts(md, 'total');
     const totalRecettes = caTk + caMd;
-    const totalDepenses = dep.reduce((s, x) => s + (Number(x.montant) || 0), 0);
+    const totalDepenses = sumAmounts(dep, 'montant');
     const solde = totalRecettes - totalDepenses;
     const marge = totalRecettes > 0 ? solde / totalRecettes * 100 : 0;
 
@@ -1522,10 +1487,10 @@ function render() {
     if (periode !== 'tout') {
         const duree = fin - debut;
         pDebut = debut - duree; pFin = debut;
-        const pTk = enPlage(allTickets, pDebut, pFin).reduce((s,x)=>s+(Number(x.prix)||0),0);
-        const pMd = enPlage(allVentes, pDebut, pFin).reduce((s,x)=>s+(Number(x.total)||0),0);
+        const pTk = sumAmounts(enPlage(allTickets, pDebut, pFin), 'prix');
+        const pMd = sumAmounts(enPlage(allVentes, pDebut, pFin), 'total');
         pRec = pTk + pMd;
-        pDep = enPlage(allDepenses, pDebut, pFin).reduce((s,x)=>s+(Number(x.montant)||0),0);
+        pDep = sumAmounts(enPlage(allDepenses, pDebut, pFin), 'montant');
         pSolde = pRec - pDep;
         pMarge = pRec > 0 ? pSolde / pRec * 100 : 0;
     }

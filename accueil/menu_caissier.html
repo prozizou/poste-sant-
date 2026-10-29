@@ -188,6 +188,8 @@
     </section>
 </main>
 <script type="module">
+import {recordTimestamp, amount} from '../domain-values.mjs';
+import {checkDataQuality} from '../data-quality.js';
     import { auth, db } from '../firebase-config.js';
 import { villageRef, chargerVillage } from '../village-client.js';
 await chargerVillage();
@@ -243,20 +245,22 @@ import { desabonnerPushAdmin } from '../notifications-admin.js';
     const medRef    = villageRef(db, 'vente_medicaments');
 
     onValue(ticketRef, (snap) => {
+        const records=[];snap.forEach(c=>records.push(c.val()));if(!checkDataQuality(records,'ticketRef'))return;
         let count = 0, total = 0;
         snap.forEach(c => {
-            const d = c.val(), ts = Number(d.date_heure_ts) || 0;
-            if (ts && isToday(ts) && !d.annule) { count++; total += (Number(d.prix) || 0); }
+            const d = c.val(), ts = recordTimestamp(d);
+            if (Number.isFinite(ts) && ts<=Date.now() && isToday(ts) && !d.annule) { count++; total += amount(d.prix); }
         });
         setKpi('stat-tickets-day', count);
         _ticketTotal = total; updateRecettes();
     }, () => { setKpi('stat-tickets-day', '—'); });
 
     onValue(medRef, (snap) => {
+        const records=[];snap.forEach(c=>records.push(c.val()));if(!checkDataQuality(records,'medRef'))return;
         let totalMed = 0;
         snap.forEach(c => {
-            const d = c.val(), ts = Number(d.date_heure_ts) || 0;
-            if (ts && isToday(ts) && !d.annule) totalMed += (Number(d.total) || 0);
+            const d = c.val(), ts = recordTimestamp(d);
+            if (Number.isFinite(ts) && ts<=Date.now() && isToday(ts) && !d.annule) totalMed += amount(d.total);
         });
         setKpi('stat-meds-day', fmt(totalMed) + ' F');
         _medTotal = totalMed; updateRecettes();

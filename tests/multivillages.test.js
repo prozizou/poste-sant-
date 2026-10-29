@@ -53,6 +53,11 @@ test('Village désactivé ou utilisateur sans affectation = accès refusé',asyn
   await assert.rejects(identifierVillage(db,{uid:'u1'},['admin']),e=>e.status===403);
   await assert.rejects(identifierVillage(db,{uid:'u2'},['admin']),e=>e.status===403);
 });
+
+test('Une identité anonyme est refusée même si une affectation a été créée par erreur',async()=>{
+ const db=dbMock({u1:{role:'admin',village_id:'diandioly'}},{diandioly:{active:true}});
+ await assert.rejects(identifierVillage(db,{uid:'u1',firebase:{sign_in_provider:'anonymous'}}),e=>e.status===403);
+});
 test('Les règles n’autorisent jamais une lecture des données d’un village différent',()=>{
   const rules=JSON.parse(fs.readFileSync(path.join(root,'database.rules.json'),'utf8')).rules;
   assert.equal(rules['.read'],false);

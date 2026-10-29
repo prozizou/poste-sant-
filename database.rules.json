@@ -21,10 +21,7 @@
         ".write": false,
         "ticket_dbase": {
           ".read": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').exists())) && root.child('db_users').child(auth.uid).child('active').val() !== false",
-          "$id": {
-            ".write": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier') && newData.exists() && (!data.exists() || root.child('db_users').child(auth.uid).child('role').val() === 'admin' || (newData.child('prix').val() === data.child('prix').val() && newData.child('name').val() === data.child('name').val() && newData.child('date_heure_ts').val() === data.child('date_heure_ts').val() && newData.child('annule').val() === true)))) && root.child('db_users').child(auth.uid).child('active').val() !== false",
-            ".validate": "newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('prix').isNumber() && newData.child('prix').val() >= 0 && newData.child('prix').val() <= 100000000"
-          }
+          ".write": false
         },
         "vente_medicaments": {
           ".read": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').exists())) && root.child('db_users').child(auth.uid).child('active').val() !== false",
@@ -33,25 +30,68 @@
         "db_pharmacie_stock": {
           ".read": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').exists())) && root.child('db_users').child(auth.uid).child('active').val() !== false",
           "$id": {
-            ".write": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin' && newData.exists())) && root.child('db_users').child(auth.uid).child('active').val() !== false",
-            "quantite": {
-              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0"
+            ".write": false,
+            "image_url": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_hd": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_page": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_titre": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_site": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_requete": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_source": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_auto": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_score": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_ts": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_par": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_data": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_aucune": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_recherche_ts": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_recherche_moteur": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
+            },
+            "image_origine_url": {
+              ".write": "(((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false) && root.child('villages').child($villageId).child('db_pharmacie_stock').child($id).exists()"
             }
           }
         },
         "compteurs": {
           ".read": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').exists())) && root.child('db_users').child(auth.uid).child('active').val() !== false",
-          "$key": {
-            ".write": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'caissier') && newData.isNumber() && newData.val() % 1 === 0 && newData.val() > 0 && (!data.exists() || newData.val() > data.val()))) && root.child('db_users').child(auth.uid).child('active').val() !== false"
-          }
+          ".write": false
         },
         "db_pharmacie_reappro": {
           ".read": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').exists())) && root.child('db_users').child(auth.uid).child('active').val() !== false",
-          ".write": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false"
+          ".write": false
         },
         "db_depenses": {
           ".read": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').exists())) && root.child('db_users').child(auth.uid).child('active').val() !== false",
-          ".write": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'tresorier'))) && root.child('db_users').child(auth.uid).child('active').val() !== false"
+          ".write": false
         },
         "notifications_caisse": {
           ".indexOn": "ts",
@@ -92,6 +132,14 @@
         },
         "db_agenda": {
           ".read": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (root.child('db_users').child(auth.uid).child('role').val() === 'admin' || root.child('db_users').child(auth.uid).child('role').val() === 'icp')) && root.child('db_users').child(auth.uid).child('active').val() !== false",
+          ".write": false
+        },
+        "business_operations": {
+          ".read": false,
+          ".write": false
+        },
+        "business_audit": {
+          ".read": "((auth != null && root.child('db_users').child(auth.uid).child('village_id').val() === $villageId && root.child('villages_registry').child($villageId).child('active').val() === true && (!root.child('villages_registry').child($villageId).child('expires_ts').exists() || root.child('villages_registry').child($villageId).child('expires_ts').val() > now)) && (auth != null && root.child('db_users').child(auth.uid).child('role').val() === 'admin')) && root.child('db_users').child(auth.uid).child('active').val() !== false",
           ".write": false
         }
       }

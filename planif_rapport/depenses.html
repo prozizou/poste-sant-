@@ -363,6 +363,8 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
+import { checkDataQuality } from '../data-quality.js';
+import { operationMetier, completeOperation } from '../business-client.js';
 import { db, auth } from '../firebase-config.js';
 import { villageRef, chargerVillage } from '../village-client.js';
 await chargerVillage();
@@ -439,11 +441,12 @@ document.getElementById('d-date').value = new Date().toISOString().slice(0, 10);
 
 // ── Champ MONTANT : espace tous les 3 chiffres pendant la saisie ─────
 const montantInput = document.getElementById('d-montant');
-const groupeChiffres = s => String(s).replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-const montantValeur = () => parseInt(montantInput.value.replace(/\s/g, ''), 10);
+const groupeChiffres = s => /^\d*$/.test(String(s).replace(/\s/g,'')) ? String(s).replace(/\s/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,' ') : String(s);
+const montantValeur = () => { const digits=montantInput.value.replace(/\s/g,''); const n=/^\d+$/.test(digits)?Number(digits):NaN;return Number.isSafeInteger(n)?n:NaN; };
 montantInput.addEventListener('input', () => {
     const depuisFin = montantInput.value.length - montantInput.selectionStart;
     montantInput.value = groupeChiffres(montantInput.value);
+    montantInput.setCustomValidity(Number.isSafeInteger(montantValeur())?'':'Saisissez un montant entier en FCFA, sans décimales.');
     const pos = Math.max(0, montantInput.value.length - depuisFin);
     montantInput.setSelectionRange(pos, pos);
 });
@@ -563,18 +566,18 @@ function onReadError(label) {
 
 onValue(depenseRef, snap => {
     allDepenses = [];
-    snap.forEach(c => { allDepenses.push({ _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()), ...c.val() }); });
+    snap.forEach(c => { allDepenses.push({ ...c.val(), _key: c.key, _ts: c.val().date_ts || getSafeTs(c.val()) }); });
     allDepenses.sort((a, b) => b._ts - a._ts);
     loadedD = true; render(); checkLoaded();
 }, onReadError('depenses'));
 onValue(ticketRef, snap => {
     allTickets = [];
-    snap.forEach(c => { allTickets.push({ _ts: getSafeTs(c.val()), ...c.val() }); });
+    snap.forEach(c => { allTickets.push({ ...c.val(), _ts: getSafeTs(c.val()) }); });
     loadedT = true; render(); checkLoaded();
 }, onReadError('tickets'));
 onValue(medRef, snap => {
     allVentes = [];
-    snap.forEach(c => { allVentes.push({ _ts: getSafeTs(c.val()), ...c.val() }); });
+    snap.forEach(c => { allVentes.push({ ...c.val(), _ts: getSafeTs(c.val()) }); });
     loadedM = true; render(); checkLoaded();
 }, onReadError('ventes'));
 
@@ -640,12 +643,13 @@ function courtCourant() {
 }
 
 const filtre = list => list.filter(x => {
-    if (periode === 'personnalise') return customDebut != null && x._ts >= customDebut && x._ts <= customFin;
+    if (periode === 'personnalise') return customDebut != null && x._ts >= customDebut && x._ts <= Math.min(customFin,Date.now());
     return dansPeriode(x._ts, periode);
 });
 
 // ── RENDU ───────────────────────────────────────
 function render() {
+    if (!checkDataQuality([...allTickets,...allVentes,...allDepenses])) return;
     if (!loadedD) {
         document.getElementById('dep-table').innerHTML = `<div class="empty-state">${ICON_BOX}<p>Chargement des dépenses…</p></div>`;
         document.getElementById('dep-cards').innerHTML = '';
@@ -817,12 +821,13 @@ form.addEventListener('submit', async e => {
 
     submitBtn.disabled = true; submitBtnLabel.textContent = 'Enregistrement…';
     try {
-        await push(depenseRef, data);
+        await operationMetier('depense_creer', {categorie,libelle,montant,date_iso:dateStr});
         form.reset();
         document.getElementById('d-date').value = new Date().toISOString().slice(0, 10);
         majJustificatif();
         toast('Dépense enregistrée.', 'ok');
         closeFormModal();
+        completeOperation('depense_creer');
     } catch (err) {
         console.error(err);
         toast("Échec de l'enregistrement : " + err.message, 'err');

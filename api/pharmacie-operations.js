@@ -1,9 +1,12 @@
 'use strict';
 // POST /api/pharmacie-operations — vente / annulation / restauration / modification.
 // Exige FIREBASE_SERVICE_ACCOUNT sur Vercel (même configuration que /api/notifier).
-// Un verrou serveur RTDB sérialise les mutations pharmacie ; update(multi-chemins)
-// valide ensuite vente, stock et commande en un seul commit RTDB atomique.
-const crypto = require('node:crypto');
+// Une transaction du village valide ensemble vente, stock et commande.
+// Aucun verrou à bail : chaque conflit relance le calcul sur le dernier état.
+const { atomicOperation } = require('./_atomic.js');
+const { applyUpdates } = require('./_atomic.js');
+const { syncExpiry } = require('./_business.js');
+const { readJsonBody, privateResponse } = require('./_http.js');
 const { identifierVillage } = require('./_village.js');
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
@@ -35,11 +38,11 @@ function getValidStock(s, key) {
   return Number(s.quantite);
 }
 function qtyFromLots(s) {
-  const q = Number(s.quantite);
+  const q = getValidStock(s, 'lot');
   const lots = Object.values(s.lots || {}).filter(l => l && !l.retire).map(l => ({
     count: Number(l.qte_recue), exp: l.date_peremption || ''
   }));
-  if (!lots.length) return { allowed: s.date_peremption && s.date_peremption >= localYMD() ? q : 0, expiry: s.date_peremption || '' };
+  if (!lots.length) return { allowed: validExpiry(s.date_peremption) && s.date_peremption >= localYMD() ? q : 0, expiry: s.date_peremption || '' };
   if (lots.some(l => !Number.isSafeInteger(l.count) || l.count < 0)) err(409, 'Quantité de lot invalide.');
   lots.sort((a,b) => (a.exp || '0000').localeCompare(b.exp || '0000'));
   // La consommation historique a été imputée au FEFO ; restent les derniers lots.
@@ -50,8 +53,13 @@ function qtyFromLots(s) {
   }
   if (restant > 0) err(409, 'Stock sans lot traçable : corriger la fiche avant la vente.');
   const present = lots.filter(l => l.available > 0);
-  if (present.some(l => !l.exp || l.exp < localYMD())) err(409, 'Un lot non daté ou périmé est encore en stock : retirer/mettre en quarantaine avant la vente.');
+  if (present.some(l => !validExpiry(l.exp) || l.exp < localYMD())) err(409, 'Un lot non daté ou périmé est encore en stock : retirer/mettre en quarantaine avant la vente.');
   return { allowed: q, expiry: present[0]?.exp || '' };
+}
+function validExpiry(date) {
+  if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const ts = Date.parse(date + 'T00:00:00.000Z');
+  return Number.isFinite(ts) && new Date(ts).toISOString().slice(0, 10) === date;
 }
 function localYMD() {
   // La péremption est une date civile : UTC peut être incorrect près de minuit.
@@ -61,6 +69,7 @@ function getRows(list) {
   if (!Array.isArray(list) || list.length < 1 || list.length > 60) err(422, 'Lignes de médicaments invalides.');
   const map = new Map();
   for (const l of list) {
+    if (!l || typeof l !== 'object' || Array.isArray(l)) err(422, 'Ligne de médicament invalide.');
     const key = String(l.stock_key || '');
     if (!/^[-_A-Za-z0-9]{5,90}$/.test(key)) err(422, 'Identifiant médicament absent ou invalide.');
     const qte = positiveInteger(Number(l.qte), 'Quantité');
@@ -71,11 +80,14 @@ function getRows(list) {
   return map;
 }
 function requireItemStock(stock, key) { const s = stock[key]; getValidStock(s, key); return s; }
-function lineItems(rows, stock, role, canCustomPrice = false) {
+function lineItems(rows, stock, role, canCustomPrice = false, oldLines = []) {
   return [...rows.values()].map(l => {
     const s = requireItemStock(stock, l.key);
     const currentPrice = money(Number(s.prix_unitaire), 'Prix du médicament');
-    const price = canCustomPrice && role === 'admin' ? money(Number(l.prix), 'Prix modifié') : currentPrice;
+    const old = oldLines.find(item=>item.stock_key===l.key);
+    const price = canCustomPrice && role === 'admin' ? money(Number(l.prix), 'Prix modifié')
+      : old ? money(Number(old.prix), 'Prix historique') : currentPrice;
+    if (role!=='admin' && Number(l.prix)!==price) err(409,'Le prix de la ligne a changé : actualisez le formulaire.');
     return { nom: String(s.nom || '').slice(0, 180), prix: price, qte: l.qte, stock_key: l.key };
   });
 }
@@ -106,36 +118,14 @@ function applyStockDeltas(stock, deltas, updates) {
 function parseSavedLines(items, stock) {
   if (!Array.isArray(items) || !items.length) err(409, 'Vente ancienne sans lignes valides : rapprochement manuel requis.');
   return items.map(l => {
-    if (!l.stock_key || !stock[l.stock_key]) err(409, 'Une ligne ne possède plus sa référence de stock : correction manuelle requise.');
+    if (!l || typeof l!=='object' || !l.stock_key || !stock[l.stock_key]) err(409, 'Une ligne ne possède plus sa référence de stock : correction manuelle requise.');
     positiveInteger(Number(l.qte), 'Quantité historique');
     return l;
   });
 }
-async function withLock(db, fn) {
-  const lock = db.ref('system_locks/pharmacie');
-  const owner = crypto.randomUUID();
-  const acquired = await lock.transaction(cur => {
-    if (cur && Number(cur.expires) > Date.now()) return;
-    return { owner, expires: Date.now() + 90000 };
-  }, undefined, false);
-  if (!acquired.committed) err(409, 'Une opération de pharmacie est en cours. Réessayer dans un instant.');
-  try { return await fn(); }
-  finally {
-    try { await lock.transaction(cur => cur?.owner === owner ? null : undefined, undefined, false); }
-    catch (e) { console.error('Libération du verrou échouée', e); }
-  }
-}
-async function execute(db, action, body, user, role) {
-  const id = String(body.operationId || '');
-  if (!/^[a-f0-9-]{36}$/i.test(id)) err(422, 'Identifiant unique de commande manquant.');
-  return withLock(db, async () => {
-    const opRef = db.ref(`pharmacie_operations/${id}`);
-    const prior = (await opRef.once('value')).val();
-    if (prior) {
-      if (prior.uid !== user.uid || prior.action !== action) err(409, 'Identifiant déjà utilisé pour une autre opération.');
-      return { ok: true, deja: true, key: prior.vente_key, total: prior.total, avant:prior.avant, apres:prior.apres };
-    }
-    const stock = (await db.ref('db_pharmacie_stock').once('value')).val() || {};
+function buildPharmacyPlan(state, action, body, user, role, context) {
+    const id = context.id;
+    const stock = state.db_pharmacie_stock || {};
     const updates = {};
     let key, total;
     if (action === 'reappro') {
@@ -148,7 +138,7 @@ async function execute(db, action, body, user, role) {
       const apres = avant + qte;
       if (!Number.isSafeInteger(apres)) err(422, 'Quantité totale trop élevée.');
       const date = String(body.date_peremption || '');
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0,10) !== date)
+      if (!validExpiry(date))
         err(422, 'Date de péremption invalide.');
       const numero = String(body.numero || '').slice(0, 90);
       const fournisseur = String(body.fournisseur || '').slice(0, 150);
@@ -157,34 +147,32 @@ async function execute(db, action, body, user, role) {
       money(prixAchat, 'Prix d’achat');
       const lots = { ...(s.lots || {}) };
       if (!Object.keys(lots).length && avant > 0) {
-        lots[db.ref('db_pharmacie_stock').push().key] = {
+        lots[context.nextKey()] = {
           numero: s.lot || 'Stock initial', date_peremption: s.date_peremption || '',
           qte_recue: avant, fournisseur: s.source || '', date_reception: s.date_entree || '', initial:true,
-          par: s.cree_par || '', ts: s.timestamp || Date.now()
+          par: s.cree_par || '', ts: s.timestamp || context.now
         };
       }
       let lotId = Object.keys(lots).find(k => !lots[k].retire && numero && lots[k].numero === numero && lots[k].date_peremption === date);
       if (lotId) lots[lotId] = { ...lots[lotId], qte_recue: positiveInteger(Number(lots[lotId].qte_recue), 'Lot antérieur', true) + qte };
       else {
-        lotId = db.ref('db_pharmacie_stock').push().key;
+        lotId = context.nextKey();
         lots[lotId] = { numero, date_peremption:date, qte_recue:qte, fournisseur,
-          date_reception:dateReception, prix_achat:prixAchat, par:user.email || '', ts:Date.now() };
+          date_reception:dateReception, prix_achat:prixAchat, par:user.email || '', ts:context.now };
       }
       updates[`db_pharmacie_stock/${key}/quantite`] = apres;
       updates[`db_pharmacie_stock/${key}/lots`] = lots;
       if (prixAchat > 0) updates[`db_pharmacie_stock/${key}/prix_achat`] = prixAchat;
       updates[`db_pharmacie_stock/${key}/modifie_par`] = user.email || '';
-      updates[`db_pharmacie_stock/${key}/modifie_le`] = Date.now();
-      updates[`db_pharmacie_reappro/${db.ref('db_pharmacie_reappro').push().key}`] = {
+      updates[`db_pharmacie_stock/${key}/modifie_le`] = context.now;
+      updates[`db_pharmacie_reappro/${context.nextKey()}`] = {
         type:'reappro', med_id:key, nom_medicament:String(s.nom || '').slice(0,180), quantite_ajoutee:qte,
         ancienne_quantite:avant, nouvelle_quantite:apres, lot:numero || '—', lot_id:lotId,
         nouvelle_peremption:date, source:fournisseur, observations:String(body.obs || '').slice(0,500),
-        date:dateReception, timestamp:Date.now(), par:user.email || '', operation_id:id
+        date:dateReception, timestamp:context.now, par:user.email || '', operation_id:id
       };
       total = 0;
-      updates[`pharmacie_operations/${id}`] = {uid:user.uid, action, vente_key:key, total:0, avant, apres, ts:Date.now()};
-      await db.ref('/').update(updates);
-      return {ok:true,key,avant,apres};
+      return {updates, result:{ok:true,key,avant,apres}, financial:false};
     }
     if (action === 'supprimer_ticket') {
       // Suppression d'un ticket de consultation saisi par erreur (administrateur).
@@ -194,17 +182,16 @@ async function execute(db, action, body, user, role) {
       if (!/^[-_A-Za-z0-9]{8,80}$/.test(tkey)) err(422, 'Référence de ticket invalide.');
       const motif = String(body.motif || '').trim();
       if (motif.length < 3) err(422, 'Motif de suppression obligatoire.');
-      const ticket = (await db.ref(`ticket_dbase/${tkey}`).once('value')).val();
+      const ticket = state.ticket_dbase?.[tkey];
       if (!ticket) err(404, 'Ticket introuvable.');
-      updates[`corbeille/${db.ref('corbeille').push().key}`] = {
+      updates[`corbeille/${context.nextKey()}`] = {
         type: 'ticket_dbase', ref: tkey, donnee: ticket,
         motif: motif.slice(0, 300), etait_annule: !!ticket.annule,
-        supprime_par: user.email || '', supprime_uid: user.uid, supprime_ts: Date.now()
+        supprime_par: user.email || '', supprime_uid: user.uid, supprime_ts: context.now
       };
       updates[`ticket_dbase/${tkey}`] = null;
-      updates[`pharmacie_operations/${id}`] = { uid:user.uid, action, vente_key:tkey, total:0, ts:Date.now() };
-      await db.ref('/').update(updates);
-      return { ok:true, key:tkey };
+
+      return {updates, result:{ok:true,key:tkey}};
     }
     if (action === 'encaisser') {
       const rows = getRows(body.medicaments);
@@ -216,7 +203,7 @@ async function execute(db, action, body, user, role) {
       money(total, 'Total');
       verifyPayment(body.argent_remis, total);
       applyStockDeltas(stock, buildStockDeltas([], lines), updates);
-      key = db.ref('vente_medicaments').push().key;
+      key = context.nextKey();
       const ts = allowedDate(Number(body.date_heure_ts));
       const d = new Date(ts);
       const patient = String(body.patient_nom || '').trim();
@@ -228,13 +215,13 @@ async function execute(db, action, body, user, role) {
         date: d.toLocaleDateString('fr-FR', { timeZone: 'Africa/Dakar' }),
         heure: d.toLocaleTimeString('fr-FR', { timeZone: 'Africa/Dakar', hour: '2-digit', minute: '2-digit' }),
         date_heure_ts: ts, saisi_par: user.email || '', saisi_uid: user.uid,
-        operation_id: id, cree_ts: Date.now(),
-        ...(ts < Date.now() - 60000 ? { saisie_differee: true, saisie_le: Date.now() } : {})
+        operation_id: id, cree_ts: context.now,
+        ...(ts < context.now - 60000 ? { saisie_differee: true, saisie_le: context.now } : {})
       };
     } else {
       key = String(body.key || '');
       if (!/^[-_A-Za-z0-9]{8,80}$/.test(key)) err(422, 'Référence de vente invalide.');
-      const sale = (await db.ref(`vente_medicaments/${key}`).once('value')).val();
+      const sale = state.vente_medicaments?.[key];
       if (!sale) err(404, 'Vente introuvable.');
       const old = parseSavedLines(sale.medicaments, stock);
       if (action === 'annuler') {
@@ -242,7 +229,7 @@ async function execute(db, action, body, user, role) {
         applyStockDeltas(stock, buildStockDeltas(old, []), updates);
         const detail = old.map(l => ({ nom:l.nom, qte:l.qte, stock_key:l.stock_key, ok:true }));
         updates[`vente_medicaments/${key}/annule`] = true;
-        updates[`vente_medicaments/${key}/annule_ts`] = Date.now();
+        updates[`vente_medicaments/${key}/annule_ts`] = context.now;
         updates[`vente_medicaments/${key}/annule_par`] = user.email || '';
         updates[`vente_medicaments/${key}/annule_motif`] = String(body.motif || '').slice(0, 200);
         updates[`vente_medicaments/${key}/annule_obs`] = String(body.obs || '').slice(0, 1000);
@@ -258,7 +245,7 @@ async function execute(db, action, body, user, role) {
         parseSavedLines(retour, stock);
         applyStockDeltas(stock, buildStockDeltas([], retour), updates);
         updates[`vente_medicaments/${key}/annule`] = false;
-        updates[`vente_medicaments/${key}/restaure_ts`] = Date.now();
+        updates[`vente_medicaments/${key}/restaure_ts`] = context.now;
         updates[`vente_medicaments/${key}/restaure_par`] = user.email || '';
         updates[`vente_medicaments/${key}/restaure_motif`] = String(body.motif || '').slice(0, 200);
         updates[`vente_medicaments/${key}/restaure_obs`] = String(body.obs || '').slice(0, 1000);
@@ -266,7 +253,7 @@ async function execute(db, action, body, user, role) {
       } else if (action === 'modifier') {
         if (sale.annule) err(409, 'Impossible de modifier une vente annulée.');
         const rows = getRows(body.medicaments);
-        const lines = lineItems(rows, stock, role, true);
+        const lines = lineItems(rows, stock, role, true, old);
         total = lines.reduce((acc,l) => acc + l.prix * l.qte, 0);
         money(total, 'Total');
         verifyPayment(sale.argent_remis, total);
@@ -275,10 +262,10 @@ async function execute(db, action, body, user, role) {
         updates[`vente_medicaments/${key}/medicaments`] = lines;
         updates[`vente_medicaments/${key}/total`] = total;
         updates[`vente_medicaments/${key}/monnaie_rendue`] = Number(sale.argent_remis) - total;
-        updates[`vente_medicaments/${key}/modifie_ts`] = Date.now();
+        updates[`vente_medicaments/${key}/modifie_ts`] = context.now;
         updates[`vente_medicaments/${key}/modifie_par`] = user.email || '';
         updates[`vente_medicaments/${key}/modifications`] = [...history, {
-          ts:Date.now(), par:user.email || '', motif: String(body.motif || '').slice(0,200),
+          ts:context.now, par:user.email || '', motif: String(body.motif || '').slice(0,200),
           obs:String(body.obs || '').slice(0,1000), avant:old, apres:lines,
           avant_total:Number(sale.total), apres_total:total
         }];
@@ -299,21 +286,35 @@ async function execute(db, action, body, user, role) {
         // Vente encore active : on restitue d'abord le stock, comme à l'annulation.
         if (!sale.annule) applyStockDeltas(stock, buildStockDeltas(old, []), updates);
         // Déplacée dans la corbeille du village avant retrait (restauration possible).
-        updates[`corbeille/${db.ref('corbeille').push().key}`] = {
+        updates[`corbeille/${context.nextKey()}`] = {
           type:'vente_medicaments', ref:key, donnee:sale,
           motif:motif.slice(0,300), etait_annule:!!sale.annule,
-          supprime_par:user.email || '', supprime_uid:user.uid, supprime_ts:Date.now()
+          supprime_par:user.email || '', supprime_uid:user.uid, supprime_ts:context.now
         };
         updates[`vente_medicaments/${key}`] = null; // retiré de la liste active
         total = Number(sale.total) || 0;
       }
     }
-    updates[`pharmacie_operations/${id}`] = { uid:user.uid, action, vente_key:key, total, ts:Date.now() };
-    await db.ref('/').update(updates); // commit multi-chemins ATOMIQUE (pas de mise à jour partielle).
-    return { ok:true, key, total };
-  });
+    return {updates, result:{ok:true,key,total}};
+}
+function planPharmacy(state, action, body, user, role, context) {
+  if (!['admin','caissier'].includes(role)) err(403,'Rôle non autorisé.');
+  const plan=buildPharmacyPlan(state,action,body,user,role,context);
+  const next=applyUpdates(structuredClone(state),plan.updates);
+  const changed=new Set(Object.keys(plan.updates).filter(p=>p.startsWith('db_pharmacie_stock/')).map(p=>p.split('/')[1]));
+  for(const key of changed) {
+    const product=syncExpiry(next.db_pharmacie_stock[key]);
+    if (product.date_peremption != null) plan.updates[`db_pharmacie_stock/${key}/date_peremption`]=product.date_peremption;
+    if (product.lot != null) plan.updates[`db_pharmacie_stock/${key}/lot`]=product.lot;
+  }
+  if (action==='encaisser') plan.result.vente=next.vente_medicaments[plan.result.key];
+  return plan;
+}
+async function execute(db, action, body, user, role) {
+  return atomicOperation(db, action, body, user, role, planPharmacy);
 }
 module.exports = async (req,res) => {
+  privateResponse(res);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -326,13 +327,13 @@ module.exports = async (req,res) => {
     if (!m) err(401, 'Session expirée : reconnectez-vous.');
     const user = await getAuth().verifyIdToken(m[1], true).catch(() => err(401, 'Session invalide.'));
     const { db: villageDb, role } = await identifierVillage(getDatabase(),user,['admin','caissier']);
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
+    const body = readJsonBody(req, 65536);
     const action = String(body.action || '');
     if (!OPS.has(action)) err(422, 'Action non reconnue.');
     return res.status(200).json(await execute(villageDb,action,body,user,role));
   } catch (e) {
     console.error('[pharmacie]', e);
-    return res.status(e.status || 500).json({ error:e.status ? e.message : 'Erreur serveur : opération non confirmée, réessayer avec le même identifiant.' });
+    return res.status(e.status || 500).json({ error:e.status ? e.message : 'Erreur serveur : opération non confirmée, réessayer avec le même identifiant.',not_committed:e.notCommitted===true });
   }
 };
-module.exports._testing = { getRows, applyStockDeltas, buildStockDeltas, qtyFromLots, positiveInteger };
+module.exports._testing = { getRows, applyStockDeltas, buildStockDeltas, qtyFromLots, positiveInteger, execute, planPharmacy };

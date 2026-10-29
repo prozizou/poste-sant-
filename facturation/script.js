@@ -1,3 +1,7 @@
+import { operationMetier, completeOperation } from '../business-client.js';
+import { recordTimestamp, amount, sumAmounts } from '../domain-values.mjs';
+import { checkDataQuality } from '../data-quality.js';
+import { bindRecordActions } from '../record-actions.js';
 import { db, auth } from '../firebase-config.js';
 import { villageRef, chargerVillage, villageActuel } from '../village-client.js';
 await chargerVillage();
@@ -20,14 +24,16 @@ initNotifCaisseAdmin(); // no-op si l'utilisateur connecté n'est pas administra
 // La clé de l'entrée est connue tout de suite, même hors-ligne : le push
 // (api/notifier.js) est mis en file et renvoyé jusqu'à confirmation.
 function notifierAdmin(data) {
-    const r = push(villageRef(db, 'notifications_caisse'), {
-        action: 'encaissement',
-        ...data,
-        caissier_email: auth.currentUser?.email || '',
-        ts: Date.now()
-    });
-    r.catch(e => console.warn('[notif caisse] échec envoi :', e));
-    signalerPush(r.key);
+    try {
+        const r = push(villageRef(db, 'notifications_caisse'), {
+            action: 'encaissement',
+            ...data,
+            caissier_email: auth.currentUser?.email || '',
+            ts: Date.now()
+        });
+        r.catch(e => console.warn('[notif caisse] échec envoi :', e));
+        signalerPush(r.key);
+    } catch (e) { console.warn('[notification] Opération enregistrée, notification non envoyée.'); }
 }
 
 // ── AUTH GUARD ──────────────────────────────────
@@ -193,19 +199,7 @@ function esc(str) {
 }
 
 // ── HELPERS ─────────────────────────────────────
-function getSafeTs(val) {
-    if (val.date_heure_ts) return val.date_heure_ts;
-    if (val.date) {
-        const parts = val.date.split('/');
-        if (parts.length === 3) {
-            const day = parseInt(parts[0],10), month = parseInt(parts[1],10)-1, year = parseInt(parts[2],10);
-            let hr=0, min=0;
-            if (val.heure) { const hp = val.heure.split(':'); if(hp.length>=2){hr=parseInt(hp[0]);min=parseInt(hp[1]);} }
-            return new Date(year,month,day,hr,min).getTime();
-        }
-    }
-    return Date.now();
-}
+function getSafeTs(val) { return recordTimestamp(val); }
 function isToday(ts) { const d=new Date(ts),n=new Date(); return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
 // Comme isToday(), mais comparé à une date de référence quelconque — utilisé
 // pour la saisie a posteriori (ex. rattacher un ticket à un samedi précis).
@@ -494,31 +488,6 @@ setTimeout(() => {
 // ── NUMÉRO D'ATTENTE ATOMIQUE (sans doublons) ────
 // refTs : jour auquel rattacher le compteur — le jour réel en saisie
 // normale, ou le jour choisi dans la barre de saisie a posteriori.
-async function prochainNumeroAttente(refTs = Date.now()) {
-    const jourTickets = allTickets.filter(x => isSameDay(x._ts, refTs));
-    let maxAttente = 0;
-    jourTickets.forEach(t => {
-        if (t.num_attente) {
-            const num = parseInt(String(t.num_attente).replace(/\D/g, ''), 10);
-            if (!isNaN(num) && num > maxAttente) maxAttente = num;
-        }
-    });
-
-    const jour = ymd(refTs); // AAAA-MM-JJ du jour de l'opération
-    const compteurRef = villageRef(db, `compteurs/attente_${jour}`);
-    try {
-        const result = await runTransaction(compteurRef, (current) => {
-            let c = current || 0;
-            if (maxAttente > c) c = maxAttente;
-            return c + 1;
-        });
-        if (result.committed) return { num: result.snapshot.val(), fiable: true };
-        throw new Error('transaction non validée');
-    } catch (e) {
-        console.warn('Attribution du numéro d’attente impossible.', e);
-        throw new Error('Numéro d’attente non attribué : connexion requise pour éviter les doublons.');
-    }
-}
 // Numéro d'attente prévisionnel (lecture seule, sans incrément) pour l'aperçu
 // de la synthèse. Le numéro définitif est attribué de façon atomique à l'encaissement.
 window.numeroAttentePrevisionnel = function() {
@@ -539,13 +508,14 @@ window.numeroAttentePrevisionnel = function() {
 // Le dashboard de caisse ne montre plus que l'essentiel du jour ; le détail
 // Semaine/Mois/Trimestre/Année vit dans Planification & Rapports.
 function updateStats() {
+    if (!checkDataQuality([...allTickets,...allMedVentes])) return;
     const tickets = allTickets.filter(x=>!x.annule);
     const ventes  = allMedVentes.filter(x=>!x.annule);
 
-    const ticketsToday = tickets.filter(x=>isToday(x._ts));
-    const ventesToday  = ventes.filter(x=>isToday(x._ts));
-    const tDay = ticketsToday.reduce((s,x)=>s+(parseFloat(x.prix)||0),0);
-    const mDay = ventesToday.reduce((s,x)=>s+(parseFloat(x.total)||0),0);
+    const ticketsToday = tickets.filter(x=>Number.isFinite(x._ts) && x._ts<=Date.now() && isToday(x._ts));
+    const ventesToday  = ventes.filter(x=>Number.isFinite(x._ts) && x._ts<=Date.now() && isToday(x._ts));
+    const tDay = sumAmounts(ticketsToday,'prix');
+    const mDay = sumAmounts(ventesToday,'total');
 
     if(document.getElementById('s-g-day'))     document.getElementById('s-g-day').textContent = fmt(tDay + mDay) + ' FCFA';
     if(document.getElementById('s-g-tickets')) document.getElementById('s-g-tickets').textContent = ticketsToday.length + ventesToday.length;
@@ -557,7 +527,7 @@ function updateStats() {
 // ── FIREBASE LISTENERS ───────────────────────────
 onValue(ticketRef, snap => {
     allTickets = [];
-    snap.forEach(c => { allTickets.push({ _key:c.key, _ts:getSafeTs(c.val()), ...c.val() }); });
+    snap.forEach(c => { allTickets.push({ ...c.val(), _key:c.key, _ts:getSafeTs(c.val()) }); });
     allTickets.sort((a,b)=>b._ts-a._ts);
     updateStats(); renderHistTickets();
     loadedT=true; checkLoadState();
@@ -565,7 +535,7 @@ onValue(ticketRef, snap => {
 
 onValue(medVenteRef, snap => {
     allMedVentes = [];
-    snap.forEach(c => { allMedVentes.push({ _key:c.key, _ts:getSafeTs(c.val()), ...c.val() }); });
+    snap.forEach(c => { allMedVentes.push({ ...c.val(), _key:c.key, _ts:getSafeTs(c.val()) }); });
     allMedVentes.sort((a,b)=>b._ts-a._ts);
     updateStats(); renderHistMeds();
     loadedM=true; checkLoadState();
@@ -573,7 +543,7 @@ onValue(medVenteRef, snap => {
 
 onValue(stockRef, snap => {
     allStock = [];
-    snap.forEach(c => { if (!c.val().archive) allStock.push({ _key:c.key, ...c.val() }); });
+    snap.forEach(c => { if (!c.val().archive) allStock.push({ ...c.val(), _key:c.key }); });
     allStock.sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
     loadedS=true; renderMedGrid(''); checkLoadState();
 });
@@ -636,7 +606,7 @@ window.selectTarif = function(card) {
 };
 
 window.calcMonnaieT = function() {
-    const recu=parseFloat(document.getElementById('t-recu').value)||0;
+    const recu=Number(document.getElementById('t-recu').value)||0;
     const m=recu-prixActuel;
     const el=document.getElementById('t-monnaie');
     el.textContent = recu>0 ? fmt(m)+' FCFA' : '—';
@@ -652,15 +622,15 @@ window.setMontantRecuT = function(val) {
 };
 
 function validateAge(val) {
-    const n = parseInt(val, 10);
-    return !isNaN(n) && n >= 0 && n <= 120;
+    const n = Number(val);
+    return Number.isSafeInteger(n) && n >= 0 && n <= 120;
 }
 
 function checkTicketBtn() {
     const prenom=document.getElementById('t-prenom').value.trim();
     const nom   =document.getElementById('t-nom').value.trim();
     const age   =document.getElementById('t-age').value.trim();
-    const recu  =parseFloat(document.getElementById('t-recu').value)||0;
+    const recu  =Number(document.getElementById('t-recu').value)||0;
 
     const ageEl = document.getElementById('t-age');
     if (age && !validateAge(age)) {
@@ -671,7 +641,7 @@ function checkTicketBtn() {
     }
 
     let montantOk = true;
-    if (recu < prixActuel) {
+    if (!Number.isSafeInteger(recu) || recu < prixActuel) {
         montantOk = false;
         document.getElementById('t-monnaie').textContent = '⚠ Montant insuffisant';
         document.getElementById('t-monnaie').className = 'monnaie-result neg';
@@ -700,12 +670,12 @@ window.encaisserTicket = async function() {
     const nom   =document.getElementById('t-nom').value.trim();
     const age   =document.getElementById('t-age').value.trim();
     const choix =document.querySelector('.tarif-card.sel')?.dataset.prest||'';
-    const recu  =parseFloat(document.getElementById('t-recu').value)||0;
+    const recu  =Number(document.getElementById('t-recu').value)||0;
     const monnaie=recu-prixActuel;
 
     if (!prenom||!nom||!age||!prixActuel) return;
     if (!validateAge(age)) { toast('Âge invalide (0–120 ans).', 'err'); return; }
-    if (recu < prixActuel) { toast('Montant remis insuffisant.', 'err'); return; }
+    if (!Number.isSafeInteger(recu) || recu < prixActuel) { toast('Montant remis insuffisant.', 'err'); return; }
     if (!validerOpDate()) return;
 
     const btn=document.getElementById('btn-ticket');
@@ -717,31 +687,16 @@ window.encaisserTicket = async function() {
     // validité) est daté sur cette base, pas sur l'instant de la saisie.
     const opTs = getOpTimestamp();
     const enDiffere = !isSameDay(opTs, Date.now());
-    let nAtt;
-    try { ({ num: nAtt } = await prochainNumeroAttente(opTs)); }
-    catch (e) { toast(e.message, 'err'); btn.disabled=false; btnLabel.textContent='Encaisser'; return; }
-    const numAttente='N° ' + String(nAtt).padStart(3, '0');
+    let numAttente='…';
 
     const validiteTs=opTs + 24*60*60*1000;
     const validiteStr=new Date(validiteTs).toLocaleDateString('fr-FR')+' à '+new Date(validiteTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 
-    const payload = {
-        name:           prenom+' '+nom,
-        prenom, nom, age: parseInt(age),
-        choix, prix: prixActuel,
-        num_attente:    numAttente,
-        argent_remis:   recu,
-        monnaie_rendue: monnaie,
-        date:           new Date(opTs).toLocaleDateString('fr-FR'),
-        heure:          new Date(opTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
-        date_heure_ts:  opTs,
-        validite_ts:    validiteTs,
-        saisi_par:      auth.currentUser?.email || '',
-        ...(enDiffere ? { saisie_differee: true, saisie_le: Date.now() } : {})
-    };
 
     try {
-        const newRef=await push(ticketRef, payload);
+        const confirmed=await operationMetier('ticket_creer', {prenom,nom,age:Number(age),choix,prix:prixActuel,argent_remis:recu,date_heure_ts:opTs});
+        const newRef={key:confirmed.key};
+        numAttente=confirmed.ticket.num_attente;
         const refNum='TK-'+newRef.key.substring(0,6).toUpperCase();
         const dateStr=dateISO(opTs);
 
@@ -787,8 +742,9 @@ window.encaisserTicket = async function() {
         document.getElementById('r-attente').textContent='—';
         document.querySelectorAll('.tarif-card').forEach(c=>c.classList.remove('sel'));
         prixActuel=0;
+        completeOperation('ticket_creer');
     } catch(e) {
-        console.error(e); toast('Erreur lors de l\'enregistrement.','err');
+        console.error(e); toast(e.message || 'Enregistrement non confirmé.','err');
     } finally {
         btn.disabled=false; updateBtnTicketLabel();
         checkTicketBtn();
@@ -818,9 +774,9 @@ window.renderHistTickets = function() {
             <td><strong${x.annule ? ' style="text-decoration:line-through;"' : ''}>${esc(fmt(x.prix||0))} FCFA</strong>${x.annule ? ' <span class="tbadge" style="background:var(--danger-bg);color:var(--danger);">Annulé</span>' : ''}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? `<span class="tag-differe">${ICON_CLOCK}a posteriori</span>` : ''}</td>
             <td><div class="hist-actions">
-                <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">${ICON_PRINTER}Réimprimer</button>
-                ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">Annuler</button>` : ''}
-                ${isAdmin ? `<button type="button" class="btn-annuler" onclick="supprimerTicket('${x._key}')">${ICON_TRASH}Supprimer</button>` : ''}
+                <button type="button" class="btn-reprint" data-record-action="reimprimerTicket" data-record-key="${esc(x._key)}">${ICON_PRINTER}Réimprimer</button>
+                ${!x.annule ? `<button type="button" class="btn-annuler" data-record-action="ouvrirModalTicket" data-record-key="${esc(x._key)}">Annuler</button>` : ''}
+                ${isAdmin ? `<button type="button" class="btn-annuler" data-record-action="supprimerTicket" data-record-key="${esc(x._key)}">${ICON_TRASH}Supprimer</button>` : ''}
             </div></td>
         </tr>
     `).join('');
@@ -840,12 +796,12 @@ window.renderHistTickets = function() {
                 ${x.saisie_differee ? `<span class="tag-differe">${ICON_CLOCK}a posteriori</span>` : ''}
             </div>
             <div class="hist-card-foot">
-                <button type="button" class="btn-reprint" onclick="reimprimerTicket('${x._key}')">${ICON_PRINTER}Réimprimer</button>
+                <button type="button" class="btn-reprint" data-record-action="reimprimerTicket" data-record-key="${esc(x._key)}">${ICON_PRINTER}Réimprimer</button>
                 ${(!x.annule || isAdmin) ? `<div class="menu-wrap">
-                    <button type="button" class="btn-kebab" onclick="toggleDropdown('${menuId}', this)" aria-label="Plus d'actions">${ICON_DOTS}</button>
-                    <div class="dropdown-menu" id="${menuId}" style="right:0;">
-                        ${!x.annule ? `<button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();ouvrirModalTicket('${x._key}')">${ICON_UNDO}Annuler le ticket</button>` : ''}
-                        ${isAdmin ? `<button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();supprimerTicket('${x._key}')">${ICON_TRASH}Supprimer définitivement</button>` : ''}
+                    <button type="button" class="btn-kebab" data-record-action="toggleDropdown" data-record-key="${esc(menuId)}" aria-label="Plus d'actions">${ICON_DOTS}</button>
+                    <div class="dropdown-menu" id="${esc(menuId)}" style="right:0;">
+                        ${!x.annule ? `<button type="button" class="dropdown-item danger" data-record-action="ouvrirModalTicket" data-record-key="${esc(x._key)}">${ICON_UNDO}Annuler le ticket</button>` : ''}
+                        ${isAdmin ? `<button type="button" class="dropdown-item danger" data-record-action="supprimerTicket" data-record-key="${esc(x._key)}">${ICON_TRASH}Supprimer définitivement</button>` : ''}
                     </div>
                 </div>` : ''}
             </div>
@@ -984,13 +940,12 @@ function renderMedGrid(q) {
         let actionHtml;
         if (isOutOfStock || expired) actionHtml = `<button type="button" class="med-add-btn disabled" disabled>${expired ? 'Péremption à vérifier' : 'Indisponible'}</button>`;
         else if (inPanier) actionHtml = `<span class="med-added-tag">${ICON_CHECK}Ajouté</span>`;
-        else actionHtml = `<button type="button" class="med-add-btn" onclick="event.stopPropagation();ajouterMed('${m._key}')">+ Ajouter</button>`;
+        else actionHtml = `<button type="button" class="med-add-btn" data-record-action="ajouterMed" data-record-key="${esc(m._key)}">+ Ajouter</button>`;
 
         return `
             <div class="med-item ${inPanier ? 'added' : ''}${isOutOfStock ? ' out' : ''}"
                  tabindex="${isBlocked ? '-1' : '0'}" role="button"
-                 onclick="${isBlocked ? '' : `ajouterMed('${m._key}')`}"
-                 onkeydown="if(!${isBlocked}&&(event.key==='Enter'||event.key===' ')){ajouterMed('${m._key}')}">
+                 data-record-action="ajouterMed" data-record-key="${esc(m._key)}" aria-disabled="${isBlocked}">
                 <div class="med-item-left">
                     <div class="med-nom">${esc(m.nom||'—')}</div>
                     <div class="med-meta">
@@ -1085,19 +1040,19 @@ function renderPanier() {
                 <div style="font-size:0.7rem;color:var(--muted);">${esc(fmt(p.prix))} FCFA / unité</div>
             </div>
             <div class="panier-qte-ctrl">
-                <button class="panier-btn" onclick="modifierQte('${esc(p.stock_key)}', -1)">-</button>
+                <button class="panier-btn" data-record-action="quantity" data-record-key="${esc(p.stock_key)}" data-step="-1">-</button>
                 <div class="panier-qte-val">${p.qte}</div>
-                <button class="panier-btn" onclick="modifierQte('${esc(p.stock_key)}', 1)">+</button>
+                <button class="panier-btn" data-record-action="quantity" data-record-key="${esc(p.stock_key)}" data-step="1">+</button>
             </div>
             <div class="panier-item-prix" style="width:82px;text-align:right;white-space:nowrap;">${esc(fmt(p.prix * p.qte))} FCFA</div>
-            <button class="panier-del" style="margin-left:10px;" onclick="retirerMed('${esc(p.stock_key)}')">✕</button>
+            <button class="panier-del" style="margin-left:10px;" data-record-action="retirerMed" data-record-key="${esc(p.stock_key)}">✕</button>
         </div>`).join('')}</div>`;
     calcMonnaieM();
 }
 
 window.calcMonnaieM = function() {
     const total = panier.reduce((s,p) => s + (p.prix * p.qte), 0);
-    const recu = parseFloat(document.getElementById('m-recu').value) || 0;
+    const recu = Number(document.getElementById('m-recu').value) || 0;
     const m = recu - total;
     const el = document.getElementById('m-monnaie');
     el.textContent = recu > 0 ? fmt(m) + ' FCFA' : '—';
@@ -1139,10 +1094,10 @@ window.encaisserMedicaments = async function() {
         return;
     }
     const total = panier.reduce((s,p) => s + (p.prix * p.qte), 0);
-    const recu = parseFloat(document.getElementById('m-recu').value) || 0;
+    const recu = Number(document.getElementById('m-recu').value) || 0;
     const monnaie = recu - total;
 
-    if (!Number.isFinite(recu) || recu < total) { toast('Montant remis insuffisant.', 'err'); return; }
+    if (!Number.isSafeInteger(recu) || recu < total) { toast('Montant remis insuffisant.', 'err'); return; }
     if (!validerOpDate()) return;
 
     const patientNom = patientSelectionne ? patientSelectionne.name : manualName;
@@ -1222,8 +1177,9 @@ window.encaisserMedicaments = async function() {
         const pl=document.getElementById('panier-liste');
         if (pl) pl.outerHTML='<div id="panier-liste" class="panier-vide">Aucun médicament sélectionné</div>';
         renderMedGrid('');
+        completeOperation('encaisser');
     } catch(e) {
-        console.error(e); toast('Erreur lors de l\'enregistrement.','err');
+        console.error(e); toast(e.message || 'Enregistrement non confirmé.','err');
     } finally {
         btn.disabled=false; updateBtnMedLabel();
         checkMedBtn();
@@ -1253,10 +1209,10 @@ window.renderHistMeds = function() {
             <td>${esc(String((x.medicaments||[]).length))}</td>
             <td style="white-space:nowrap;font-size:.75rem;color:var(--muted);">${esc(dateTimeStr(x._ts))}${x.saisie_differee ? `<span class="tag-differe">${ICON_CLOCK}a posteriori</span>` : ''}</td>
             <td><div class="hist-actions">
-                <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">${ICON_PRINTER}Réimprimer</button>
-                ${!x.annule ? `<button type="button" class="btn-modifier" onclick="ouvrirModalModifMed('${x._key}')">${ICON_PENCIL}Modifier</button>` : ''}
-                ${!x.annule ? `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">${ICON_UNDO}Annuler</button>` : ''}
-                ${isAdmin ? `<button type="button" class="btn-annuler" onclick="supprimerMed('${x._key}')">${ICON_TRASH}Supprimer</button>` : ''}
+                <button type="button" class="btn-reprint" data-record-action="reimprimerMed" data-record-key="${esc(x._key)}">${ICON_PRINTER}Réimprimer</button>
+                ${!x.annule ? `<button type="button" class="btn-modifier" data-record-action="ouvrirModalModifMed" data-record-key="${esc(x._key)}">${ICON_PENCIL}Modifier</button>` : ''}
+                ${!x.annule ? `<button type="button" class="btn-annuler" data-record-action="ouvrirModalMed" data-record-key="${esc(x._key)}">${ICON_UNDO}Annuler</button>` : ''}
+                ${isAdmin ? `<button type="button" class="btn-annuler" data-record-action="supprimerMed" data-record-key="${esc(x._key)}">${ICON_TRASH}Supprimer</button>` : ''}
             </div></td>
         </tr>
     `).join('');
@@ -1276,13 +1232,13 @@ window.renderHistMeds = function() {
                 ${x.saisie_differee ? `<span class="tag-differe">${ICON_CLOCK}a posteriori</span>` : ''}
             </div>
             <div class="hist-card-foot">
-                <button type="button" class="btn-reprint" onclick="reimprimerMed('${x._key}')">${ICON_PRINTER}Réimprimer</button>
+                <button type="button" class="btn-reprint" data-record-action="reimprimerMed" data-record-key="${esc(x._key)}">${ICON_PRINTER}Réimprimer</button>
                 ${(!x.annule || isAdmin) ? `<div class="menu-wrap">
-                    <button type="button" class="btn-kebab" onclick="toggleDropdown('${menuId}', this)" aria-label="Plus d'actions">${ICON_DOTS}</button>
-                    <div class="dropdown-menu" id="${menuId}" style="right:0;">
-                        ${!x.annule ? `<button type="button" class="dropdown-item" onclick="closeAllDropdowns();ouvrirModalModifMed('${x._key}')">${ICON_PENCIL}Modifier la vente</button>` : ''}
-                        ${!x.annule ? `<button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();ouvrirModalMed('${x._key}')">${ICON_UNDO}Annuler &amp; retourner</button>` : ''}
-                        ${isAdmin ? `<button type="button" class="dropdown-item danger" onclick="closeAllDropdowns();supprimerMed('${x._key}')">${ICON_TRASH}Supprimer définitivement</button>` : ''}
+                    <button type="button" class="btn-kebab" data-record-action="toggleDropdown" data-record-key="${esc(menuId)}" aria-label="Plus d'actions">${ICON_DOTS}</button>
+                    <div class="dropdown-menu" id="${esc(menuId)}" style="right:0;">
+                        ${!x.annule ? `<button type="button" class="dropdown-item" data-record-action="ouvrirModalModifMed" data-record-key="${esc(x._key)}">${ICON_PENCIL}Modifier la vente</button>` : ''}
+                        ${!x.annule ? `<button type="button" class="dropdown-item danger" data-record-action="ouvrirModalMed" data-record-key="${esc(x._key)}">${ICON_UNDO}Annuler &amp; retourner</button>` : ''}
+                        ${isAdmin ? `<button type="button" class="dropdown-item danger" data-record-action="supprimerMed" data-record-key="${esc(x._key)}">${ICON_TRASH}Supprimer définitivement</button>` : ''}
                     </div>
                 </div>` : ''}
             </div>
@@ -1468,17 +1424,10 @@ window.confirmerAnnulation = async function() {
     btn.disabled = true; document.getElementById('modal-confirm-btn-label').textContent = 'Traitement…';
 
     const caissierEmail = auth.currentUser?.email || '';
-    const annuleFields = {
-        annule: true,
-        annule_ts: Date.now(),
-        annule_motif: motif,
-        annule_obs: obs,
-        annule_par: caissierEmail
-    };
 
     try {
         if (pendingAnnulation.type === 'ticket') {
-            await update(villageRef(db, 'ticket_dbase/' + pendingAnnulation.key), annuleFields);
+            await operationMetier('ticket_annuler', {key:pendingAnnulation.key,motif,obs});
             const tk = allTickets.find(t => t._key === pendingAnnulation.key) || {};
             notifierAdmin({
                 action: 'annulation', type: 'ticket', ref_key: pendingAnnulation.key,
@@ -1625,8 +1574,7 @@ function renderModifMedGrid(q) {
             <div class="med-item ${inPanier ? 'added' : ''}"
                  tabindex="${isBlocked ? '-1' : '0'}" role="button"
                  style="${isOutOfStock ? 'opacity:0.5;cursor:not-allowed;border-color:var(--danger);' : ''}"
-                 onclick="${isBlocked ? '' : `ajouterMedModif('${m._key}')`}"
-                 onkeydown="if(!${isBlocked}&&(event.key==='Enter'||event.key===' ')){ajouterMedModif('${m._key}')}">
+                 data-record-action="ajouterMedModif" data-record-key="${esc(m._key)}" aria-disabled="${isBlocked}">
                 <div class="med-item-left">
                     <div class="med-nom">${esc(m.nom || '—')}</div>
                     <div class="med-meta">
@@ -1754,6 +1702,7 @@ window.confirmerModifMed = async function() {
 };
 
 function filterByPeriod(list, period) {
+    list=list.filter(x=>Number.isFinite(x._ts) && x._ts<=Date.now());
     if (period==='day')   return list.filter(x=>isToday(x._ts));
     if (period==='week')  return list.filter(x=>isThisWeek(x._ts));
     if (period==='month') return list.filter(x=>isMonth(x._ts));
@@ -1763,3 +1712,18 @@ function filterByPeriod(list, period) {
 }
 
 window.addEventListener('beforeunload', () => { off(ticketRef); off(medVenteRef); off(stockRef); });
+// Dispatch explicite : aucun nom de fonction venant de la base n'est exécuté.
+bindRecordActions(document, {
+    reimprimerTicket: key => window.reimprimerTicket(key),
+    ouvrirModalTicket: key => { window.closeAllDropdowns(); window.ouvrirModalTicket(key); },
+    supprimerTicket: key => { window.closeAllDropdowns(); window.supprimerTicket(key); },
+    reimprimerMed: key => window.reimprimerMed(key),
+    ouvrirModalMed: key => { window.closeAllDropdowns(); window.ouvrirModalMed(key); },
+    ouvrirModalModifMed: key => { window.closeAllDropdowns(); window.ouvrirModalModifMed(key); },
+    supprimerMed: key => { window.closeAllDropdowns(); window.supprimerMed(key); },
+    toggleDropdown: (key, node) => window.toggleDropdown(key, node),
+    ajouterMed: key => window.ajouterMed(key),
+    ajouterMedModif: key => window.ajouterMedModif(key),
+    retirerMed: key => window.retirerMed(key),
+    quantity: (key, node) => window.modifierQte(key, Number(node.dataset.step)),
+});

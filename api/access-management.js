@@ -1,6 +1,7 @@
 'use strict';
 // Administrative management is exclusively server-side. Client never writes db_users.
 const crypto=require('node:crypto');
+const {readJsonBody,privateResponse}=require('./_http.js');
 const { identity, mayManage, STAFF, SLUG, EMAIL, forbidden } = require('./_access.js');
 const DB_URL=process.env.FIREBASE_DATABASE_URL || 'https://poste-sante-280b2-default-rtdb.firebaseio.com';
 const fail=(status,msg)=>Object.assign(new Error(msg),{status});
@@ -93,13 +94,18 @@ async function assignAccount(db,auth,actor,{email,role,villageId}){
 }
 async function changeStaff(db,actor,{uid,role,mode}){
  if(actor.global||actor.role!=='admin') throw forbidden();
- if(typeof uid!=='string'||uid.length<16||uid.length>128||actor.uid===uid) throw forbidden();
+ if(typeof uid!=='string'||uid.length<1||uid.length>128||/[.#$\[\]\/\u0000-\u001f\u007f]/.test(uid)||actor.uid===uid) throw forbidden();
+ if(!['role','revoke','reactivate'].includes(mode)) throw fail(422,'Action invalide.');
  if(mode==='role'&&!STAFF.includes(role)) throw forbidden('Rôle interdit.');
  const accountRef=db.ref('db_users/'+uid);
- const cur=(await accountRef.once('value')).val();
- if(!cur || cur.village_id!==actor.villageId || !STAFF.includes(cur.role)) throw fail(403,'Utilisateur extérieur à votre équipe ou rôle protégé.');
- await accountRef.set({...cur,...(mode==='role'?{role}:{active:mode==='reactivate'}),updated_ts:Date.now(),updated_by:actor.uid});
- return {uid,role:mode==='role'?role:undefined,active:mode==='revoke'?false:undefined};
+ const result=await accountRef.transaction(cur=>{
+  // Recheck authorization on EVERY transaction retry: another administrator
+  // may have promoted or reassigned the account since the first read.
+  if(!cur || cur.village_id!==actor.villageId || !STAFF.includes(cur.role)) return;
+  return {...cur,...(mode==='role'?{role}:{active:mode==='reactivate'}),updated_ts:Date.now(),updated_by:actor.uid};
+ },undefined,false);
+ if(!result.committed) throw fail(403,'Utilisateur extérieur à votre équipe ou rôle protégé.');
+ return {uid,role:mode==='role'?role:undefined,active:mode==='role'?undefined:mode==='reactivate'};
 }
 async function changeVillage(db,auth,actor,{villageId,action,motif}){
  if(!actor.global || !SLUG.test(villageId||'')) throw forbidden();
@@ -109,11 +115,13 @@ async function changeVillage(db,auth,actor,{villageId,action,motif}){
  const raison=val(motif,300);
  if(action==='deactivateVillage' && raison.length<3) throw fail(422,'Indiquer le motif de la suspension (3 caractères minimum).');
  const activer=action==='activateVillage';
- const current=(await v.once('value')).val();
- if(!current) throw fail(404,'Village introuvable.');
- const next={...current,active:activer,updated_by:actor.uid,updated_ts:Date.now()};
- if(activer) delete next.suspension; else next.suspension={motif:raison,ts:Date.now(),by:actor.uid};
- await v.set(next);
+ const result=await v.transaction(current=>{
+  if(!current) return;
+  const next={...current,active:activer,updated_by:actor.uid,updated_ts:Date.now()};
+  if(activer) delete next.suspension; else next.suspension={motif:raison,ts:Date.now(),by:actor.uid};
+  return next;
+ },undefined,false);
+ if(!result.committed) throw fail(404,'Village introuvable.');
  if(!activer){
   // Toute l'équipe est déconnectée : les jetons existants sont révoqués, et les règles
   // RTDB + les API refusent déjà tout accès tant que le village est suspendu.
@@ -138,23 +146,28 @@ async function perform(db,auth,actor,b){
  if(action==='renewVillage'){
   if(!actor.global||!SLUG.test(b.villageId||'')) throw forbidden();
   const v=db.ref('villages_registry/'+b.villageId);
-  const current=(await v.once('value')).val();
-  if(!current) throw fail(404,'Village introuvable.');
   let expires_ts,duree;
   if(b.date){
    // Date précise choisie par le super administrateur (fin de la journée indiquée).
-   const t=Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(String(b.date))?(String(b.date)+'T23:59:59'):'');
-   if(!Number.isFinite(t)) throw fail(422,'Date d’expiration invalide.');
+   const date=String(b.date);
+   const t=Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(date)?date+'T23:59:59.999Z':'');
+   if(!Number.isFinite(t)||new Date(t).toISOString().slice(0,10)!==date) throw fail(422,'Date d’expiration invalide.');
    if(t<=Date.now()) throw fail(422,'La date d’expiration doit être dans le futur.');
    if(t>Date.now()+10*365*86400000) throw fail(422,'Date d’expiration trop lointaine (10 ans maximum).');
    expires_ts=t;duree='perso';
   } else {
    const d=val(b.duree,4);
    if(!DUREES[d]) throw fail(422,'Durée d’accès invalide.');
-   // Prolongation : à partir de l'échéance en cours si elle est future, sinon à partir d'aujourd'hui.
-   expires_ts=ajouterMois(Math.max(Date.now(),Number(current.expires_ts)||0),DUREES[d]);duree=d;
+   duree=d;
   }
-  await v.set({...current,duree,expires_ts,updated_by:actor.uid,updated_ts:Date.now()});
+  const result=await v.transaction(current=>{
+   if(!current) return;
+   // Recompute from the latest expiry on retries, preserving a concurrent
+   // suspension and accumulating simultaneous extensions.
+   if(duree!=='perso') expires_ts=ajouterMois(Math.max(Date.now(),Number(current.expires_ts)||0),DUREES[duree]);
+   return {...current,duree,expires_ts,updated_by:actor.uid,updated_ts:Date.now()};
+  },undefined,false);
+  if(!result.committed) throw fail(404,'Village introuvable.');
   return {villageId:b.villageId,expires_ts};
  }
  if(action==='resolveAdminRequest'){
@@ -203,14 +216,14 @@ async function statut(req,db,auth){
  return {statut:'actif'};
 }
 async function handler(req,res){
- res.setHeader('Cache-Control','no-store');
+ privateResponse(res);
  res.setHeader('Content-Type','application/json; charset=utf-8');
  try {
   if(!['GET','POST'].includes(req.method)) throw fail(405,'Méthode non autorisée.');
   const {db,auth}=firebase();
   if(req.method==='GET' && req.query?.scope==='statut') return res.status(200).json({ok:true,...await statut(req,db,auth)});
   const actor=await authActor(req,db,auth);
-  const data=req.method==='GET'?await listing(db,auth,actor,req.query?.scope):await perform(db,auth,actor,req.body||{});
+  const data=req.method==='GET'?await listing(db,auth,actor,req.query?.scope):await perform(db,auth,actor,readJsonBody(req,16384));
   res.status(200).json({ok:true,...data});
  }catch(e){
   const status=e.status||(String(e.code||'').startsWith('auth/id-token')||e.code==='auth/user-disabled'?401:500);

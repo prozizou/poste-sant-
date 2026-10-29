@@ -435,6 +435,11 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
+import { operationMetier } from '../business-client.js';
+import { recordTimestamp, amount, sumAmounts } from '../domain-values.mjs';
+import { checkDataQuality } from '../data-quality.js';
+
+import { bindRecordActions } from '../record-actions.js';
 import { auth, db } from '../firebase-config.js';
 import { villageRef, chargerVillage } from '../village-client.js';
 await chargerVillage();
@@ -476,18 +481,7 @@ function esc(str) {
 }
 function fmt(n) { return Number(n || 0).toLocaleString('fr-FR'); }
 function fcfa(n) { return fmt(n) + ' FCFA'; }
-function getSafeTs(val) {
-    if (val.date_heure_ts) return val.date_heure_ts;
-    if (val.date) {
-        const p = String(val.date).split('/');
-        if (p.length === 3) {
-            let hr = 0, min = 0;
-            if (val.heure) { const hp = String(val.heure).split(':'); if (hp.length >= 2) { hr = parseInt(hp[0],10); min = parseInt(hp[1],10); } }
-            return new Date(parseInt(p[2],10), parseInt(p[1],10) - 1, parseInt(p[0],10), hr, min).getTime();
-        }
-    }
-    return Date.now();
-}
+function getSafeTs(val) { return recordTimestamp(val); }
 function isToday(ts) { const d=new Date(ts),n=new Date(); return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); }
 function isThisWeek(ts) {
     const d=new Date(ts),now=new Date(),dow=now.getDay(),numDay=dow===0?6:dow-1;
@@ -506,6 +500,7 @@ function toast(msg, type='ok') {
     setTimeout(() => el.classList.remove('show'), 4500);
 }
 function filterByPeriod(list, period) {
+    list=list.filter(x=>Number.isFinite(x._ts) && x._ts<=Date.now());
     if (period === 'day')   return list.filter(x => isToday(x._ts));
     if (period === 'week')  return list.filter(x => isThisWeek(x._ts));
     if (period === 'month') return list.filter(x => isMonth(x._ts));
@@ -567,27 +562,28 @@ function traiterDeepLinkNotif() {
 
 onValue(ticketRef, snap => {
     allTickets = [];
-    snap.forEach(c => { allTickets.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }); });
+    snap.forEach(c => { allTickets.push({ ...c.val(), _key: c.key, _ts: getSafeTs(c.val()) }); });
     allTickets.sort((a,b) => b._ts - a._ts);
     loadedT = true; checkLoad(); updateStats(); renderTickets();
 });
 onValue(medRef, snap => {
     allMedVentes = [];
-    snap.forEach(c => { allMedVentes.push({ _key: c.key, _ts: getSafeTs(c.val()), ...c.val() }); });
+    snap.forEach(c => { allMedVentes.push({ ...c.val(), _key: c.key, _ts: getSafeTs(c.val()) }); });
     allMedVentes.sort((a,b) => b._ts - a._ts);
     loadedM = true; checkLoad(); updateStats(); renderMeds();
 });
 onValue(stockRef, snap => {
     allStock = [];
-    snap.forEach(c => { allStock.push({ _key: c.key, ...c.val() }); });
+    snap.forEach(c => { allStock.push({ ...c.val(), _key: c.key }); });
     loadedS = true; checkLoad();
 });
 
 // ── Résumé compact ───────────────────────────────────────────────
 function updateStats() {
-    const tkAnnulesDay = allTickets.filter(x => x.annule && isToday(x._ts));
-    const mdAnnulesDay = allMedVentes.filter(x => x.annule && isToday(x._ts));
-    const valDay = tkAnnulesDay.reduce((s,x)=>s+(Number(x.prix)||0),0) + mdAnnulesDay.reduce((s,x)=>s+(Number(x.total)||0),0);
+    if (!checkDataQuality([...allTickets,...allMedVentes])) return;
+    const tkAnnulesDay = allTickets.filter(x => x.annule && Number.isSafeInteger(x.annule_ts) && x.annule_ts<=Date.now() && isToday(x.annule_ts));
+    const mdAnnulesDay = allMedVentes.filter(x => x.annule && Number.isSafeInteger(x.annule_ts) && x.annule_ts<=Date.now() && isToday(x.annule_ts));
+    const valDay = sumAmounts(tkAnnulesDay,'prix') + sumAmounts(mdAnnulesDay,'total');
     document.getElementById('s-day-count').textContent = tkAnnulesDay.length + mdAnnulesDay.length;
     document.getElementById('s-day-val').textContent = fcfa(valDay) + ' retourné(s)';
     document.getElementById('s-total-hist').textContent =
@@ -688,10 +684,10 @@ window.renderTickets = function() {
             <td>${badgeTicket(x)}</td>
             <td>${x.annule
                 ? `<div class="table-actions"><span class="par">par ${esc((x.annule_par||'').split('@')[0]||'—')}</span>
-                        <div class="table-actions-row"><button type="button" class="btn-voir" onclick="ouvrirDetail('ticket','${x._key}')">Détails</button>
-                        <button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerTicket('${x._key}')">Restaurer</button></div></div>`
-                : `<div class="table-actions-row"><button type="button" class="btn-voir" onclick="ouvrirDetail('ticket','${x._key}')">Détails</button>
-                        <button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')">Annuler</button></div>`}</td>
+                        <div class="table-actions-row"><button type="button" class="btn-voir" data-record-action="detail-ticket" data-record-key="${esc(x._key)}">Détails</button>
+                        <button type="button" class="btn-restaurer" data-record-action="ouvrirModalRestaurerTicket" data-record-key="${esc(x._key)}">Restaurer</button></div></div>`
+                : `<div class="table-actions-row"><button type="button" class="btn-voir" data-record-action="detail-ticket" data-record-key="${esc(x._key)}">Détails</button>
+                        <button type="button" class="btn-annuler" data-record-action="ouvrirModalTicket" data-record-key="${esc(x._key)}">Annuler</button></div>`}</td>
         </tr>
     `).join('');
 
@@ -710,10 +706,10 @@ window.renderTickets = function() {
                 <span class="item-card-date">${esc(dateTimeStr(x._ts))}</span>
             </div>
             <div class="item-card-actions">
-                <button type="button" class="btn-voir" onclick="ouvrirDetail('ticket','${x._key}')">Voir détails</button>
+                <button type="button" class="btn-voir" data-record-action="detail-ticket" data-record-key="${esc(x._key)}">Voir détails</button>
                 ${x.annule
-                    ? `<button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerTicket('${x._key}')"><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Restaurer</button>`
-                    : `<button type="button" class="btn-annuler" onclick="ouvrirModalTicket('${x._key}')"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Annuler</button>`}
+                    ? `<button type="button" class="btn-restaurer" data-record-action="ouvrirModalRestaurerTicket" data-record-key="${esc(x._key)}"><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Restaurer</button>`
+                    : `<button type="button" class="btn-annuler" data-record-action="ouvrirModalTicket" data-record-key="${esc(x._key)}"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Annuler</button>`}
             </div>
         </div>
     `).join('');
@@ -765,10 +761,10 @@ window.renderMeds = function() {
             <td>${badgeMed(x)}</td>
             <td>${x.annule
                 ? `<div class="table-actions"><span class="par">par ${esc((x.annule_par||'').split('@')[0]||'—')}</span>
-                        <div class="table-actions-row"><button type="button" class="btn-voir" onclick="ouvrirDetail('med','${x._key}')">Détails</button>
-                        <button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerMed('${x._key}')">Restaurer</button></div></div>`
-                : `<div class="table-actions-row"><button type="button" class="btn-voir" onclick="ouvrirDetail('med','${x._key}')">Détails</button>
-                        <button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')">Annuler</button></div>`}</td>
+                        <div class="table-actions-row"><button type="button" class="btn-voir" data-record-action="detail-med" data-record-key="${esc(x._key)}">Détails</button>
+                        <button type="button" class="btn-restaurer" data-record-action="ouvrirModalRestaurerMed" data-record-key="${esc(x._key)}">Restaurer</button></div></div>`
+                : `<div class="table-actions-row"><button type="button" class="btn-voir" data-record-action="detail-med" data-record-key="${esc(x._key)}">Détails</button>
+                        <button type="button" class="btn-annuler" data-record-action="ouvrirModalMed" data-record-key="${esc(x._key)}">Annuler</button></div>`}</td>
         </tr>`;
     }).join('');
 
@@ -789,10 +785,10 @@ window.renderMeds = function() {
                 <span class="item-card-date">${esc(dateTimeStr(x._ts))}</span>
             </div>
             <div class="item-card-actions">
-                <button type="button" class="btn-voir" onclick="ouvrirDetail('med','${x._key}')">Voir détails</button>
+                <button type="button" class="btn-voir" data-record-action="detail-med" data-record-key="${esc(x._key)}">Voir détails</button>
                 ${x.annule
-                    ? `<button type="button" class="btn-restaurer" onclick="ouvrirModalRestaurerMed('${x._key}')"><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Restaurer</button>`
-                    : `<button type="button" class="btn-annuler" onclick="ouvrirModalMed('${x._key}')"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Annuler</button>`}
+                    ? `<button type="button" class="btn-restaurer" data-record-action="ouvrirModalRestaurerMed" data-record-key="${esc(x._key)}"><svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Restaurer</button>`
+                    : `<button type="button" class="btn-annuler" data-record-action="ouvrirModalMed" data-record-key="${esc(x._key)}"><svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Annuler</button>`}
             </div>
         </div>`;
     }).join('');
@@ -1032,9 +1028,7 @@ window.confirmerAnnulation = async function() {
 
     try {
         if (pending.type === 'ticket') {
-            await update(villageRef(db, 'ticket_dbase/' + pending.key), {
-                annule: true, annule_ts: Date.now(), annule_motif: motif, annule_obs: obs, annule_par: adminEmail
-            });
+            await operationMetier('ticket_annuler',{key:pending.key,motif,obs});
             toast('Ticket annulé. Il est exclu du bilan.', 'ok');
 
         } else if (pending.type === 'med') {
@@ -1044,9 +1038,7 @@ window.confirmerAnnulation = async function() {
             toast('Vente annulée et stock restauré intégralement.', 'ok');
 
         } else if (pending.type === 'restaurer_ticket') {
-            await update(villageRef(db, 'ticket_dbase/' + pending.key), {
-                annule: false, restaure_ts: Date.now(), restaure_motif: motif, restaure_obs: obs, restaure_par: adminEmail
-            });
+            await operationMetier('ticket_restaurer',{key:pending.key,motif,obs});
             toast('Ticket restauré. Il redevient actif et réintègre le bilan.', 'ok');
 
         } else if (pending.type === 'restaurer_med') {
@@ -1067,6 +1059,15 @@ window.confirmerAnnulation = async function() {
 };
 
 window.addEventListener('beforeunload', () => {});
+
+bindRecordActions(document, {
+    'detail-ticket': key => window.ouvrirDetail('ticket', key),
+    'detail-med': key => window.ouvrirDetail('med', key),
+    ouvrirModalTicket: key => window.ouvrirModalTicket(key),
+    ouvrirModalMed: key => window.ouvrirModalMed(key),
+    ouvrirModalRestaurerTicket: key => window.ouvrirModalRestaurerTicket(key),
+    ouvrirModalRestaurerMed: key => window.ouvrirModalRestaurerMed(key),
+});
 </script>
 </body>
 </html>

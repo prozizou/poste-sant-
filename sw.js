@@ -1,12 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════
 //  sw.js — Service Worker
 //  Poste de Santé de Diandioly
-//  Stratégie : Cache-First pour assets statiques, Network-First pour données
+//  Cache limité aux ressources publiques explicitement autorisées.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v73-corbeille-motif-20261025';
+const APP_VERSION     = 'v75-atomic-finance-20261029';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
-const CACHE_DYNAMIC   = `ps-diandioly-dynamic-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
 
 // ── Firebase Cloud Messaging : notifications même application fermée ───
@@ -63,6 +62,10 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/firebase-config.js',
   '/role-server.js',
+  '/record-actions.js',
+  '/business-client.js',
+  '/domain-values.mjs',
+  '/data-quality.js',
   '/village-client.js',
   '/access-panel.css',
   '/accueil/menu_superadmin.html',
@@ -122,7 +125,6 @@ self.addEventListener('activate', (event) => {
           .filter((name) =>
             name.startsWith('ps-diandioly-') &&
             name !== CACHE_STATIC &&
-            name !== CACHE_DYNAMIC &&
             name !== CACHE_FONTS
           )
           .map((name) => {
@@ -142,57 +144,51 @@ self.addEventListener('fetch', (event) => {
   // 1. Ignorer les requêtes non-GET
   if (request.method !== 'GET') return;
 
-  // 2. Firebase → toujours réseau (données temps réel)
-  if (FIREBASE_DOMAINS.some((d) => url.hostname.includes(d))) {
+  // Les réponses API et authentifiées ne doivent jamais être conservées,
+  // même si leur serveur oublie Cache-Control. Aucun repli vers un ancien
+  // cache : un appareil partagé ne doit pas relire la session précédente.
+  if (request.headers.has('authorization') ||
+      (url.origin === self.location.origin && /^\/api(?:\/|$)/.test(url.pathname))) {
     event.respondWith(fetch(request));
     return;
   }
 
-  // 3. Google Fonts → Cache-First avec fallback réseau
-  if (url.hostname.includes('fonts.googleapis.com') ||
-      url.hostname.includes('fonts.gstatic.com')) {
+  // Google Fonts doit être traité avant les domaines Google génériques.
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     event.respondWith(
-      caches.open(CACHE_FONTS).then((cache) =>
-        cache.match(request).then((cached) => {
-          if (cached) return cached;
-          return fetch(request).then((response) => {
-            cache.put(request, response.clone());
-            return response;
-          });
-        })
-      )
-    );
-    return;
-  }
-
-  // 4. Assets statiques → Cache-First
-  if (url.origin === self.location.origin && STATIC_ASSETS.includes(url.pathname)) {
-    event.respondWith(
-      fetch(request).then((response) => {
-          if (response && response.status === 200) {
-            caches.open(CACHE_STATIC).then((cache) => cache.put(request, response.clone()));
-          }
-          return response;
-      }).catch(async () => (await caches.match(request)) || caches.match('/offline.html'))
-    );
-    return;
-  }
-
-  // 5. Reste → Network-First avec fallback cache puis offline
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response && response.status === 200 && response.type !== 'opaque') {
-          caches.open(CACHE_DYNAMIC).then((cache) => cache.put(request, response.clone()));
-        }
+      caches.open(CACHE_FONTS).then(async cache => {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        const response = await fetch(request);
+        if (response.ok) await cache.put(request, response.clone());
         return response;
       })
-      .catch(() =>
-        caches.match(request).then((cached) =>
-          cached || caches.match('/offline.html')
-        )
-      )
-  );
+    );
+    return;
+  }
+
+  // 2. Firebase → toujours réseau (données temps réel)
+  if (FIREBASE_DOMAINS.some((d) => url.hostname === d || url.hostname.endsWith('.' + d))) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // 4. Ressources publiques → réseau puis cache, sans variantes de requête.
+  if (url.origin === self.location.origin && !url.search && STATIC_ASSETS.includes(url.pathname)) {
+    event.respondWith(
+      fetch(request).then((response) => {
+          if (response && response.status === 200 && !/no-store|private/i.test(response.headers.get('cache-control') || '')) {
+            event.waitUntil(caches.open(CACHE_STATIC).then((cache) => cache.put(request, response.clone())));
+          }
+          return response;
+      }).catch(async () => (await caches.match(request)) || (request.mode === 'navigate' ? caches.match('/offline.html') : Response.error()))
+    );
+    return;
+  }
+
+  // 5. Tout le reste reste au réseau, sans cache persistant.
+  // Ne pas transformer une erreur JSON/JS en page HTML hors ligne.
+  event.respondWith(fetch(request));
 });
 
 // ── Message : forcer la mise à jour depuis le client ──────────────────

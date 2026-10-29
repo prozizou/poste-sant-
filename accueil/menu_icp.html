@@ -412,6 +412,9 @@
 </main>
 
 <script type="module">
+import { recordTimestamp, amount, sumAmounts } from '../domain-values.mjs';
+import { checkDataQuality } from '../data-quality.js';
+
 import { auth, db } from '../firebase-config.js';
 import { villageRef, chargerVillage } from '../village-client.js';
 await chargerVillage();
@@ -463,19 +466,7 @@ function fmtCourt(v) {
     return String(v);
 }
 function maj1(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-function getSafeTs(val) {
-    if (val.date_heure_ts) return val.date_heure_ts;
-    if (val.date_ts) return val.date_ts;
-    if (val.date) {
-        const p = String(val.date).split('/');
-        if (p.length === 3) {
-            let hr = 0, min = 0;
-            if (val.heure) { const hp = String(val.heure).split(':'); if (hp.length >= 2) { hr = parseInt(hp[0],10); min = parseInt(hp[1],10); } }
-            return new Date(parseInt(p[2],10), parseInt(p[1],10) - 1, parseInt(p[0],10), hr, min).getTime();
-        }
-    }
-    return Date.now();
-}
+function getSafeTs(val) { return recordTimestamp(val); }
 function diffJours(dateStr) {
     if (!dateStr) return Infinity;
     const d = new Date(dateStr), auj = new Date(); auj.setHours(0,0,0,0);
@@ -534,7 +525,7 @@ function bornesPeriode() {
 function enPlage(list, a, b) { return list.filter(x => x._ts >= a && x._ts < b); }
 function filtrePeriode(list) {
     const { debut, fin } = bornesPeriode();
-    return list.filter(x => x._ts >= debut && x._ts < fin);
+    return list.filter(x => Number.isFinite(x._ts) && x._ts >= debut && x._ts < Math.min(fin, Date.now()+1));
 }
 
 document.getElementById('period-tabs').addEventListener('click', (e) => {
@@ -890,22 +881,22 @@ function afficherErreur(noeud, err) {
 
 onValue(villageRef(db, 'ticket_dbase'), snap => {
     allTickets = [];
-    snap.forEach(c => { const v = c.val(); if (!v.annule) allTickets.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
+    snap.forEach(c => { const v = c.val(); if (!v.annule) allTickets.push({ ...v, _key: c.key, _ts: getSafeTs(v) }); });
     loadedT = true; render();
 }, err => afficherErreur('ticket_dbase', err));
 onValue(villageRef(db, 'vente_medicaments'), snap => {
     allVentes = [];
-    snap.forEach(c => { const v = c.val(); if (!v.annule) allVentes.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
+    snap.forEach(c => { const v = c.val(); if (!v.annule) allVentes.push({ ...v, _key: c.key, _ts: getSafeTs(v) }); });
     loadedV = true; render();
 }, err => afficherErreur('vente_medicaments', err));
 onValue(villageRef(db, 'db_depenses'), snap => {
     allDepenses = [];
-    snap.forEach(c => { const v = c.val(); allDepenses.push({ _key: c.key, _ts: getSafeTs(v), ...v }); });
+    snap.forEach(c => { const v = c.val(); allDepenses.push({ ...v, _key: c.key, _ts: getSafeTs(v) }); });
     loadedD = true; render();
 }, err => afficherErreur('db_depenses', err));
 onValue(villageRef(db, 'db_pharmacie_stock'), snap => {
     allStock = [];
-    snap.forEach(c => { allStock.push({ _key: c.key, ...c.val() }); });
+    snap.forEach(c => { allStock.push({ ...c.val(), _key: c.key }); });
     loadedS = true; render();
 }, err => afficherErreur('db_pharmacie_stock', err));
 
@@ -957,6 +948,7 @@ function renderAlertMeds() {
 document.getElementById('med-search').addEventListener('input', renderAlertMeds);
 
 function render() {
+    if (!checkDataQuality([...allTickets,...allVentes,...allDepenses])) return;
     if (!(loadedT && loadedV && loadedD && loadedS)) return;
 
     const { debut, fin } = bornesPeriode();
@@ -964,10 +956,10 @@ function render() {
     const md = filtrePeriode(allVentes);
     const dep = filtrePeriode(allDepenses);
 
-    const caTk = tk.reduce((s, x) => s + (Number(x.prix) || 0), 0);
-    const caMd = md.reduce((s, x) => s + (Number(x.total) || 0), 0);
+    const caTk = sumAmounts(tk, 'prix');
+    const caMd = sumAmounts(md, 'total');
     const totalRecettes = caTk + caMd;
-    const totalDepenses = dep.reduce((s, x) => s + (Number(x.montant) || 0), 0);
+    const totalDepenses = sumAmounts(dep, 'montant');
     const solde = totalRecettes - totalDepenses;
     const marge = totalRecettes > 0 ? solde / totalRecettes * 100 : 0;
 
@@ -978,10 +970,10 @@ function render() {
     if (periode !== 'tout') {
         const duree = fin - debut;
         pDebut = debut - duree; pFin = debut;
-        const pTk = enPlage(allTickets, pDebut, pFin).reduce((s,x)=>s+(Number(x.prix)||0),0);
-        const pMd = enPlage(allVentes, pDebut, pFin).reduce((s,x)=>s+(Number(x.total)||0),0);
+        const pTk = sumAmounts(enPlage(allTickets, pDebut, pFin), 'prix');
+        const pMd = sumAmounts(enPlage(allVentes, pDebut, pFin), 'total');
         pRec = pTk + pMd;
-        pDep = enPlage(allDepenses, pDebut, pFin).reduce((s,x)=>s+(Number(x.montant)||0),0);
+        pDep = sumAmounts(enPlage(allDepenses, pDebut, pFin), 'montant');
         pSolde = pRec - pDep;
         pMarge = pRec > 0 ? pSolde / pRec * 100 : 0;
     }

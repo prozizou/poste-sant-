@@ -96,8 +96,10 @@ test('Les règles RTDB bloquent les mutations des rôles et les comptes suspendu
  const r=JSON.parse(fs.readFileSync(path.join(root,'database.rules.json'),'utf8')).rules;
  assert.equal(r.db_users.$uid['.write'],false);assert.equal(r.superadmins.$uid['.write'],false);
  assert.equal(r.villages_registry.$villageId['.write'],false);
- assert.match(r.villages.$villageId.ticket_dbase['$id']['.write'],/active.*!== false/);
- assert.match(r.villages.$villageId.db_depenses['.write'],/active.*!== false/);
+ assert.equal(r.villages.$villageId.ticket_dbase['.write'],false);
+ assert.equal(r.villages.$villageId.db_depenses['.write'],false);
+ assert.equal(r.villages.$villageId.db_pharmacie_stock.$id['.write'],false);
+ assert.match(r.villages.$villageId.db_pharmacie_stock['.read'],/active.*!== false/);
  assert.doesNotMatch(r.villages.$villageId.db_pharmacie_stock['.read'],/superadmins/); // management ≠ clinical data
 });
 test('Interface superadmin et gestion équipe: écrans présents',()=>{
@@ -121,4 +123,51 @@ test('Attribution sécurisée: création du compte par e-mail et interdiction de
  assert.equal(db.state.db_users[result.uid].role,'caissier');
  await assert.rejects(assignAccount(db,fakeAuth,{...local,villageId:'keur-moussa'},{email:'new@example.test',role:'caissier',villageId:'keur-moussa'}),/Conflit|appartient/);
  await assert.rejects(assignAccount(db,fakeAuth,local,{email:'new@example.test',role:'admin',villageId:'diandioly'}),/équipe/);
+});
+
+test('Changement de rôle : une promotion concurrente ne peut être écrasée', async () => {
+ const actor={uid:'admin',role:'admin',villageId:'diandioly',global:false};
+ let state={role:'caissier',active:true,village_id:'diandioly'};
+ const db={ref:()=>({async transaction(fn){
+  assert.equal(fn(state).active,false);
+  // Firebase retries after another writer promotes this account.
+  state={...state,role:'admin'};
+  const result=fn(state);
+  assert.equal(result,undefined);
+  return {committed:false};
+ }})};
+ await assert.rejects(changeStaff(db,actor,{uid:'agent',mode:'revoke'}),e=>e.status===403);
+ assert.equal(state.role,'admin');
+ assert.equal(state.active,true);
+});
+
+test('Les UID courts valides peuvent être gérés, les chemins Firebase sont refusés', async () => {
+ const actor={uid:'admin',role:'admin',villageId:'diandioly',global:false};
+ const db=mk({agent:{role:'caissier',active:true,village_id:'diandioly'}});
+ await changeStaff(db,actor,{uid:'agent',mode:'revoke'});
+ assert.equal(db.state.db_users.agent.active,false);
+ const result=await changeStaff(db,actor,{uid:'agent',mode:'reactivate'});
+ assert.equal(result.active,true);
+ for(const uid of ['a/b','a.b','a#b','a$b','a[b]','a\u0000b'])
+  await assert.rejects(changeStaff(db,actor,{uid,mode:'revoke'}),e=>e.status===403);
+ await assert.rejects(changeStaff(db,actor,{uid:'agent',mode:'unknown'}),e=>e.status===422);
+});
+
+test('Une date civile impossible ne prolonge pas un village', async () => {
+ const db=mk();
+ await assert.rejects(perform(db,{}, {global:true,uid:'owner'}, {action:'renewVillage',villageId:'diandioly',date:'2030-02-30'}),e=>e.status===422);
+ assert.equal(db.state.villages_registry.diandioly.expires_ts,undefined);
+});
+
+test('Une prolongation concurrente conserve la suspension du village', async () => {
+ let state={nom:'Village',active:true,expires_ts:Date.now()+86400000};
+ const db={ref:()=>({async transaction(fn){
+  fn(state);
+  state={...state,active:false,suspension:{motif:'Contrôle nécessaire'}};
+  state=fn(state);
+  return {committed:true};
+ }})};
+ await perform(db,{}, {global:true,uid:'owner'}, {action:'renewVillage',villageId:'diandioly',duree:'1m'});
+ assert.equal(state.active,false);
+ assert.equal(state.suspension.motif,'Contrôle nécessaire');
 });

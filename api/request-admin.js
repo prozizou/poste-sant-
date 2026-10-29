@@ -3,6 +3,7 @@
 // L'utilisateur n'est pas authentifié : l'écriture passe par le SDK Admin
 // (jamais un accès direct à la base), avec validation et garde anti-abus.
 const DB_URL = process.env.FIREBASE_DATABASE_URL || 'https://poste-sante-280b2-default-rtdb.firebaseio.com';
+const { readJsonBody, privateResponse } = require('./_http.js');
 const fail = (status, msg) => Object.assign(new Error(msg), { status });
 const val = (s, max) => String(s || '').trim().slice(0, max);
 const PHONE = /^\+?[0-9]{8,15}$/;
@@ -20,12 +21,27 @@ function firebase() {
     return { db: getDatabase(getApp()) };
 }
 
+async function submitRequest(db, donnee) {
+    const ref = db.ref('admin_requests');
+    const key = ref.push().key;
+    let duplicate = false;
+    const result = await ref.transaction(current => {
+        const entrees = Object.values(current || {});
+        duplicate = entrees.some(r => r && r.status === 'nouveau' &&
+            String(r.whatsapp || '').replace(/^\+/, '') === donnee.whatsapp.replace(/^\+/, ''));
+        // A public caller must not overwrite someone else's pending request.
+        if (duplicate || entrees.length >= PLAFOND_EN_ATTENTE) return;
+        return { ...(current || {}), [key]: donnee };
+    }, undefined, false);
+    if (!result.committed && !duplicate) throw fail(429, 'Trop de demandes en attente : réessayez plus tard ou appelez l’assistance.');
+}
+
 module.exports = async function handler(req, res) {
-    res.setHeader('Cache-Control', 'no-store');
+    privateResponse(res);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     try {
         if (req.method !== 'POST') throw fail(405, 'Méthode non autorisée.');
-        const b = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) || {};
+        const b = readJsonBody(req, 4096);
         const prenom = val(b.prenom, 60);
         const nom = val(b.nom, 60);
         const village = val(b.village, 80);
@@ -36,17 +52,8 @@ module.exports = async function handler(req, res) {
         if (!PHONE.test(whatsapp)) throw fail(422, 'Numéro WhatsApp invalide (format international, ex : +221770000000).');
 
         const { db } = firebase();
-        const ref = db.ref('admin_requests');
-        const snap = await ref.once('value');
-        const actuelles = snap.val() || {};
-        const entrees = Object.entries(actuelles);
-        if (entrees.length >= PLAFOND_EN_ATTENTE) throw fail(429, 'Trop de demandes en attente : réessayez plus tard ou appelez l’assistance.');
-
-        // Même numéro déjà en attente : on met à jour au lieu de créer un doublon.
-        const existante = entrees.find(([, r]) => r && r.whatsapp === whatsapp && r.status === 'nouveau');
         const donnee = { prenom, nom, village, whatsapp, status: 'nouveau', ts: Date.now(), ua: String(req.headers['user-agent'] || '').slice(0, 160) };
-        if (existante) await ref.child(existante[0]).update(donnee);
-        else await ref.push(donnee);
+        await submitRequest(db, donnee);
 
         res.status(200).json({ ok: true });
     } catch (e) {
@@ -55,3 +62,4 @@ module.exports = async function handler(req, res) {
         res.status(status).json({ ok: false, error: status >= 500 ? 'Service temporairement indisponible.' : e.message });
     }
 };
+module.exports.__test = { submitRequest };

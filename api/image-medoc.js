@@ -27,6 +27,7 @@ const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { getDatabase } = require('firebase-admin/database');
 const cloudinary = require('./_cloudinary.js');
+const { readJsonBody, privateResponse } = require('./_http.js');
 const { identifierVillage } = require('./_village.js');
 
 const DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://poste-sante-280b2-default-rtdb.firebaseio.com';
@@ -84,6 +85,7 @@ async function imageAuto(db, villageId, medId, m, { q, cles = [] }, par) {
 }
 
 module.exports = async (req, res) => {
+    privateResponse(res);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -100,8 +102,9 @@ module.exports = async (req, res) => {
         catch { return res.status(401).json({ error: 'jeton invalide' }); }
         const { db, villageId } = await identifierVillage(getDatabase(), user, ['admin']);
 
-        const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+        const body = readJsonBody(req, 4 * 1024 * 1024);
         const action = body.action || 'recherche';
+        if (!['auto', 'enregistrer', 'retirer', 'recherche'].includes(action)) return res.status(422).json({ error: 'action invalide' });
 
         if (action === 'auto') {
             if (!cloudinary.config()) return res.status(503).json({ error: 'Cloudinary non configuré', non_configure: true });
