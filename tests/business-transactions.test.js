@@ -14,6 +14,28 @@ const expense=(montant=7000)=>({operationId:randomUUID(),categorie:'Matériel m�
 const ticket=()=>({operationId:randomUUID(),prenom:'Agent',nom:'Test',age:25,choix:Object.keys(TARIFS)[0],argent_remis:1000,date_heure_ts:Date.now()});
 const sale=(qte=3)=>({operationId:randomUUID(),patient_nom:'Patient test',medicaments:[{stock_key:'med-001',qte,prix:200}],argent_remis:2000,date_heure_ts:Date.now()});
 
+test('Le cache Firebase reste vivant pendant les suppressions puis son écoute est libérée',async()=>{
+ const f=fixture();f.ticket_dbase['existing-ticket']=f.ticket_dbase.income;delete f.ticket_dbase.income;
+ const m=memory(f,{evictAfterOnce:true});
+ const sold=await execute(m.db,'encaisser',sale(2),user,'caissier');
+ const removeSale={operationId:randomUUID(),key:sold.key,motif:'Test / essai'};
+ await execute(m.db,'supprimer',removeSale,admin,'admin');
+ assert.equal(m.state().db_pharmacie_stock['med-001'].quantite,5);
+ assert.equal((await execute(m.db,'supprimer',removeSale,admin,'admin')).deja,true);
+ await execute(m.db,'supprimer_ticket',{operationId:randomUUID(),key:'existing-ticket',motif:'Test / essai'},admin,'admin');
+ assert.equal(m.state().ticket_dbase['existing-ticket'],undefined);
+ assert.equal(Object.keys(m.state().corbeille).length,2);
+ assert.equal(m.stats.listeners,0);
+ await assert.rejects(execute(m.db,'supprimer_ticket',{operationId:randomUUID(),key:'absent-ticket',motif:'Test / essai'},admin,'admin'),e=>e.status===404);
+ assert.equal(m.stats.listeners,0);
+});
+
+test('Le caissier ne peut pas supprimer un ticket et un refus ne change aucune donnée',async()=>{
+ const m=memory(fixture(),{evictAfterOnce:true}),before=m.state();
+ await assert.rejects(execute(m.db,'supprimer_ticket',{operationId:randomUUID(),key:'existing-ticket',motif:'Test / essai'},user,'caissier'),e=>e.status===403);
+ assert.deepEqual(m.state(),before);assert.equal(m.stats.listeners,0);
+});
+
 test('Rejouer exactement une dépense ne la débite jamais deux fois',async()=>{
  const m=memory(fixture()),command=expense();
  const first=await executeBusiness(m.db,'depense_creer',command,user,'tresorier');

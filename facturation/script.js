@@ -1266,6 +1266,8 @@ function ouvrirModalSuppr(type, key, resume, montant, restitueStock = false) {
     document.getElementById('suppr-stock-note').style.display = restitueStock ? 'block' : 'none';
     document.getElementById('suppr-motif').value = 'Erreur de saisie';
     document.getElementById('suppr-obs').value = '';
+    document.getElementById('suppr-error').textContent = '';
+    document.getElementById('suppr-error').hidden = true;
     document.getElementById('modal-suppr-overlay').classList.add('visible');
 }
 window.closeModalSuppr = function() {
@@ -1279,6 +1281,9 @@ window.confirmerSuppression = async function() {
     const motif = (sel + (obs ? ' — ' + obs : '')).slice(0, 300);
     if (motif.trim().length < 3) { toast('Précisez le motif de la suppression.', 'err'); return; }
     const btn = document.getElementById('suppr-confirm-btn');
+    if (btn.disabled) return;
+    const errorBox = document.getElementById('suppr-error');
+    errorBox.hidden = true;
     btn.disabled = true; document.getElementById('suppr-confirm-label').textContent = 'Suppression…';
     const { type, key } = pendingSuppr;
     try {
@@ -1292,7 +1297,10 @@ window.confirmerSuppression = async function() {
         toast(type === 'ticket' ? 'Ticket déplacé dans la corbeille.' : 'Vente déplacée dans la corbeille.', 'ok');
         closeModalSuppr();
     } catch (e) {
-        console.error(e); toast(e.message || 'Suppression impossible.', 'err');
+        console.error(e);
+        errorBox.textContent = e.message || 'Suppression impossible. Réessayez la même opération.';
+        errorBox.hidden = false;
+        toast(e.message || 'Suppression impossible.', 'err');
     } finally {
         btn.disabled = false; document.getElementById('suppr-confirm-label').textContent = 'Supprimer définitivement';
     }

@@ -142,6 +142,37 @@ async function main(){
   }
   // Exercise actual application screens, with live local planner responses.
   {
+   const store=memory(fixture());
+   const ticket=await executeBusiness(store.db,'ticket_creer',{operationId:require('node:crypto').randomUUID(),prenom:'Patient',nom:'Test',age:25,choix:'Consultation Générale – Adulte',argent_remis:1000},user,'admin');
+   const sale=await execute(store.db,'encaisser',{operationId:require('node:crypto').randomUUID(),patient_nom:'Patient Test',medicaments:[{stock_key:'med-001',qte:2,prix:200}],argent_remis:1000,date_heure_ts:Date.now()},user,'admin');
+   const context=await contextFor(store),page=await context.newPage();
+   await page.goto(base+'/facturation/facturation.html');
+   await page.waitForFunction(()=>sessionStorage.getItem('userRole')==='admin');
+   await page.waitForFunction(()=>document.querySelector('[data-record-action="supprimerTicket"]'));
+   await page.evaluate(key=>window.supprimerTicket(key),ticket.key);
+   await page.locator('#suppr-confirm-btn').click();
+   await page.waitForFunction(()=>!document.getElementById('modal-suppr-overlay').classList.contains('visible'));
+   assert.equal(store.state().ticket_dbase[ticket.key],undefined);
+   await page.evaluate(key=>window.supprimerMed(key),sale.key);
+   await page.locator('#suppr-confirm-btn').click();
+   await page.waitForFunction(()=>!document.getElementById('modal-suppr-overlay').classList.contains('visible'));
+   assert.equal(store.state().vente_medicaments[sale.key],undefined);
+   assert.equal(store.state().db_pharmacie_stock['med-001'].quantite,5);
+   assert.equal(Object.keys(store.state().corbeille).length,2);
+   // A receipt already used to fund expenses cannot be removed silently.
+   const remaining=await executeBusiness(store.db,'ticket_creer',{operationId:require('node:crypto').randomUUID(),prenom:'Patient',nom:'Test',age:25,choix:'Consultation Générale – Adulte',argent_remis:1000},user,'admin');
+   await executeBusiness(store.db,'depense_creer',{operationId:require('node:crypto').randomUUID(),categorie:'Matériel médical',libelle:'Achat',montant:10500,date_iso:date},user,'admin');
+   await page.evaluate(state=>{window.__state=state;for(const cb of window.__listeners)cb();},store.state());
+   await page.waitForFunction(()=>sessionStorage.getItem('userRole')==='admin' && document.querySelector('[data-record-action="supprimerTicket"]'));
+   await page.evaluate(key=>window.supprimerTicket(key),remaining.key);
+   await page.locator('#suppr-confirm-btn').click();
+   await page.locator('#suppr-error').waitFor({state:'visible'});
+   assert.match(await page.locator('#suppr-error').textContent(),/Solde insuffisant/);
+   assert.ok(store.state().ticket_dbase[remaining.key]);assert.equal(Object.keys(store.state().corbeille).length,2);
+   assert.equal(await page.locator('#suppr-confirm-btn').isEnabled(),true);
+   await context.close();tests++;console.log('PASS Chromium : suppression administrateur, corbeille, restitution du stock et refus financier visible');
+  }
+  {
    const store=memory(fixture()),context=await contextFor(store),page=await context.newPage(),errors=[];
    page.on('pageerror',e=>{errors.push(e.message);console.error('BROWSER ERROR',e.message);});
    await page.goto(base+'/facturation/facturation.html');

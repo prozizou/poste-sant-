@@ -1,9 +1,9 @@
 'use strict';
 // Optimistic compare-and-swap model: concurrent callbacks are retried, as in
 // RTDB. Every successful proposal commits its entire subtree in one revision.
-module.exports = function memoryDatabase(initial = {}) {
+module.exports = function memoryDatabase(initial = {}, {evictAfterOnce = false} = {}) {
   let state=structuredClone(initial),revision=0;
-  const stats={commits:0,retries:0,paths:[]};
+  const stats={commits:0,retries:0,paths:[],listeners:0};
   const parts=p=>p.split('/').filter(Boolean);
   function read(p){return parts(p).reduce((node,k)=>node?.[k],state) ?? null;}
   function write(p,value){
@@ -13,13 +13,15 @@ module.exports = function memoryDatabase(initial = {}) {
     for(const s of ss)node=node[s]??={};
     node[key]=structuredClone(value);
   }
-  const db={ref(path){return {
+  const db={ref(path){const listeners=new Set();return {
     path,
+    on(event,callback){listeners.add(callback);stats.listeners++;return callback;},
+    off(event,callback){if(listeners.delete(callback))stats.listeners--;},
     async once(){await Promise.resolve();return {val:()=>structuredClone(read(path))};},
     async transaction(callback){
       stats.paths.push(path);
       for(let i=0;i<100;i++){
-        const rev=revision,proposal=callback(structuredClone(read(path)));
+        const rev=revision,proposal=callback(evictAfterOnce && !listeners.size ? null : structuredClone(read(path)));
         if(proposal===undefined)return {committed:false,snapshot:{val:()=>structuredClone(read(path))}};
         // Let independent requests calculate from the same starting snapshot.
         await Promise.resolve();

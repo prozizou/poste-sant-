@@ -43,11 +43,16 @@ async function atomicOperation(db, action, body, user, role, planner) {
   if (typeof id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id)) throw fail(422, 'Identifiant unique de commande invalide.');
   const hash = fingerprint(action, body), now = Date.now();
   const root = db.ref('/');
-  // Prime the SDK cache before a synchronous transaction callback. The callback
-  // is pure and can run again against a newer server snapshot on contention.
-  await root.once('value');
-  let result, error;
-  const committed = await root.transaction(current => {
+  // A one-shot read removes its listener and can evict the SDK's cached data.
+  // Keep a listener until the transaction finishes: otherwise its first local
+  // callback can see null and abort as "ticket/stock not found" before Firebase
+  // ever retries against the real server state.
+  const keepCached = () => {};
+  root.on('value', keepCached);
+  let result, error, committed;
+  try {
+   await root.once('value');
+   committed = await root.transaction(current => {
     error = null;
     let existing = false;
     try {
@@ -75,7 +80,10 @@ async function atomicOperation(db, action, body, user, role, planner) {
       state.business_operations[id] = { uid: user.uid, action, fingerprint: hash, result, ts: now };
       return state;
     } catch (e) { e.notCommitted=!existing;error = e; return; }
-  }, undefined, false);
+   }, undefined, false);
+  } finally {
+    root.off('value', keepCached);
+  }
   if (error) throw error;
   if (!committed.committed && !result?.deja) throw fail(409, 'Conflit de mise à jour : réessayer la même commande.');
   return result;
