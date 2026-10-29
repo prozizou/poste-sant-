@@ -1,5 +1,5 @@
 'use strict';
-const { amount, civilDate, recordTimestamp } = require('../domain-values.mjs');
+const { amount, civilDate, recordTimestamp } = require('./_domain-values.js');
 const { atomicOperation, fail } = require('./_atomic.js');
 
 const TARIFS = Object.freeze({

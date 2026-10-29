@@ -1,6 +1,6 @@
 'use strict';
 const crypto = require('node:crypto');
-const { sumAmounts } = require('../domain-values.mjs');
+const { sumAmounts, loadDomainValues } = require('./_domain-values.js');
 const fail = (status, message) => Object.assign(new Error(message), { status });
 
 function canonical(value) {
@@ -36,6 +36,9 @@ function applyUpdates(state, updates) {
 // Une seule transaction au niveau du village : vente, stock, lots, journal,
 // solde et empreinte d'idempotence sont validés sur le même état, sans bail.
 async function atomicOperation(db, action, body, user, role, planner) {
+  // Import before entering Firebase's synchronous, retryable callback. Both
+  // pharmacy and ticket/expense/stock commands share this entry point.
+  await loadDomainValues();
   const id = body.operationId;
   if (typeof id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id)) throw fail(422, 'Identifiant unique de commande invalide.');
   const hash = fingerprint(action, body), now = Date.now();
