@@ -19,7 +19,16 @@ async function request(endpoint, command) {
         method: 'POST', headers: {'Content-Type':'application/json', Authorization:'Bearer '+token},
         body: JSON.stringify(command), cache:'no-store',
     });
-    const result = await response.json();
+    let result;
+    try {
+        result = await response.json();
+        if (!result || typeof result !== 'object' || Array.isArray(result)) throw new Error('Invalid response');
+    } catch {
+        // A proxy or a function that fails before its handler can return text
+        // (notably Vercel's "A server error has occurred"). Never display that
+        // body or assume the financial transaction was not committed.
+        throw new Error(`Le serveur n’a pas confirmé l’enregistrement (HTTP ${response.status}). Gardez cet onglet ouvert et utilisez « Vérifier la saisie précédente » pour éviter un doublon.`);
+    }
     if (!response.ok || !result.ok) throw Object.assign(new Error(result.error || 'Opération non confirmée.'), {status:response.status,notCommitted:result.not_committed===true});
     return result;
 }
@@ -33,6 +42,7 @@ function recovery(key, pending) {
     panel.replaceChildren();
     const label=document.createElement('p');label.textContent='Une saisie précédente doit être vérifiée avant de modifier ce formulaire. Aucun nouveau panier n’a été envoyé.';
     const button=document.createElement('button');button.type='button';button.textContent='Vérifier la saisie précédente';
+    button.style.cssText='display:block;margin-top:12px;min-height:44px;padding:10px 16px;border:1px solid #886400;border-radius:8px;background:#fff;color:#503a00;font:600 14px system-ui;cursor:pointer;';
     button.onclick=async()=>{
         button.disabled=true;
         try {

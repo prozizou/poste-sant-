@@ -42,7 +42,7 @@ async function main(){
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH || '/usr/bin/chromium',headless:true,args:['--no-sandbox']});
  let tests=0;
  try{
-  async function contextFor(store,{loseFirst=false,denyAfterLoss=false}={}){
+  async function contextFor(store,{loseFirst=false,denyAfterLoss=false,textFailureFirst=false}={}){
    const context=await browser.newContext({serviceWorkers:'block'});
    let lost=false,denied=false;
    await context.addInitScript(state=>{window.__state=state;window.__listeners=[];},store.state());
@@ -57,6 +57,7 @@ async function main(){
     if(url.hostname==='www.gstatic.com' && p.endsWith('/firebase-database.js'))return js(dbModule);
     if(url.origin===base && (p==='/api/business-operations'||p==='/api/pharmacie-operations')){
      const command=route.request().postDataJSON();
+     if(textFailureFirst && !lost){lost=true;return route.fulfill({status:500,contentType:'text/plain',body:'A server error has occurred\nFUNCTION_INVOCATION_FAILED'});}
      if(lost && denyAfterLoss && !denied){denied=true;return route.fulfill({status:403,json:{error:'Session temporairement refusée'}});}
      let result;
      try{result=await (p.endsWith('/business-operations')?executeBusiness:execute)(store.db,command.action,command,user,'admin');}
@@ -72,6 +73,22 @@ async function main(){
    return context;
   }
   const date=new Date().toISOString().slice(0,10);
+  // A platform error before the handler returns must keep the same command.
+  {
+   const store=memory(fixture()),context=await contextFor(store,{textFailureFirst:true}),page=await context.newPage();
+   await page.goto(base+'/__harness');
+   const message=await page.evaluate(async date=>{
+    const {operationMetier}=await import('/business-client.js');
+    try{await operationMetier('depense_creer',{categorie:'Matériel médical',libelle:'Achat',montant:1000,date_iso:date});}catch(e){return e.message;}
+   },date);
+   assert.match(message,/HTTP 500/);assert.doesNotMatch(message,/Unexpected token|FUNCTION_INVOCATION_FAILED/);
+   assert.equal(store.stats.commits,0);
+   const pendingId=await page.evaluate(()=>JSON.parse(sessionStorage.getItem(Object.keys(sessionStorage).find(k=>k.startsWith('ps-command:')))).command.operationId);
+   await page.getByRole('button',{name:'Vérifier la saisie précédente'}).click();
+   await page.getByRole('button',{name:'Actualiser',exact:true}).waitFor();
+   assert.equal(store.stats.commits,1);assert.ok(store.state().business_operations[pendingId]);assert.equal(balance(store.state()),9000);
+   await context.close();tests++;console.log('PASS Chromium : erreur texte Vercel, message lisible et récupération avec la même commande');
+  }
   // Simulate a committed operation whose HTTP response was lost.
   {
    const store=memory(fixture()),context=await contextFor(store,{loseFirst:true}),page=await context.newPage();

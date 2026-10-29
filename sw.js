@@ -4,7 +4,7 @@
 //  Cache limité aux ressources publiques explicitement autorisées.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v75-atomic-finance-20261029';
+const APP_VERSION     = 'v76-server-error-recovery-20261029';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
 
