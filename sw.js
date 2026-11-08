@@ -4,7 +4,7 @@
 //  Cache limité aux ressources publiques explicitement autorisées.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v79-abonnement-wave-20261108';
+const APP_VERSION     = 'v80-abonnement-10-18-20261108';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
 
