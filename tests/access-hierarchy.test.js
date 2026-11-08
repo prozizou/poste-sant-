@@ -46,14 +46,18 @@ test('API création village réservée au superadmin et refuse tout écrasement'
  await assert.rejects(perform(db,{},superActor,{action:'createVillage',villageId:'new-post',nom:'Village Nouveau',duree:'1a'}),/existant/);
  assert.equal(db.state.villages_registry['new-post'].active,true);
 });
-test('Création de village : durée d’accès obligatoire et échéance, prolongation',async()=>{
+test('Création de village : accès jusqu’au 18 (abonnement), prolongation API conservée',async()=>{
  const db=mk({owner:{role:'superadmin',active:true}},{},{owner:{active:true,email:OWNER_EMAIL}});
  const owner=await identity(db,user('owner',OWNER_EMAIL));
- await assert.rejects(perform(db,{},owner,{action:'createVillage',villageId:'keur-moussa',nom:'Keur Moussa'}),/Durée/);
- const r=await perform(db,{},owner,{action:'createVillage',villageId:'keur-moussa',nom:'Keur Moussa',duree:'3m'});
+ const {echeanceInitiale}=require('../api/access-management.js').__test;
+ const r=await perform(db,{},owner,{action:'createVillage',villageId:'keur-moussa',nom:'Keur Moussa'});
  assert.ok(r.expires_ts>Date.now());
+ assert.equal(new Date(r.expires_ts).getUTCDate(),19);
+ // Créé le 5 : accès jusqu'au 18 du mois ; créé le 25 : jusqu'au 18 du mois suivant.
+ assert.equal(new Date(echeanceInitiale(Date.UTC(2026,10,5))).toISOString(),'2026-11-19T00:00:00.000Z');
+ assert.equal(new Date(echeanceInitiale(Date.UTC(2026,11,25))).toISOString(),'2027-01-19T00:00:00.000Z');
  const reg=db.state.villages_registry['keur-moussa'];
- assert.equal(reg.duree,'3m');
+ assert.equal(reg.duree,'abonnement');
  const avant=reg.expires_ts;
  const r2=await perform(db,{},owner,{action:'renewVillage',villageId:'keur-moussa',duree:'1a'});
  assert.ok(r2.expires_ts>avant);
@@ -171,7 +175,7 @@ test('Une prolongation concurrente conserve la suspension du village', async () 
  assert.equal(state.active,false);
  assert.equal(state.suspension.motif,'Contrôle nécessaire');
 });
-test('Abonnement Wave : visibilité du 10 au 18, validation true/false par le superadmin, coupure après le 18',async(t)=>{
+test('Abonnement Wave : visibilité du 10 au 18, validation true/false par le superadmin, coupure automatique après le 18',async(t)=>{
  const {ABONNEMENT,moisCourant}=require('../api/access-management.js').__test;
  const db=mk({owner:{role:'superadmin',active:true},admin:{role:'admin',active:true,village_id:'diandioly'},cash:{role:'caissier',active:true,village_id:'diandioly'}},
    {diandioly:{nom:'Diandioly',active:true},'keur-moussa':{nom:'Keur Moussa',active:true}},{owner:{active:true,email:OWNER_EMAIL}});
@@ -198,23 +202,28 @@ test('Abonnement Wave : visibilité du 10 au 18, validation true/false par le su
  assert.equal(carteVisible(Date.parse(mois+'-10T00:00:00Z')),true);
  assert.equal(carteVisible(Date.parse(mois+'-18T23:59:00Z')),true);
  assert.equal(carteVisible(Date.parse(mois+'-19T00:00:00Z')),false);
- // Coupure des impayés : refusée jusqu'au 18 inclus, appliquée après.
+ // Payé en novembre : accès jusqu'au 18 du mois suivant (coupure le 19 à 0 h).
+ const {echeance}=require('../api/access-management.js').__test;
+ assert.equal(db.state.villages_registry.diandioly.expires_ts,echeance(mois,1));
+ assert.equal(new Date(echeance('2026-11',1)).toISOString(),'2026-12-19T00:00:00.000Z');
+ assert.equal(new Date(echeance('2026-12',1)).toISOString(),'2027-01-19T00:00:00.000Z');
+ assert.equal((await identity(db,user('cash'))).role,'caissier');
+ // Coupure AUTOMATIQUE : sans paiement, l'accès tombe le 19 à 0 h, sans action du superadmin.
  t.mock.timers.enable({apis:['Date'],now:Date.parse(mois+'-18T20:00:00Z')});
- await assert.rejects(perform(db,authMock,owner,{action:'cutUnpaidSubscriptions'}),/après le 18/);
- t.mock.timers.setTime(Date.parse(mois+'-19T08:00:00Z'));
- const r=await perform(db,authMock,owner,{action:'cutUnpaidSubscriptions'});
- assert.deepEqual(r.coupes,['keur-moussa']);
- assert.equal(db.state.villages_registry.diandioly.active,true);
- const km=db.state.villages_registry['keur-moussa'];
- assert.equal(km.active,false);assert.equal(km.suspension.type,'abonnement');
- // Validation payé (true) : accès rétabli automatiquement.
+ db.state.villages_registry['keur-moussa'].expires_ts=echeance(mois,0);
+ db.state.db_users.km={role:'caissier',active:true,village_id:'keur-moussa'};
+ assert.equal((await identity(db,user('km'))).role,'caissier');
+ t.mock.timers.setTime(Date.parse(mois+'-19T00:00:01Z'));
+ await assert.rejects(identity(db,user('km')),/expiré/i);
+ await assert.rejects(perform(db,authMock,owner,{action:'cutUnpaidSubscriptions'}),/non reconnue/);
+ // « Oui, payé » rétablit l'accès immédiatement.
  const rv=await perform(db,authMock,owner,{action:'setSubscription',villageId:'keur-moussa',mois,paye:true});
  assert.equal(rv.reactive,true);
- assert.equal(db.state.villages_registry['keur-moussa'].active,true);
- // Marquer false (non payé) après le 18 coupe l'accès.
+ assert.equal((await identity(db,user('km'))).role,'caissier');
+ // « Non, impayé » après le 18 : échéance ramenée au 19 du mois → accès coupé tout de suite.
  const rf=await perform(db,authMock,owner,{action:'setSubscription',villageId:'diandioly',mois,paye:false});
  assert.equal(rf.suspendu,true);
- await assert.rejects(identity(db,user('cash')),/inactif/i);
+ await assert.rejects(identity(db,user('cash')),/expiré/i);
  t.mock.timers.reset();
 });
 test('Transactions : un premier appel avec cache vide (null) ne donne plus « Village introuvable »',async()=>{
