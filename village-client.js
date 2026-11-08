@@ -142,7 +142,8 @@ onAuthStateChanged(auth, u => {
         try {
           const r = await fetch('/api/access-management?scope=statut', { headers: { Authorization: 'Bearer ' + await u.getIdToken() }, cache: 'no-store' });
           const d = await r.json();
-          if (d?.statut === 'village_suspendu') sessionStorage.setItem('refusAcces', JSON.stringify({ msg: 'Accès suspendu : le village « ' + d.village + ' » est bloqué.', sub: d.motif ? 'Motif : ' + d.motif : 'Contactez le super administrateur.' }));
+          if (d?.statut === 'village_suspendu' && d.abonnement) sessionStorage.setItem('refusAcces', JSON.stringify({ msg: 'Accès coupé : abonnement du village « ' + d.village + ' » non payé.', sub: (d.motif ? d.motif + ' ' : '') + 'Paiement Wave : ' + d.wave_url }));
+          else if (d?.statut === 'village_suspendu') sessionStorage.setItem('refusAcces', JSON.stringify({ msg: 'Accès suspendu : le village « ' + d.village + ' » est bloqué.', sub: d.motif ? 'Motif : ' + d.motif : 'Contactez le super administrateur.' }));
         } catch (e) {}
         const msg = sessionStorage.getItem('refusAcces');
         localStorage.removeItem('savedRole'); sessionStorage.clear();

@@ -531,6 +531,7 @@ import { auth, db } from './firebase-config.js'; // db est maintenant la Realtim
                 const u = auth.currentUser; if (!u) return null;
                 const r = await fetch('/api/access-management?scope=statut', { headers: { Authorization: 'Bearer ' + await u.getIdToken() }, cache: 'no-store' });
                 const d = await r.json(); if (!r.ok || !d.ok) return null;
+                if (d.statut === 'village_suspendu' && d.abonnement) return { msg: 'Accès coupé : abonnement du village « ' + d.village + ' » non payé.', sub: (d.motif ? d.motif + ' ' : '') + 'Paiement Wave : ' + d.wave_url };
                 if (d.statut === 'village_suspendu') return { msg: 'Accès suspendu : le village « ' + d.village + ' » est bloqué.', sub: d.motif ? 'Motif : ' + d.motif : 'Contactez le super administrateur.' };
                 if (d.statut === 'village_expire') { const dt = new Date(d.expires_ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }); return { msg: 'Accès expiré : la période d’accès du village « ' + d.village + ' » est terminée.', sub: 'Échéance : ' + dt + '. Contactez le super administrateur.' }; }
                 if (d.statut === 'compte_suspendu') return { msg: 'Votre compte est suspendu.', sub: "Contactez l'administrateur de votre poste." };
