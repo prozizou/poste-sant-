@@ -7,13 +7,23 @@
    Deux détails qui font la différence sur un rapport de plusieurs pages :
    - thead { display: table-header-group } → les en-têtes de colonnes se
      répètent en haut de chaque page ;
-   - tr { break-inside: avoid } → une ligne n'est jamais coupée en deux.
+   - tr { break-inside: avoid } → une ligne n'est jamais coupée en deux ;
+   - le total est la dernière ligne du tableau (pas un tfoot, qui se
+     répéterait au bas de chaque page) ;
+   - « Page x / n » en marge basse (boîtes de marge @page).
    ═══════════════════════════════════════════════════════════════ */
 
 #report-sheet { display: none; }
 
 @media print {
-    @page { size: A4 portrait; margin: 14mm 12mm; }
+    @page {
+        size: A4 portrait; margin: 14mm 12mm 16mm;
+        @bottom-right {
+            content: "Page " counter(page) " / " counter(pages);
+            font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+            font-size: 7.5pt; color: #778;
+        }
+    }
 
     /* Rien d'autre que la feuille. */
     body > *:not(#report-sheet) { display: none !important; }
@@ -61,8 +71,9 @@
     /* ── Bloc de synthèse (KPI) ── */
     .rs-resume {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(38mm, 1fr));
-        gap: 2.5mm; margin-bottom: 5mm;
+        gap: 2.5mm; margin-bottom: 2.5mm;
     }
+    .rs-resume:last-of-type { margin-bottom: 5mm; }
     .rs-kpi {
         border: 0.5pt solid #ccd6e0; border-left: 2pt solid #1a3a5c;
         border-radius: 1.5mm; padding: 2.5mm 3mm;
@@ -76,6 +87,11 @@
     .rs-kpi.negatif { border-left-color: #b02b1e; }
     .rs-kpi.negatif .rs-kpi-val { color: #b02b1e; }
     .rs-kpi.neutre  { border-left-color: #b7770d; }
+    .rs-kpi-det { display: block; font-size: 7pt; color: #667; margin-top: 0.8mm; }
+    /* Carte mise en avant (solde de caisse) */
+    .rs-kpi.principal { border-width: 0.9pt; border-left-width: 3pt; background: #f4f7fa;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .rs-kpi.principal .rs-kpi-val { font-size: 14pt; }
 
     /* ── Sections & tableaux ── */
     .rs-sect { margin-bottom: 5mm; break-inside: auto; }
@@ -115,24 +131,34 @@
        se comparent alors d'un simple coup d'oeil vertical. */
     .rs-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-    .rs-table tfoot td {
-        font-weight: 800; font-size: 9pt; color: #111;
+    .rs-table tr.rs-total td {
+        font-weight: 800; font-size: 9pt; color: #111; background: #fff;
         border-top: 0.9pt solid #1a3a5c; border-bottom: none;
         padding-top: 2mm;
     }
+    .rs-intro { font-size: 8pt; color: #555; margin: -1mm 0 2mm; }
 
     .rs-empty { font-size: 8.5pt; color: #778; font-style: italic; padding: 2mm 0; }
     .rs-note  { font-size: 8pt; color: #555; font-style: italic; margin-top: 3mm; }
 
     /* ── Signatures & pied ── */
+    .rs-signatures { margin-top: 10mm; break-inside: avoid; }
+    .rs-fait { font-size: 8.5pt; color: #333; text-align: right; margin-bottom: 5mm; }
     .rs-foot {
-        display: flex; justify-content: space-between; gap: 20mm;
-        margin-top: 12mm; break-inside: avoid;
+        display: flex; justify-content: space-between; gap: 12mm;
     }
     .rs-sign { flex: 1; font-size: 8.5pt; color: #333; }
+    .rs-sign strong { display: block; font-weight: 700; }
+    .rs-sign-nom { display: block; margin-top: 3mm; color: #667;
+        border-bottom: 0.3pt dotted #99a8b8; padding-bottom: 1mm; }
     .rs-sign-line {
         display: block; margin-top: 14mm;
         border-top: 0.5pt solid #667;
+    }
+    .rs-cachet {
+        flex: 0 0 34mm; height: 30mm; border: 0.6pt dashed #99a8b8; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 7.5pt; color: #99a8b8; text-align: center;
     }
     .rs-edit {
         margin-top: 6mm; padding-top: 2mm; border-top: 0.3pt solid #ccd6e0;

@@ -375,8 +375,9 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import { initNotifCaisseAdmin } from '../notifications-admin.js';
 initNotifCaisseAdmin();
 import {
-    esc, fmt, fcfa, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
-    totalTickets, totalVentes, totalDepenses, parCategorie, exporterPDF
+    esc, fmt, fcfa, fcfaSigne, pct1, dateLongue, dateHeure, getSafeTs, PERIODES, dansPeriode, libellePeriode,
+    bornes, ventilation, totalTickets, totalVentes, totalDepenses, parCategorie, parPrestation, parMedicament,
+    exporterPDF
 } from './rapport-lib.js';
 
 // Le rôle est cherché dans sessionStorage puis, à défaut, dans localStorage
@@ -429,10 +430,14 @@ document.getElementById('form-modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeFormModal();
 });
 
+// Le remboursement d'un emprunt (cagnotte, avance…) sort de la caisse
+// mais n'est pas une charge de fonctionnement : catégorie à part, mise en
+// évidence dans le bilan pour ne pas gonfler « Autre ».
+const CAT_REMBOURSEMENT = 'Remboursement d’emprunt';
 const CATEGORIES = [
     'Achat de médicaments', 'Matériel médical', 'Fournitures de bureau',
     'Carburant & transport', 'Électricité & eau', 'Entretien & réparations',
-    'Motivation du personnel', 'Frais bancaires', 'Autre',
+    'Motivation du personnel', 'Frais bancaires', CAT_REMBOURSEMENT, 'Autre',
 ];
 
 const selCat = document.getElementById('d-categorie');
@@ -774,7 +779,7 @@ function renderCategories(dep, total) {
         <div class="cat-row">
             <span class="cr-nom" title="${esc(k.nom)}">${esc(k.nom)}</span>
             <span class="cat-bar"><span style="width:${Math.round(k.montant / max * 100)}%"></span></span>
-            <span class="cr-val">${esc(fcfa(k.montant))}<span class="cr-pct">(${total ? Math.round(k.montant / total * 100) : 0} %)</span></span>
+            <span class="cr-val">${esc(fcfa(k.montant))}<span class="cr-pct">(${pct1(k.montant, total)})</span></span>
         </div>`).join('') +
         (cats.length === 1
             ? `<div class="cat-single-note">${ICON_INFO}<span>Une seule catégorie de dépense sur cette période.</span></div>`
@@ -837,86 +842,180 @@ form.addEventListener('submit', async e => {
 });
 
 // ── EXPORT PDF ──────────────────────────────────
+// Bornes [début, fin] (ms) de la période affichée.
+function bornesCourantes() {
+    if (periode === 'personnalise') return [customDebut, Math.min(customFin, Date.now())];
+    const [a, b] = bornes(periode);
+    return [a, b - 1];
+}
+
 document.getElementById('btn-pdf').addEventListener('click', () => {
+    if (periode === 'personnalise' && customDebut == null) {
+        toast('Choisissez d’abord une plage de dates.', 'err'); return;
+    }
+    const [debut, fin] = bornesCourantes();
     const dep = filtre(allDepenses), tk = filtre(allTickets), md = filtre(allVentes);
     const rTk = totalTickets(tk), rMd = totalVentes(md);
     const recettes = rTk + rMd, depenses = totalDepenses(dep);
     const solde = recettes - depenses;
 
+    // Report à nouveau : tout ce qui a été encaissé et dépensé AVANT la
+    // période. Le solde de fin est alors ce qui doit se trouver en caisse.
+    const avant = x => x._ts < debut;
+    const report = periode === 'tout' ? 0
+        : totalTickets(allTickets.filter(avant)) + totalVentes(allVentes.filter(avant))
+          - totalDepenses(allDepenses.filter(avant));
+    const soldeFin = report + solde;
+
+    // Première opération enregistrée : si elle est postérieure au début de
+    // la période, le lecteur doit savoir que les mois précédents sont vides
+    // faute de saisie, pas faute d'activité.
+    const tous = [...allTickets, ...allVentes, ...allDepenses].map(x => x._ts).filter(Number.isFinite);
+    const premiere = tous.length ? Math.min(...tous) : null;
+    const saisieTardive = premiere != null && premiere > debut && periode !== 'jour';
+
+    const nbTkActifs = tk.filter(x => x.annule !== true).length;
+    const nbMdActifs = md.filter(x => x.annule !== true).length;
+    const remb = totalDepenses(dep.filter(d => d.categorie === CAT_REMBOURSEMENT));
+
+    const meta = [
+        { k: 'Période', v: courtCourant() },
+        { k: 'Consultations', v: `${nbTkActifs} ticket(s)` },
+        { k: 'Ventes pharmacie', v: `${nbMdActifs} vente(s)` },
+        { k: 'Dépenses', v: `${dep.length} opération(s)` },
+    ];
+    if (saisieTardive) meta.push({ k: 'Première saisie', v: dateLongue(premiere) });
+
+    // Ventilation mois par mois (ou jour par jour sur une courte période).
+    // En « Depuis le début », la ventilation part de la première saisie
+    // (et non du 1er janvier 1970).
+    const debutVent = periode === 'tout' ? (premiere ?? fin) : debut;
+    const vent = ventilation({ tickets: tk, ventes: md, depenses: dep }, debutVent, fin, report);
+    const fmtSigne = n => (n < 0 ? '– ' : '') + fmt(Math.abs(n));
+    // Journal chronologique numéroté (n° d'ordre = renvoi vers la pièce).
+    const journal = [...dep].sort((a, b) => a._ts - b._ts);
+    const prestations = parPrestation(tk);
+    const medicaments = parMedicament(md);
+    const TOP_MED = 15;
+    const cats = parCategorie(dep);
+
     exporterPDF({
         titre: 'Bilan financier — Dépenses et recettes',
         periodeLabel: libelleDetailCourant(),
-        meta: [
-            { k: 'Période', v: courtCourant() },
-            { k: 'Consultations', v: `${tk.length} ticket(s)` },
-            { k: 'Ventes pharmacie', v: `${md.length} vente(s)` },
-            { k: 'Dépenses', v: `${dep.length} opération(s)` },
-        ],
+        meta,
         resume: [
-            { label: 'Recettes consultations', valeur: fcfa(rTk) },
-            { label: 'Recettes pharmacie', valeur: fcfa(rMd) },
-            { label: 'Total des recettes', valeur: fcfa(recettes), type: 'positif' },
-            { label: 'Total des dépenses', valeur: fcfa(depenses), type: 'negatif' },
-            { label: 'Solde net du poste', valeur: (solde < 0 ? '– ' : '') + fcfa(Math.abs(solde)),
-              type: solde < 0 ? 'negatif' : 'positif' },
+            [
+                { label: 'Recettes consultations', valeur: fcfa(rTk) },
+                { label: 'Recettes pharmacie', valeur: fcfa(rMd) },
+                { label: 'Total des recettes', valeur: fcfa(recettes), type: 'positif' },
+                { label: 'Total des dépenses', valeur: fcfa(depenses), type: 'negatif',
+                  detail: remb ? `dont ${fcfa(remb)} de remboursement d’emprunt` : '' },
+            ],
+            [
+                { label: 'Solde reporté (début de période)', valeur: fcfaSigne(report),
+                  detail: periode === 'tout' ? 'Depuis la première saisie' : `Au ${dateLongue(debut)}` },
+                { label: 'Solde net de la période', valeur: fcfaSigne(solde),
+                  type: solde < 0 ? 'negatif' : 'positif', detail: 'Recettes − dépenses' },
+                { label: 'Solde de caisse en fin de période', valeur: fcfaSigne(soldeFin),
+                  type: soldeFin < 0 ? 'negatif' : 'positif', principal: true,
+                  detail: `Au ${dateLongue(fin)}` },
+            ],
         ],
         sections: [
             {
-                titre: 'Synthèse par période',
+                titre: vent.parJour ? 'Évolution jour par jour' : 'Évolution mois par mois',
                 cols: [
-                    { t: 'Période', k: 'periode', w: '28%' },
-                    { t: 'Recettes', k: 'recettes', num: true, w: '24%' },
-                    { t: 'Dépenses', k: 'depenses', num: true, w: '24%' },
-                    { t: 'Solde net', k: 'solde', num: true, w: '24%' },
+                    { t: vent.parJour ? 'Jour' : 'Mois', k: 'label', w: '19%' },
+                    { t: 'Consultations', k: 'consultations', num: true, w: '14%' },
+                    { t: 'Pharmacie', k: 'pharmacie', num: true, w: '14%' },
+                    { t: 'Dépenses', k: 'depenses', num: true, w: '14%' },
+                    { t: 'Solde', k: 'solde', num: true, w: '17%' },
+                    { t: 'Solde cumulé', k: 'cumul', num: true, w: '22%' },
                 ],
-                rows: PERIOD_ORDER.map(p => {
-                    const s = statsFor(p);
-                    return {
-                        periode: PERIODES[p].court,
-                        recettes: fcfa(s.recettes),
-                        depenses: fcfa(s.depenses),
-                        solde: (s.solde < 0 ? '– ' : '') + fcfa(Math.abs(s.solde)),
-                    };
-                }),
+                rows: vent.rows.map(r => ({
+                    label: r.label, consultations: fmt(r.consultations), pharmacie: fmt(r.pharmacie),
+                    depenses: fmt(r.depenses), solde: fmtSigne(r.solde),
+                    cumul: fmtSigne(r.cumul),
+                })),
+                intro: `Montants en FCFA. Le solde cumulé part du solde reporté (${fcfaSigne(report)}).`,
+                totalLabel: 'TOTAL',
+                totalCells: { consultations: fmt(rTk), pharmacie: fmt(rMd), depenses: fmt(depenses),
+                    solde: fmtSigne(solde), cumul: fmtSigne(soldeFin) },
                 vide: 'Aucune donnée à présenter.',
+            },
+            {
+                titre: 'Recettes des consultations par prestation',
+                cols: [
+                    { t: 'Prestation', k: 'nom', w: '50%' },
+                    { t: 'Tickets', k: 'nb', num: true, w: '15%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '20%' },
+                    { t: 'Part', k: 'part', num: true, w: '15%' },
+                ],
+                rows: prestations.map(p => ({ nom: p.nom, nb: p.nb, montant: fcfa(p.montant), part: pct1(p.montant, rTk) })),
+                totalLabel: 'TOTAL CONSULTATIONS',
+                totalCells: { nb: nbTkActifs, montant: fcfa(rTk), part: '100 %' },
+                vide: 'Aucune consultation sur cette période.',
+            },
+            {
+                titre: medicaments.length > TOP_MED
+                    ? `Recettes pharmacie — ${TOP_MED} médicaments les plus vendus`
+                    : 'Recettes pharmacie par médicament',
+                cols: [
+                    { t: 'Médicament', k: 'nom', w: '50%' },
+                    { t: 'Qté', k: 'qte', num: true, w: '15%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '20%' },
+                    { t: 'Part', k: 'part', num: true, w: '15%' },
+                ],
+                rows: medicaments.slice(0, TOP_MED).map(m => ({ nom: m.nom, qte: fmt(m.qte), montant: fcfa(m.montant), part: pct1(m.montant, rMd) })),
+                intro: medicaments.length > TOP_MED
+                    ? `${medicaments.length - TOP_MED} autre(s) médicament(s) totalisent ${fcfa(medicaments.slice(TOP_MED).reduce((t, m) => t + m.montant, 0))}.`
+                    : '',
+                totalLabel: 'TOTAL PHARMACIE',
+                totalCells: { montant: fcfa(rMd), part: '100 %' },
+                vide: 'Aucune vente sur cette période.',
             },
             {
                 titre: 'Journal des dépenses',
                 cols: [
-                    { t: 'Date', k: 'date', w: '18%' },
-                    { t: 'Libellé', k: 'libelle', w: '40%' },
-                    { t: 'Catégorie', k: 'cat', w: '27%' },
-                    { t: 'Montant', k: 'montant', num: true, w: '15%' },
+                    { t: 'N°', k: 'n', num: true, w: '6%' },
+                    { t: 'Date', k: 'date', w: '13%' },
+                    { t: 'Libellé', k: 'libelle', w: '39%' },
+                    { t: 'Catégorie', k: 'cat', w: '25%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '17%' },
                 ],
-                rows: dep.map(d => ({
-                    date: new Date(d._ts).toLocaleDateString('fr-FR'),
+                rows: journal.map((d, i) => ({
+                    n: i + 1, date: dateLongue(d._ts),
                     libelle: d.libelle, cat: d.categorie,
                     montant: fcfa(d.montant),
                 })),
+                intro: 'Ordre chronologique. Le n° d’ordre est à reporter sur la pièce justificative.',
                 totalLabel: 'TOTAL DES DÉPENSES',
                 totalValue: fcfa(depenses),
                 vide: 'Aucune dépense enregistrée.',
             },
             {
-                titre: 'Répartition par catégorie',
+                titre: 'Répartition des dépenses par catégorie',
                 cols: [
                     { t: 'Catégorie', k: 'nom', w: '50%' },
-                    { t: 'Opérations', k: 'nb', num: true, w: '20%' },
-                    { t: 'Montant', k: 'montant', num: true, w: '15%' },
+                    { t: 'Opérations', k: 'nb', num: true, w: '15%' },
+                    { t: 'Montant', k: 'montant', num: true, w: '20%' },
                     { t: 'Part', k: 'part', num: true, w: '15%' },
                 ],
-                rows: parCategorie(dep).map(k => ({
-                    nom: k.nom, nb: k.nb, montant: fcfa(k.montant),
-                    part: (depenses ? Math.round(k.montant / depenses * 100) : 0) + ' %',
+                rows: cats.map(k => ({
+                    nom: k.nom, nb: k.nb, montant: fcfa(k.montant), part: pct1(k.montant, depenses),
                 })),
                 totalLabel: 'TOTAL',
-                totalValue: fcfa(depenses),
+                totalCells: { nb: dep.length, montant: fcfa(depenses), part: depenses ? '100 %' : '0 %' },
                 vide: 'Aucune catégorie à présenter.',
             },
         ],
-        note: solde < 0
-            ? "Attention : le total des dépenses excède les recettes encaissées."
-            : "Le solde net correspond à l'ensemble des recettes encaissées diminué de toutes les dépenses enregistrées.",
+        note: [
+            solde < 0 ? 'Attention : sur cette période, les dépenses excèdent les recettes encaissées.' : '',
+            'Solde de caisse = solde reporté + recettes de la période − dépenses de la période. Il ne tient compte que des opérations saisies dans l’application.',
+            saisieTardive ? `Aucune opération n’est enregistrée avant le ${dateLongue(premiere)}.` : '',
+            'Les tickets et ventes annulés sont exclus.',
+        ].filter(Boolean).join(' '),
+        cachet: true,
     });
 });
 
