@@ -30,7 +30,9 @@ function ajouterMois(ts,mois){
 }
 // ── Abonnement mensuel de l'application (paiement Wave) ──────────────────
 // Le statut n'est « payé » que lorsque le super administrateur le valide (paye:true).
-// Après le JOUR_LIMITE du mois, le super administrateur coupe l'accès des villages impayés.
+// Coupure AUTOMATIQUE : l'échéance d'accès (expires_ts, déjà appliquée par les règles RTDB,
+// l'API et le client) est fixée au 19 à 0 h. Un mois M validé payé ouvre l'accès jusqu'au
+// 18 du mois M+1 inclus ; sans paiement, l'accès tombe tout seul après le 18.
 // Heure du Sénégal = UTC : les dates sont calculées en UTC.
 const ABONNEMENT=Object.freeze({
  montant:22000,
@@ -49,11 +51,14 @@ function etatAbonnement(meta,mois=moisCourant()){
  return {mois,paye:a.paye===true?true:(a.paye===false?false:null),
   valide_ts:Number(a.valide_ts)||null};
 }
-function suspensionAbonnement(current,mois,actor){
- return {...current,active:false,updated_by:actor.uid,updated_ts:Date.now(),
-  suspension:{type:'abonnement',mois,ts:Date.now(),by:actor.uid,
-   motif:`Abonnement de ${nomMois(mois)} non payé (${ABONNEMENT.montant.toLocaleString('fr-FR')} F via Wave). L’accès sera rétabli après validation du paiement par le super administrateur.`}};
+// 19 du mois (mois + decalage) à 0 h UTC : fin de l'accès le 18 inclus.
+function echeance(mois,decalage){
+ const [y,m]=mois.split('-').map(Number);
+ return Date.UTC(y,m-1+decalage,ABONNEMENT.jour_limite+1);
 }
+// Échéance d'un village sans paiement validé : le 19 du mois en cours, ou du mois suivant
+// s'il est déjà passé (nouveau village créé après le 18).
+const echeanceInitiale=(ts=Date.now())=>echeance(moisCourant(ts),apresLimite(ts)?1:0);
 async function revoquerVillage(db,auth,villageId){
  const users=(await db.ref('db_users').once('value')).val()||{};
  await Promise.allSettled(Object.entries(users).filter(([,u])=>u?.village_id===villageId).map(([uid])=>auth.revokeRefreshTokens(uid)));
@@ -64,38 +69,30 @@ async function validerAbonnement(db,auth,actor,b){
  if(!MOIS.test(mois)) throw fail(422,'Mois invalide (AAAA-MM).');
  if(typeof b.paye!=='boolean') throw fail(422,'Indiquer paye : true (payé) ou false (non payé).');
  const courant=mois===moisCourant();
- let suspendu=false,reactive=false;
+ let reactive=false,coupe=false,expires_ts=null;
  const result=await transactionExistant(db.ref('villages_registry/'+b.villageId),cur=>{
-  suspendu=false;reactive=false;
+  reactive=false;coupe=false;
   const prev=cur.abonnements?.[mois]||{};
-  let next={...cur,abonnements:{...(cur.abonnements||{}),[mois]:{...prev,paye:b.paye,valide_by:actor.uid,valide_ts:Date.now()}}};
-  if(b.paye && courant && cur.active!==true && cur.suspension?.type==='abonnement'){
-   next={...next,active:true,updated_by:actor.uid,updated_ts:Date.now()};delete next.suspension;reactive=true;
+  const avant=Number(cur.expires_ts)||0;
+  let next={...cur,abonnements:{...(cur.abonnements||{}),[mois]:{...prev,paye:b.paye,valide_by:actor.uid,valide_ts:Date.now()}},
+   updated_by:actor.uid,updated_ts:Date.now()};
+  if(b.paye){
+   // Payé : accès jusqu'au 18 du mois suivant (sans jamais raccourcir une échéance plus lointaine).
+   next.expires_ts=Math.max(avant,echeance(mois,1));
+   reactive=avant>0&&avant<=Date.now();
+   // Ancienne suspension manuelle pour impayé : levée avec le paiement.
+   if(cur.active!==true&&cur.suspension?.type==='abonnement'){next.active=true;delete next.suspension;reactive=true;}
+  } else if(courant){
+   // Non payé : l'accès s'arrête après le 18 du mois en cours (immédiatement si déjà passé).
+   next.expires_ts=echeance(mois,0);
+   coupe=next.expires_ts<=Date.now()&&!(avant>0&&avant<=Date.now());
   }
-  if(!b.paye && courant && apresLimite() && cur.active===true){next=suspensionAbonnement(next,mois,actor);suspendu=true;}
+  expires_ts=next.expires_ts??null;
   return next;
  });
  if(!result.committed) throw fail(404,'Village introuvable.');
- if(suspendu) await revoquerVillage(db,auth,b.villageId);
- return {villageId:b.villageId,mois,paye:b.paye,suspendu,reactive};
-}
-async function couperImpayes(db,auth,actor){
- if(!actor.global) throw forbidden();
- if(!apresLimite()) throw fail(409,`La coupure n’est possible qu’après le ${ABONNEMENT.jour_limite} du mois.`);
- const mois=moisCourant();
- const registry=(await db.ref('villages_registry').once('value')).val()||{};
- const coupes=[];
- for(const id of Object.keys(registry)){
-  if(!SLUG.test(id)) continue;
-  let coupe=false;
-  const r=await transactionExistant(db.ref('villages_registry/'+id),cur=>{
-   coupe=false;
-   if(cur.active!==true||cur.abonnements?.[mois]?.paye===true) return;
-   coupe=true;return suspensionAbonnement(cur,mois,actor);
-  });
-  if(r.committed&&coupe){coupes.push(id);await revoquerVillage(db,auth,id);}
- }
- return {mois,coupes};
+ if(coupe) await revoquerVillage(db,auth,b.villageId);
+ return {villageId:b.villageId,mois,paye:b.paye,expires_ts,reactive,suspendu:coupe};
 }
 // Transaction sur un nœud qui doit exister. Le SDK appelle d'abord la fonction avec
 // la valeur en cache local, souvent null sur un serveur sans état : abandonner à ce
@@ -226,11 +223,10 @@ async function perform(db,auth,actor,b){
  const action=String(b.action||'');
  if(action==='createVillage'){
   if(!actor.global) throw forbidden();
-  const id=val(b.villageId,42),nom=val(b.nom,100),duree=val(b.duree,4);
+  const id=val(b.villageId,42),nom=val(b.nom,100),duree='abonnement';
   if(!SLUG.test(id)||nom.length<2) throw fail(422,'Nom ou identifiant de village invalide.');
-  if(!DUREES[duree]) throw fail(422,'Durée d’accès invalide (1 mois, 3 mois, 6 mois ou 1 an).');
   if((await db.ref('villages/'+id).once('value')).exists()) throw fail(409,'Village possédant déjà des données : création refusée.');
-  const now=Date.now(),expires_ts=ajouterMois(now,DUREES[duree]);
+  const now=Date.now(),expires_ts=echeanceInitiale(now);
   const result=await db.ref('villages_registry/'+id).transaction(cur=>cur===null?{nom,active:true,created_by:actor.uid,created_ts:now,duree,expires_ts}:undefined,undefined,false);
   if(!result.committed) throw fail(409,'Village existant.');
   return {villageId:id,nom,expires_ts};
@@ -279,7 +275,6 @@ async function perform(db,auth,actor,b){
   return {id,status:statut};
  }
  if(action==='setSubscription') return validerAbonnement(db,auth,actor,b);
- if(action==='cutUnpaidSubscriptions') return couperImpayes(db,auth,actor);
  if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,auth,actor,{villageId:b.villageId,action,motif:b.motif});
  if(action==='assignAdmin'||action==='createStaff'){
   if((action==='assignAdmin')!==actor.global) throw forbidden();
@@ -306,7 +301,8 @@ async function statut(req,db,auth){
  const village=(await db.ref('villages_registry/'+fiche.village_id).once('value')).val();
  if(village?.active!==true) return {statut:'village_suspendu',village:String(village?.nom||fiche.village_id),motif:String(village?.suspension?.motif||''),
   ...(village?.suspension?.type==='abonnement'?{abonnement:true,wave_url:ABONNEMENT.wave_url,montant:ABONNEMENT.montant}:{})};
- if(Number(village.expires_ts)>0 && Number(village.expires_ts)<Date.now()) return {statut:'village_expire',village:String(village?.nom||fiche.village_id),expires_ts:Number(village.expires_ts)};
+ if(Number(village.expires_ts)>0 && Number(village.expires_ts)<Date.now()) return {statut:'village_expire',village:String(village?.nom||fiche.village_id),expires_ts:Number(village.expires_ts),
+  abonnement:true,wave_url:ABONNEMENT.wave_url,montant:ABONNEMENT.montant};
  return {statut:'actif'};
 }
 async function handler(req,res){
@@ -326,4 +322,4 @@ async function handler(req,res){
  }
 }
 module.exports=handler;
-module.exports.__test={assignAccount,changeStaff,perform,listing,ABONNEMENT,moisCourant,apresLimite,carteVisible};
+module.exports.__test={assignAccount,changeStaff,perform,listing,ABONNEMENT,moisCourant,apresLimite,carteVisible,echeance,echeanceInitiale};

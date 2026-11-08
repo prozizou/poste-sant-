@@ -516,8 +516,8 @@ import { desabonnerPushAdmin } from '../notifications-admin.js';
         if (a.paye === false) statut.textContent = '✖ Non payé — refusé par le super administrateur';
         else statut.textContent = '✖ Non payé';
         note.textContent = d.apres_limite
-            ? `Le délai du ${limite} est dépassé : le super administrateur peut couper l'accès à l'application à tout moment.`
-            : `Montant : ${fmtF(d.montant)}. À régler avant le ${limite} ; passé ce délai, l'accès à l'application est coupé. La carte passe au vert dès que le super administrateur valide le paiement.`;
+            ? `Le délai du ${limite} est dépassé : l'accès à l'application est coupé automatiquement.`
+            : `Montant : ${fmtF(d.montant)}. À régler au plus tard le ${limite} ; sans paiement confirmé, l'accès à l'application sera coupé automatiquement le lendemain. La carte passe au vert dès que le super administrateur confirme le paiement.`;
         note.hidden = false; acts.hidden = false;
     }
 

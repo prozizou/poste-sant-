@@ -200,7 +200,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
     <div class="stats" id="stats" aria-label="Résumé">
         <div class="stat v"><b id="st-villages">–</b><span>Villages</span></div>
         <div class="stat a"><b id="st-actifs">–</b><span>Actifs</span></div>
-        <div class="stat e"><b id="st-expires">–</b><span>Expirés</span></div>
+        <div class="stat e"><b id="st-expires">–</b><span>Coupés</span></div>
         <div class="stat d"><b id="st-demandes">–</b><span>Demandes</span></div>
     </div>
 
@@ -208,7 +208,6 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
     <div class="abo-banner" id="abo-banner" hidden>
         <h2 id="abo-banner-t">Abonnements du mois</h2>
         <p id="abo-banner-p"></p>
-        <button type="button" class="btn danger sm block" id="abo-cut">Couper l'accès des villages impayés</button>
     </div>
 
     <!-- Demandes d'accès -->
@@ -233,7 +232,7 @@ select.fc{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xml
             <form id="create-village">
                 <div class="fg"><label for="cv-nom">Nom du village</label><input id="cv-nom" class="fc" maxlength="100" placeholder="Ex : Keur Moussa" required></div>
                 <div class="fg"><label for="cv-id">Identifiant <span class="opt">(généré automatiquement)</span></label><input id="cv-id" class="fc" maxlength="40" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="keur-moussa" required><div class="hint">Minuscules, chiffres et tirets. Stable et unique, il ne pourra plus changer.</div></div>
-                <div class="fg"><label for="cv-duree">Durée d'accès</label><select id="cv-duree" class="fc" required><option value="1m">1 mois</option><option value="3m">3 mois</option><option value="6m">6 mois</option><option value="1a">1 an</option></select></div>
+                <p class="hint" style="margin:-2px 0 12px">L’accès est ouvert jusqu’au 18 ; il est ensuite prolongé chaque mois quand vous confirmez le paiement de l’abonnement.</p>
                 <button type="submit" class="btn green block">Créer le village</button>
             </form>
         </div></div></div>
@@ -292,11 +291,11 @@ let idTouche=false;
 $('cv-id').addEventListener('input',()=>{idTouche=true;});
 $('cv-nom').addEventListener('input',e=>{if(!idTouche)$('cv-id').value=slug(e.target.value);});
 $('create-village').addEventListener('submit',e=>{e.preventDefault();
-    const nom=$('cv-nom').value.trim(),villageId=$('cv-id').value.trim(),duree=$('cv-duree').value;
+    const nom=$('cv-nom').value.trim(),villageId=$('cv-id').value.trim();
     if(nom.length<2){toast('Indiquez le nom du village.','err');return;}
     if(!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(villageId)){toast('Identifiant invalide (minuscules, chiffres, tirets).','err');return;}
     const btn=e.target.querySelector('button');btn.disabled=true;
-    run(async()=>{await api({action:'createVillage',nom,villageId,duree});$('create-village').reset();idTouche=false;await load();},'Village créé : '+nom).finally(()=>btn.disabled=false);
+    run(async()=>{await api({action:'createVillage',nom,villageId});$('create-village').reset();idTouche=false;await load();},'Village créé : '+nom).finally(()=>btn.disabled=false);
 });
 
 // ── Rendu des demandes d'accès ──────────────────────────────────────────
@@ -347,7 +346,10 @@ function assignForm(v){
 }
 function aboBlock(v){
     const ab=v.abonnement||{},mois=ab.mois||ABO.mois,paye=ab.paye===true,refuse=ab.paye===false;
-    const coupe=!v.active&&v.suspension_type==='abonnement';
+    const expire=!!v.expires_ts&&v.expires_ts<=Date.now();
+    const coupe=expire||(!v.active&&v.suspension_type==='abonnement');
+    // expires_ts = le 19 à 0 h : le dernier jour d'accès est la veille.
+    const dernierJour=v.expires_ts?new Date(v.expires_ts-1).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}):'';
     const fmtD=ts=>new Date(ts).toLocaleDateString('fr-FR');
     const b=el('div',undefined,'block abo-zone '+(paye?'paye':'impaye'));
     const top=el('div',undefined,'abo-top');
@@ -360,11 +362,10 @@ function aboBlock(v){
     et.append(el('small',paye?'Confirmé le '+fmtD(ab.valide_ts):(refuse?'Confirmé non payé le '+fmtD(ab.valide_ts):'En attente du paiement Wave')));
     etat.append(et);b.append(etat);
     // Conséquence pour le village
-    const limite=ABO.jour_limite+' '+nomMois(mois);
-    b.append(el('p',paye?'L’équipe du village garde l’accès à l’application ce mois-ci.'
-        :coupe?'L’accès du village est coupé pour impayé. Si le paiement est reçu, cliquez « Oui, payé » : l’accès sera rétabli.'
-        :ABO.apres_limite?'Le délai du '+limite+' est dépassé. Cliquer « Non, impayé » coupe l’accès du village immédiatement.'
-        :'Le village doit payer avant le '+limite+'. Après cette date, l’accès sera coupé s’il n’a pas payé.','abo-txt'));
+    const limite=dernierJour||(ABO.jour_limite+' '+nomMois(mois));
+    b.append(el('p',coupe?'Accès coupé automatiquement (abonnement non payé). Dès réception du paiement, cliquez « Oui, payé » : l’accès sera rétabli.'
+        :paye?'Accès ouvert jusqu’au '+limite+' inclus.'
+        :'Le village doit payer au plus tard le '+limite+'. Sans paiement confirmé, l’accès sera coupé automatiquement le lendemain à 0 h.','abo-txt'));
     // Décision du super administrateur
     b.append(el('div','Avez-vous reçu le paiement Wave de ce village ?','abo-q'));
     const row=el('div',undefined,'abo-row');
@@ -372,7 +373,7 @@ function aboBlock(v){
     const ko=el('button',refuse?'✕ Non payé':'✕ Non, impayé','btn abo-non sm'+(refuse?' choisi':''));ko.type='button';ko.disabled=refuse;
     ok.addEventListener('click',()=>{if(!confirm('Confirmer que « '+v.nom+' » a payé l’abonnement de '+nomMois(mois)+' ?'+(coupe?'\nL’accès du village sera rétabli.':'')))return;
         run(async()=>{const r=await api({action:'setSubscription',villageId:v.id,mois,paye:true});await load();if(r.reactive)toast('Accès du village rétabli.');},'Paiement confirmé.');});
-    ko.addEventListener('click',()=>{if(!confirm('Enregistrer « '+v.nom+' » comme NON payé pour '+nomMois(mois)+' ?'+(ABO.apres_limite&&v.active?'\nLe délai du '+ABO.jour_limite+' est dépassé : l’accès sera coupé immédiatement.':'')))return;
+    ko.addEventListener('click',()=>{if(!confirm('Enregistrer « '+v.nom+' » comme NON payé pour '+nomMois(mois)+' ?'+(ABO.apres_limite?'\nLe délai du '+ABO.jour_limite+' est dépassé : l’accès sera coupé immédiatement.':'\nL’accès sera coupé automatiquement après le '+ABO.jour_limite+'.')))return;
         run(async()=>{const r=await api({action:'setSubscription',villageId:v.id,mois,paye:false});await load();if(r.suspendu)toast('Accès du village coupé pour impayé.','err');},'Enregistré comme non payé.');});
     row.append(ok,ko);b.append(row);
     return b;
@@ -385,11 +386,11 @@ function renderVillage(v){
     const htxt=el('div',undefined,'v-head-txt');
     htxt.append(el('h3',v.nom));
     const sub=el('div',undefined,'sub');
-    sub.append(el('span',v.active?'Actif':'Suspendu',v.active?'pill on':'pill off'));
-    // Échéance
+    if(!v.active)sub.append(el('span','Suspendu','pill off'));
+    // Échéance d'accès (gérée automatiquement par l'abonnement)
     let expPill;
-    if(v.expires_ts){const reste=v.expires_ts-Date.now();const exp=reste<=0;const j=Math.ceil(Math.abs(reste)/86400000);
-        expPill=el('span',exp?('Expiré (−'+j+' j)'):('Expire dans '+j+' j'),exp?'pill exp-ko':'pill exp-ok');}
+    if(v.expires_ts){const exp=v.expires_ts<=Date.now();
+        expPill=el('span',exp?'Accès coupé':'Accès jusqu’au '+new Date(v.expires_ts-1).toLocaleDateString('fr-FR',{day:'numeric',month:'short',timeZone:'UTC'}),exp?'pill exp-ko':'pill exp-ok');}
     else expPill=el('span','Sans échéance','pill exp-none');
     const ab=v.abonnement||{};
     card.classList.add(ab.paye===true?'abo-ok':'abo-ko');
@@ -405,24 +406,6 @@ function renderVillage(v){
     // Bloc abonnement du mois (en premier : c'est la décision mensuelle)
     inner.append(aboBlock(v));
 
-    // Bloc échéance + prolongation
-    const bExp=el('div',undefined,'block');
-    bExp.append(el('div','Période d’accès (licence)',( 'block-t')));
-    const expLine=el('div',undefined,'exp-line');
-    if(v.expires_ts){const d=new Date(v.expires_ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});expLine.append(expPill.cloneNode(true),el('span','Échéance : '+d));}
-    else expLine.append(expPill.cloneNode(true),el('span','Aucune date d’expiration définie.'));
-    bExp.append(expLine);
-    const renew=el('div',undefined,'renew-row');
-    const sel=el('select',undefined,'fc');for(const[k,l] of [['1m','+1 mois'],['3m','+3 mois'],['6m','+6 mois'],['1a','+1 an'],['perso','Date précise…']]){const o=el('option',l);o.value=k;sel.append(o);}
-    const dateI=el('input',undefined,'fc');dateI.type='date';dateI.style.display='none';dateI.min=new Date(Date.now()+86400000).toISOString().slice(0,10);
-    sel.addEventListener('change',()=>dateI.style.display=sel.value==='perso'?'':'none');
-    const btnR=el('button','Prolonger','btn ghost sm');btnR.type='button';
-    btnR.addEventListener('click',()=>{
-        if(sel.value==='perso'){const d=dateI.value;if(!d){toast('Choisissez une date.','err');return;}if(!confirm('Fixer l’expiration de « '+v.nom+' » au '+new Date(d+'T23:59:59').toLocaleDateString('fr-FR')+' ?'))return;run(async()=>{await api({action:'renewVillage',villageId:v.id,date:d});await load();},'Accès mis à jour.');}
-        else{if(!confirm('Prolonger « '+v.nom+' » de '+sel.selectedOptions[0].textContent.replace('+','')+' ?'))return;run(async()=>{await api({action:'renewVillage',villageId:v.id,duree:sel.value});await load();},'Accès prolongé.');}
-    });
-    renew.append(sel,dateI,btnR);bExp.append(renew);inner.append(bExp);
-
     // Bloc administrateurs
     const bAdm=el('div',undefined,'block');
     bAdm.append(el('div','Administrateurs',( 'block-t')));
@@ -431,16 +414,8 @@ function renderVillage(v){
     if(v.active)bAdm.append(assignForm(v));
     inner.append(bAdm);
 
-    // Bloc suspension / réactivation
-    if(v.active){
-        const bSusp=el('div',undefined,'block danger-zone');
-        bSusp.append(el('div','Suspendre le village',( 'block-t')));
-        const motif=el('input',undefined,'fc');motif.placeholder='Motif (affiché à toute l’équipe)';motif.maxLength=300;motif.style.marginBottom='9px';
-        bSusp.append(motif);
-        const bS=el('button','Suspendre le village et son équipe','btn danger sm block');bS.type='button';
-        bS.addEventListener('click',()=>{const m=motif.value.trim();if(m.length<3){toast('Indiquez le motif de la suspension.','err');motif.focus();return;}if(!confirm('Suspendre « '+v.nom+' » ? Toute son équipe sera déconnectée et bloquée.'))return;run(async()=>{await api({action:'deactivateVillage',villageId:v.id,motif:m});await load();},'Village suspendu.');});
-        bSusp.append(bS);inner.append(bSusp);
-    }else{
+    // Ancienne suspension manuelle : seule la réactivation reste possible.
+    if(!v.active){
         const bReact=el('div',undefined,'block off-zone');
         bReact.append(el('div','Village suspendu',( 'block-t')));
         if(v.motif)bReact.append(el('p','Motif : '+v.motif,'motif-txt'));
@@ -457,20 +432,13 @@ function renderVillage(v){
 let ABO={mois:new Date().toISOString().slice(0,7),jour_limite:18,apres_limite:false,montant:22000};
 const nomMois=m=>new Date((m||ABO.mois)+'-01T12:00:00Z').toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'UTC'});
 function renderAboBanner(villages){
-    const impayes=villages.filter(v=>v.abonnement?.paye!==true);
-    const actifsImpayes=impayes.filter(v=>v.active);
+    const impayes=villages.filter(v=>v.abonnement?.paye!==true).length;
     $('abo-banner').hidden=false;
     $('abo-banner-t').textContent='Abonnements — '+nomMois(ABO.mois)+' ('+Number(ABO.montant).toLocaleString('fr-FR')+' F)';
-    $('abo-banner-p').textContent=(villages.length-impayes.length)+' payé(s), '+impayes.length+' impayé(s). '
-        +(ABO.apres_limite?'Le délai du '+ABO.jour_limite+' est dépassé : vous pouvez couper l’accès des villages impayés.'
-            :'La coupure des impayés sera possible après le '+ABO.jour_limite+' du mois.');
-    const btn=$('abo-cut');btn.disabled=!ABO.apres_limite||!actifsImpayes.length;btn.style.cursor=btn.disabled?'not-allowed':'';
-    btn.textContent='Couper l’accès des villages impayés ('+actifsImpayes.length+')';
+    $('abo-banner-p').textContent=(villages.length-impayes)+' payé(s), '+impayes+' non payé(s). '
+        +'Sans paiement confirmé, l’accès d’un village est coupé automatiquement le '+(ABO.jour_limite+1)+' à 0 h ; il revient dès que vous cliquez « Oui, payé ».';
+    $('abo-banner-p').style.marginBottom='0';
 }
-$('abo-cut').addEventListener('click',()=>{
-    if(!confirm('Couper l’accès à l’application pour tous les villages dont l’abonnement de '+nomMois(ABO.mois)+' n’est pas validé payé ? Leurs équipes seront déconnectées.'))return;
-    run(async()=>{const r=await api({action:'cutUnpaidSubscriptions'});await load();toast(r.coupes.length+' village(s) coupé(s).',r.coupes.length?'err':'ok');});
-});
 
 // ── Chargement + synchronisation ────────────────────────────────────────
 function skeleton(root,n){root.replaceChildren();for(let i=0;i<n;i++)root.append(el('div',undefined,'sk sk-card'));}
@@ -490,7 +458,7 @@ async function load(){
         else for(const v of villages)root.append(renderVillage(v));
         // Stats
         const actifs=villages.filter(v=>v.active).length;
-        const expires=villages.filter(v=>v.expires_ts&&v.expires_ts<Date.now()).length;
+        const expires=villages.filter(v=>!v.active||(v.expires_ts&&v.expires_ts<=Date.now())).length;
         const demandes=(data.requests||[]).filter(r=>r.status!=='traite').length;
         $('st-villages').textContent=villages.length;
         $('st-actifs').textContent=actifs;
