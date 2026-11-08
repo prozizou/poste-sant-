@@ -4,7 +4,7 @@
 //  Cache limité aux ressources publiques explicitement autorisées.
 // ═══════════════════════════════════════════════════════════════════════
 
-const APP_VERSION     = 'v77-admin-delete-feedback-20261029';
+const APP_VERSION     = 'v78-bilan-pdf-20261108';
 const CACHE_STATIC    = `ps-diandioly-static-${APP_VERSION}`;
 const CACHE_FONTS     = `ps-diandioly-fonts-${APP_VERSION}`;
 

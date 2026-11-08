@@ -26,6 +26,20 @@ export const esc = s => String(s ?? '')
 // ── FORMATS ──────────────────────────────────────
 export const fmt = n => Number(n || 0).toLocaleString('fr-FR');
 export const fcfa = n => fmt(n) + ' FCFA';
+// Montant signé (« – 12 500 FCFA ») : un solde négatif doit se voir.
+export const fcfaSigne = n => (n < 0 ? '– ' : '') + fcfa(Math.abs(n));
+
+// Part en pourcentage avec une décimale : « 0,3 % » plutôt qu'un « 0 % »
+// trompeur pour une petite dépense.
+export function pct1(part, total) {
+    if (!total) return '0 %';
+    return (Math.round(part / total * 1000) / 10).toLocaleString('fr-FR',
+        { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' %';
+}
+
+// Date complète, année sur 4 chiffres : « 08/11/2026 ».
+export const dateLongue = ts => new Date(ts).toLocaleDateString('fr-FR',
+    { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 export function dateHeure(ts) {
     const d = new Date(ts);
@@ -132,6 +146,49 @@ export function parCategorie(depenses) {
     return [...m.values()].sort((a, b) => b.montant - a.montant);
 }
 
+/*  Ventilation chronologique recettes / dépenses entre [debut, fin].
+    Par jour si la plage tient dans 31 jours, sinon par mois. Chaque ligne
+    porte le solde de la tranche et le solde cumulé, en partant de
+    soldeInitial (le report à nouveau). Les tranches sans aucune opération
+    sont conservées : un mois à zéro est une information en soi. */
+export function ventilation({ tickets = [], ventes = [], depenses = [] }, debut, fin, soldeInitial = 0) {
+    const parJour = (fin - debut) <= 31 * 86400000;
+    const cle = ts => {
+        const d = new Date(ts);
+        return parJour
+            ? `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+            : `${d.getFullYear()}-${d.getMonth()}`;
+    };
+    const tranches = new Map();
+    const cur = new Date(debut);
+    cur.setHours(0, 0, 0, 0);
+    if (!parJour) cur.setDate(1);
+    while (cur.getTime() <= fin) {
+        const label = parJour
+            ? cur.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })
+            : cur.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        tranches.set(cle(cur.getTime()), { label: label.charAt(0).toUpperCase() + label.slice(1),
+            consultations: 0, pharmacie: 0, depenses: 0 });
+        if (parJour) cur.setDate(cur.getDate() + 1); else cur.setMonth(cur.getMonth() + 1);
+    }
+    const ajoute = (list, champ, montantDe) => {
+        for (const x of list) {
+            const t = tranches.get(cle(x._ts));
+            if (t) t[champ] = amount(t[champ] + montantDe(x), 'Montant cumulé');
+        }
+    };
+    ajoute(actifs(tickets), 'consultations', x => amount(x.prix, 'Prix'));
+    ajoute(actifs(ventes), 'pharmacie', x => amount(x.total, 'Total'));
+    ajoute(depenses, 'depenses', x => amount(x.montant, 'Dépense'));
+    let cumul = soldeInitial;
+    return { parJour, rows: [...tranches.values()].map(t => {
+        const recettes = t.consultations + t.pharmacie;
+        const solde = recettes - t.depenses;
+        cumul += solde;
+        return { ...t, recettes, solde, cumul };
+    }) };
+}
+
 // ═══════════════════════════════════════════════════
 //   GÉNÉRATEUR DE FEUILLE A4 (EXPORT PDF)
 // ═══════════════════════════════════════════════════
@@ -146,7 +203,7 @@ const LOGO = `
 /*  Construit une section « tableau ».
     cols : [{ t: 'En-tête', k: 'cle', num: true|false, w: '18%' }]
     Les colonnes num sont alignées à droite (chiffres comparables à l'oeil). */
-function sectionTable({ titre, cols, rows, totalLabel, totalValue, vide }) {
+function sectionTable({ titre, cols, rows, totalLabel, totalValue, totalCells, intro, vide }) {
     if (!rows.length) {
         return `<section class="rs-sect">
             <h3>${esc(titre)}</h3>
@@ -159,13 +216,24 @@ function sectionTable({ titre, cols, rows, totalLabel, totalValue, vide }) {
         const v = r[c.k];
         return `<td${c.num ? ' class="num"' : ''}>${esc(v ?? '')}</td>`;
     }).join('') + '</tr>').join('');
-    const tfoot = totalLabel
-        ? `<tfoot><tr><td colspan="${cols.length - 1}">${esc(totalLabel)}</td>
-             <td class="num">${esc(totalValue)}</td></tr></tfoot>`
-        : '';
+    // La ligne de total est la DERNIÈRE ligne du corps, pas un <tfoot> :
+    // un tfoot se répète au bas de chaque page imprimée, et le total général
+    // y passait pour le total de la page.
+    // totalCells ({ cle: valeur }) permet un total sur plusieurs colonnes ;
+    // sinon totalValue va dans la dernière colonne.
+    let ligneTotal = '';
+    if (totalLabel) {
+        const cells = totalCells || { [cols[cols.length - 1].k]: totalValue };
+        const premiere = cols.findIndex((c, i) => i > 0 && cells[c.k] != null);
+        const span = premiere > 0 ? premiere : cols.length - 1;
+        ligneTotal = `<tr class="rs-total"><td colspan="${span}">${esc(totalLabel)}</td>` +
+            cols.slice(span).map(c =>
+                `<td${c.num ? ' class="num"' : ''}>${esc(cells[c.k] ?? '')}</td>`).join('') + '</tr>';
+    }
     return `<section class="rs-sect">
         <h3>${esc(titre)} <span class="rs-count">${rows.length} ligne${rows.length > 1 ? 's' : ''}</span></h3>
-        <table class="rs-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody>${tfoot}</table>
+        ${intro ? `<p class="rs-intro">${esc(intro)}</p>` : ''}
+        <table class="rs-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}${ligneTotal}</tbody></table>
     </section>`;
 }
 
@@ -174,7 +242,7 @@ function sectionTable({ titre, cols, rows, totalLabel, totalValue, vide }) {
     d'impression est seule à révéler. Rien n'est visible à l'écran. */
 export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], sections = [], note,
     sousTitre = 'République du Sénégal — Ministère de la Santé',
-    signatures = ['Le Chef de Poste', 'Le Gestionnaire'] }) {
+    signatures = ['L’ICP', 'Le CDS'], cachet = false }) {
     let hote = document.getElementById('report-sheet');
     if (!hote) {
         hote = document.createElement('div');
@@ -185,11 +253,17 @@ export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], secti
     const metaHTML = meta.map(m =>
         `<div><span>${esc(m.k)}</span><strong>${esc(m.v)}</strong></div>`).join('');
 
-    const resumeHTML = resume.map(r =>
-        `<div class="rs-kpi ${r.type || ''}">
+    // resume : liste de cartes, ou liste de LIGNES de cartes ([[…], […]])
+    // pour maîtriser la mise en page (pas de carte orpheline en bout de ligne).
+    const kpi = r => `<div class="rs-kpi ${r.type || ''}${r.principal ? ' principal' : ''}">
             <span class="rs-kpi-lbl">${esc(r.label)}</span>
             <span class="rs-kpi-val">${esc(r.valeur)}</span>
-         </div>`).join('');
+            ${r.detail ? `<span class="rs-kpi-det">${esc(r.detail)}</span>` : ''}
+         </div>`;
+    const lignesResume = Array.isArray(resume[0]) ? resume : [resume];
+    const resumeHTML = lignesResume.filter(l => l.length).map(l =>
+        `<div class="rs-resume" style="grid-template-columns:repeat(${l.length},1fr)">${l.map(kpi).join('')}</div>`).join('');
+    const village = villageActuel()?.nom || '';
 
     const sectionsHTML = sections.map(sectionTable).join('');
 
@@ -197,7 +271,7 @@ export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], secti
       <header class="rs-head">
         ${LOGO}
         <div class="rs-ident">
-          <h1>Poste de santé de ${esc(villageActuel()?.nom || '')}</h1>
+          <h1>Poste de santé de ${esc(village)}</h1>
           ${sousTitre ? `<p>${esc(sousTitre)}</p>` : ''}
         </div>
       </header>
@@ -209,19 +283,24 @@ export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], secti
 
       <div class="rs-meta">${metaHTML}</div>
 
-      ${resume.length ? `<div class="rs-resume">${resumeHTML}</div>` : ''}
+      ${resumeHTML}
 
       ${sectionsHTML}
 
       ${note ? `<p class="rs-note">${esc(note)}</p>` : ''}
 
-      <footer class="rs-foot">
-        ${signatures.map(s => `<div class="rs-sign">
-          <span>${esc(s)}</span>
-          <span class="rs-sign-line"></span>
-        </div>`).join('')}
-      </footer>
-      <p class="rs-edit">Document édité le ${esc(dateHeure(Date.now()))} — Poste de santé de ${esc(villageActuel()?.nom || '')}</p>`;
+      <div class="rs-signatures">
+        <p class="rs-fait">Fait à ${esc(village || '……………………')}, le ${esc(dateLongue(Date.now()))}</p>
+        <footer class="rs-foot">
+          ${signatures.map(s => `<div class="rs-sign">
+            <strong>${esc(s)}</strong>
+            <span class="rs-sign-nom">Nom : </span>
+            <span class="rs-sign-line"></span>
+          </div>`).join('')}
+          ${cachet ? `<div class="rs-cachet">Cachet du poste</div>` : ''}
+        </footer>
+      </div>
+      <p class="rs-edit">Document édité le ${esc(dateLongue(Date.now()))} à ${esc(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))} — Poste de santé de ${esc(village)}</p>`;
 
     document.body.classList.add('printing-sheet');
     // Laisse un cycle de rendu au navigateur avant d'ouvrir la boîte
