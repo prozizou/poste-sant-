@@ -174,7 +174,7 @@ function sectionTable({ titre, cols, rows, totalLabel, totalValue, vide }) {
     d'impression est seule à révéler. Rien n'est visible à l'écran. */
 export function exporterPDF({ titre, periodeLabel, meta = [], resume = [], sections = [], note,
     sousTitre = 'République du Sénégal — Ministère de la Santé',
-    signatures = ['Le Chef de Poste', 'Le Gestionnaire'] }) {
+    signatures = ['L’ICP', 'Le CDS'] }) {
     let hote = document.getElementById('report-sheet');
     if (!hote) {
         hote = document.createElement('div');
