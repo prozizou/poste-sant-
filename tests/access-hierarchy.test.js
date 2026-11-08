@@ -171,7 +171,7 @@ test('Une prolongation concurrente conserve la suspension du village', async () 
  assert.equal(state.active,false);
  assert.equal(state.suspension.motif,'Contrôle nécessaire');
 });
-test('Abonnement Wave : déclaration admin, validation true/false par le superadmin, coupure après le 18',async(t)=>{
+test('Abonnement Wave : visibilité du 10 au 18, validation true/false par le superadmin, coupure après le 18',async(t)=>{
  const {ABONNEMENT,moisCourant}=require('../api/access-management.js').__test;
  const db=mk({owner:{role:'superadmin',active:true},admin:{role:'admin',active:true,village_id:'diandioly'},cash:{role:'caissier',active:true,village_id:'diandioly'}},
    {diandioly:{nom:'Diandioly',active:true},'keur-moussa':{nom:'Keur Moussa',active:true}},{owner:{active:true,email:OWNER_EMAIL}});
@@ -183,20 +183,21 @@ test('Abonnement Wave : déclaration admin, validation true/false par le superad
  const mois=moisCourant();
  assert.equal(ABONNEMENT.montant,22000);
  assert.match(ABONNEMENT.wave_url,/^https:\/\/pay\.wave\.com\/.*amount=22000$/);
- // Seul l'admin local déclare ; la déclaration ne valide pas le paiement.
- await assert.rejects(perform(db,authMock,cash,{action:'declareSubscription'}),/administrateur local/);
- await perform(db,authMock,admin,{action:'declareSubscription',reference:'TX123'});
- const a=db.state.villages_registry.diandioly.abonnements[mois];
- assert.equal(a.paye,undefined);assert.equal(a.reference,'TX123');
+ // Plus de déclaration côté admin : seul le superadmin valide true/false.
+ await assert.rejects(perform(db,authMock,admin,{action:'declareSubscription'}),/non reconnue/);
  let vue=await listing(db,authMock,admin,'abonnement');
- assert.equal(vue.abonnement.paye,null);assert.ok(vue.abonnement.declare_ts);
- // Seul le superadmin valide.
+ assert.equal(vue.abonnement.paye,null);
  await assert.rejects(perform(db,authMock,admin,{action:'setSubscription',villageId:'diandioly',mois,paye:true}),/Accès/);
  await assert.rejects(perform(db,authMock,owner,{action:'setSubscription',villageId:'diandioly',mois,paye:'oui'}),/true/);
  await perform(db,authMock,owner,{action:'setSubscription',villageId:'diandioly',mois,paye:true});
  vue=await listing(db,authMock,admin,'abonnement');
  assert.equal(vue.abonnement.paye,true);
- await assert.rejects(perform(db,authMock,admin,{action:'declareSubscription'}),/déjà validé/);
+ // Carte visible uniquement du 10 au 18 du mois.
+ const {carteVisible}=require('../api/access-management.js').__test;
+ assert.equal(carteVisible(Date.parse(mois+'-09T23:00:00Z')),false);
+ assert.equal(carteVisible(Date.parse(mois+'-10T00:00:00Z')),true);
+ assert.equal(carteVisible(Date.parse(mois+'-18T23:59:00Z')),true);
+ assert.equal(carteVisible(Date.parse(mois+'-19T00:00:00Z')),false);
  // Coupure des impayés : refusée jusqu'au 18 inclus, appliquée après.
  t.mock.timers.enable({apis:['Date'],now:Date.parse(mois+'-18T20:00:00Z')});
  await assert.rejects(perform(db,authMock,owner,{action:'cutUnpaidSubscriptions'}),/après le 18/);

@@ -338,7 +338,6 @@ function aboBlock(v){
     b.append(el('div','Abonnement — '+nomMois(ab.mois||ABO.mois),'block-t'));
     let txt=paye?'✔ Payé (validé le '+new Date(ab.valide_ts).toLocaleDateString('fr-FR')+').'
         :ab.paye===false?'✖ Non payé (marqué false).':'✖ Non payé.';
-    if(ab.declare_ts&&!paye)txt+=' Paiement Wave déclaré par l’administrateur le '+new Date(ab.declare_ts).toLocaleDateString('fr-FR')+'.';
     b.append(el('p',txt,'abo-txt'));
     const row=el('div',undefined,'abo-row');
     const ok=el('button','Payé (true)','btn green sm');ok.type='button';ok.disabled=paye;
@@ -366,7 +365,7 @@ function renderVillage(v){
     else expPill=el('span','Sans échéance','pill exp-none');
     const ab=v.abonnement||{};
     card.classList.add(ab.paye===true?'abo-ok':'abo-ko');
-    sub.append(expPill,el('span',ab.paye===true?'Abonnement payé':(ab.declare_ts&&ab.paye!==false?'Paiement à valider':'Abonnement impayé'),ab.paye===true?'pill on':'pill off'),el('span',v.id));
+    sub.append(expPill,el('span',ab.paye===true?'Abonnement payé':'Abonnement impayé',ab.paye===true?'pill on':'pill off'),el('span',v.id));
     htxt.append(sub);head.append(htxt);
     head.append(el('span','',( 'v-chev')));
     head.querySelector('.v-chev').innerHTML='<svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';

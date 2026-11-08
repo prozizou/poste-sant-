@@ -34,17 +34,20 @@ function ajouterMois(ts,mois){
 // Heure du Sénégal = UTC : les dates sont calculées en UTC.
 const ABONNEMENT=Object.freeze({
  montant:22000,
+ jour_debut:10,
  jour_limite:18,
  wave_url:'https://pay.wave.com/m/M_sn_6W-tuxFYYkZa/c/sn/?amount=22000'
 });
 const MOIS=/^\d{4}-(0[1-9]|1[0-2])$/;
 const moisCourant=(ts=Date.now())=>new Date(ts).toISOString().slice(0,7);
 const apresLimite=(ts=Date.now())=>new Date(ts).getUTCDate()>ABONNEMENT.jour_limite;
+// La carte d'abonnement n'est affichée à l'administrateur qu'entre le 10 et le 18 du mois.
+const carteVisible=(ts=Date.now())=>{const j=new Date(ts).getUTCDate();return j>=ABONNEMENT.jour_debut&&j<=ABONNEMENT.jour_limite;};
 const nomMois=m=>new Date(m+'-01T12:00:00Z').toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'UTC'});
 function etatAbonnement(meta,mois=moisCourant()){
  const a=meta?.abonnements?.[mois]||{};
  return {mois,paye:a.paye===true?true:(a.paye===false?false:null),
-  declare_ts:Number(a.declare_ts)||null,valide_ts:Number(a.valide_ts)||null};
+  valide_ts:Number(a.valide_ts)||null};
 }
 function suspensionAbonnement(current,mois,actor){
  return {...current,active:false,updated_by:actor.uid,updated_ts:Date.now(),
@@ -54,22 +57,6 @@ function suspensionAbonnement(current,mois,actor){
 async function revoquerVillage(db,auth,villageId){
  const users=(await db.ref('db_users').once('value')).val()||{};
  await Promise.allSettled(Object.entries(users).filter(([,u])=>u?.village_id===villageId).map(([uid])=>auth.revokeRefreshTokens(uid)));
-}
-async function declarerAbonnement(db,actor,b){
- if(actor.global||actor.role!=='admin') throw forbidden('Seul l’administrateur local déclare le paiement de son village.');
- const mois=moisCourant(),reference=val(b.reference,60);
- let dejaPaye=false;
- const result=await db.ref('villages_registry/'+actor.villageId).transaction(cur=>{
-  if(!cur) return;
-  const a=cur.abonnements?.[mois]||{};
-  if(a.paye===true){dejaPaye=true;return;}
-  // La déclaration ne vaut pas validation : paye reste inchangé jusqu'au super administrateur.
-  const next={...a,declare_ts:Date.now(),declare_by:actor.uid,...(reference?{reference}:{})};
-  return {...cur,abonnements:{...(cur.abonnements||{}),[mois]:next}};
- },undefined,false);
- if(dejaPaye) throw fail(409,'L’abonnement de ce mois est déjà validé.');
- if(!result.committed) throw fail(404,'Village introuvable.');
- return {mois,declare:true};
 }
 async function validerAbonnement(db,auth,actor,b){
  if(!actor.global||!SLUG.test(b.villageId||'')) throw forbidden();
@@ -144,7 +131,7 @@ async function listing(db,auth,actor,scope){
  }
  if(actor.role==='admin'&&scope==='abonnement'){
   const meta=(await db.ref('villages_registry/'+actor.villageId).once('value')).val();
-  return {scope,...ABONNEMENT,apres_limite:apresLimite(),abonnement:etatAbonnement(meta)};
+  return {scope,...ABONNEMENT,apres_limite:apresLimite(),visible:carteVisible(),abonnement:etatAbonnement(meta)};
  }
  if(actor.role!=='admin'||scope!=='team') throw forbidden();
  const users=(await db.ref('db_users').once('value')).val()||{};
@@ -276,7 +263,6 @@ async function perform(db,auth,actor,b){
   await r.update({status:statut,updated_by:actor.uid,updated_ts:Date.now()});
   return {id,status:statut};
  }
- if(action==='declareSubscription') return declarerAbonnement(db,actor,b);
  if(action==='setSubscription') return validerAbonnement(db,auth,actor,b);
  if(action==='cutUnpaidSubscriptions') return couperImpayes(db,auth,actor);
  if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,auth,actor,{villageId:b.villageId,action,motif:b.motif});
@@ -325,4 +311,4 @@ async function handler(req,res){
  }
 }
 module.exports=handler;
-module.exports.__test={assignAccount,changeStaff,perform,listing,ABONNEMENT,moisCourant,apresLimite};
+module.exports.__test={assignAccount,changeStaff,perform,listing,ABONNEMENT,moisCourant,apresLimite,carteVisible};
