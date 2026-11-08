@@ -28,6 +28,89 @@ function ajouterMois(ts,mois){
  d.setDate(Math.min(jour,dernier));
  return d.getTime();
 }
+// ── Abonnement mensuel de l'application (paiement Wave) ──────────────────
+// Le statut n'est « payé » que lorsque le super administrateur le valide (paye:true).
+// Après le JOUR_LIMITE du mois, le super administrateur coupe l'accès des villages impayés.
+// Heure du Sénégal = UTC : les dates sont calculées en UTC.
+const ABONNEMENT=Object.freeze({
+ montant:22000,
+ jour_limite:18,
+ wave_url:'https://pay.wave.com/m/M_sn_6W-tuxFYYkZa/c/sn/?amount=22000'
+});
+const MOIS=/^\d{4}-(0[1-9]|1[0-2])$/;
+const moisCourant=(ts=Date.now())=>new Date(ts).toISOString().slice(0,7);
+const apresLimite=(ts=Date.now())=>new Date(ts).getUTCDate()>ABONNEMENT.jour_limite;
+const nomMois=m=>new Date(m+'-01T12:00:00Z').toLocaleDateString('fr-FR',{month:'long',year:'numeric',timeZone:'UTC'});
+function etatAbonnement(meta,mois=moisCourant()){
+ const a=meta?.abonnements?.[mois]||{};
+ return {mois,paye:a.paye===true?true:(a.paye===false?false:null),
+  declare_ts:Number(a.declare_ts)||null,valide_ts:Number(a.valide_ts)||null};
+}
+function suspensionAbonnement(current,mois,actor){
+ return {...current,active:false,updated_by:actor.uid,updated_ts:Date.now(),
+  suspension:{type:'abonnement',mois,ts:Date.now(),by:actor.uid,
+   motif:`Abonnement de ${nomMois(mois)} non payé (${ABONNEMENT.montant.toLocaleString('fr-FR')} F via Wave). L’accès sera rétabli après validation du paiement par le super administrateur.`}};
+}
+async function revoquerVillage(db,auth,villageId){
+ const users=(await db.ref('db_users').once('value')).val()||{};
+ await Promise.allSettled(Object.entries(users).filter(([,u])=>u?.village_id===villageId).map(([uid])=>auth.revokeRefreshTokens(uid)));
+}
+async function declarerAbonnement(db,actor,b){
+ if(actor.global||actor.role!=='admin') throw forbidden('Seul l’administrateur local déclare le paiement de son village.');
+ const mois=moisCourant(),reference=val(b.reference,60);
+ let dejaPaye=false;
+ const result=await db.ref('villages_registry/'+actor.villageId).transaction(cur=>{
+  if(!cur) return;
+  const a=cur.abonnements?.[mois]||{};
+  if(a.paye===true){dejaPaye=true;return;}
+  // La déclaration ne vaut pas validation : paye reste inchangé jusqu'au super administrateur.
+  const next={...a,declare_ts:Date.now(),declare_by:actor.uid,...(reference?{reference}:{})};
+  return {...cur,abonnements:{...(cur.abonnements||{}),[mois]:next}};
+ },undefined,false);
+ if(dejaPaye) throw fail(409,'L’abonnement de ce mois est déjà validé.');
+ if(!result.committed) throw fail(404,'Village introuvable.');
+ return {mois,declare:true};
+}
+async function validerAbonnement(db,auth,actor,b){
+ if(!actor.global||!SLUG.test(b.villageId||'')) throw forbidden();
+ const mois=val(b.mois,7)||moisCourant();
+ if(!MOIS.test(mois)) throw fail(422,'Mois invalide (AAAA-MM).');
+ if(typeof b.paye!=='boolean') throw fail(422,'Indiquer paye : true (payé) ou false (non payé).');
+ const courant=mois===moisCourant();
+ let suspendu=false,reactive=false;
+ const result=await db.ref('villages_registry/'+b.villageId).transaction(cur=>{
+  if(!cur) return;
+  suspendu=false;reactive=false;
+  const prev=cur.abonnements?.[mois]||{};
+  let next={...cur,abonnements:{...(cur.abonnements||{}),[mois]:{...prev,paye:b.paye,valide_by:actor.uid,valide_ts:Date.now()}}};
+  if(b.paye && courant && cur.active!==true && cur.suspension?.type==='abonnement'){
+   next={...next,active:true,updated_by:actor.uid,updated_ts:Date.now()};delete next.suspension;reactive=true;
+  }
+  if(!b.paye && courant && apresLimite() && cur.active===true){next=suspensionAbonnement(next,mois,actor);suspendu=true;}
+  return next;
+ },undefined,false);
+ if(!result.committed) throw fail(404,'Village introuvable.');
+ if(suspendu) await revoquerVillage(db,auth,b.villageId);
+ return {villageId:b.villageId,mois,paye:b.paye,suspendu,reactive};
+}
+async function couperImpayes(db,auth,actor){
+ if(!actor.global) throw forbidden();
+ if(!apresLimite()) throw fail(409,`La coupure n’est possible qu’après le ${ABONNEMENT.jour_limite} du mois.`);
+ const mois=moisCourant();
+ const registry=(await db.ref('villages_registry').once('value')).val()||{};
+ const coupes=[];
+ for(const id of Object.keys(registry)){
+  if(!SLUG.test(id)) continue;
+  let coupe=false;
+  const r=await db.ref('villages_registry/'+id).transaction(cur=>{
+   coupe=false;
+   if(!cur||cur.active!==true||cur.abonnements?.[mois]?.paye===true) return;
+   coupe=true;return suspensionAbonnement(cur,mois,actor);
+  },undefined,false);
+  if(r.committed&&coupe){coupes.push(id);await revoquerVillage(db,auth,id);}
+ }
+ return {mois,coupes};
+}
 async function authActor(req,db,auth){
  const token=(req.headers.authorization||'').match(/^Bearer (\S+)$/i)?.[1];
  if(!token) throw fail(401,'Jeton de connexion obligatoire.');
@@ -48,6 +131,7 @@ async function listing(db,auth,actor,scope){
   const villages=await Promise.all(Object.entries(registry).map(async([id,meta])=>({
    id,nom:String(meta?.nom||id),active:meta?.active===true,motif:meta?.active===true?'':String(meta?.suspension?.motif||''),
    expires_ts:Number(meta?.expires_ts)||null,duree:String(meta?.duree||''),
+   suspension_type:meta?.active===true?'':String(meta?.suspension?.type||''),abonnement:etatAbonnement(meta),
    admins:await Promise.all(Object.entries(users).filter(([,u])=>u?.village_id===id && u.role==='admin').map(([uid,u])=>userDTO(auth,uid,u)))
   })));
   const demandes=(await db.ref('admin_requests').once('value')).val()||{};
@@ -55,7 +139,12 @@ async function listing(db,auth,actor,scope){
    id,prenom:String(r?.prenom||''),nom:String(r?.nom||''),village:String(r?.village||''),
    whatsapp:String(r?.whatsapp||''),ts:Number(r?.ts)||0,status:String(r?.status||'nouveau')
   })).sort((a,b)=>b.ts-a.ts);
-  return {villages: villages.sort((a,b)=>a.nom.localeCompare(b.nom)),requests,scope:'overview'};
+  return {villages: villages.sort((a,b)=>a.nom.localeCompare(b.nom)),requests,scope:'overview',
+   abonnement:{...ABONNEMENT,mois:moisCourant(),apres_limite:apresLimite()}};
+ }
+ if(actor.role==='admin'&&scope==='abonnement'){
+  const meta=(await db.ref('villages_registry/'+actor.villageId).once('value')).val();
+  return {scope,...ABONNEMENT,apres_limite:apresLimite(),abonnement:etatAbonnement(meta)};
  }
  if(actor.role!=='admin'||scope!=='team') throw forbidden();
  const users=(await db.ref('db_users').once('value')).val()||{};
@@ -187,6 +276,9 @@ async function perform(db,auth,actor,b){
   await r.update({status:statut,updated_by:actor.uid,updated_ts:Date.now()});
   return {id,status:statut};
  }
+ if(action==='declareSubscription') return declarerAbonnement(db,actor,b);
+ if(action==='setSubscription') return validerAbonnement(db,auth,actor,b);
+ if(action==='cutUnpaidSubscriptions') return couperImpayes(db,auth,actor);
  if(action==='activateVillage'||action==='deactivateVillage') return changeVillage(db,auth,actor,{villageId:b.villageId,action,motif:b.motif});
  if(action==='assignAdmin'||action==='createStaff'){
   if((action==='assignAdmin')!==actor.global) throw forbidden();
@@ -211,7 +303,8 @@ async function statut(req,db,auth){
  if(fiche.active===false) return {statut:'compte_suspendu'};
  if(!SLUG.test(fiche.village_id||'')) return {statut:'non_configure'};
  const village=(await db.ref('villages_registry/'+fiche.village_id).once('value')).val();
- if(village?.active!==true) return {statut:'village_suspendu',village:String(village?.nom||fiche.village_id),motif:String(village?.suspension?.motif||'')};
+ if(village?.active!==true) return {statut:'village_suspendu',village:String(village?.nom||fiche.village_id),motif:String(village?.suspension?.motif||''),
+  ...(village?.suspension?.type==='abonnement'?{abonnement:true,wave_url:ABONNEMENT.wave_url,montant:ABONNEMENT.montant}:{})};
  if(Number(village.expires_ts)>0 && Number(village.expires_ts)<Date.now()) return {statut:'village_expire',village:String(village?.nom||fiche.village_id),expires_ts:Number(village.expires_ts)};
  return {statut:'actif'};
 }
@@ -232,4 +325,4 @@ async function handler(req,res){
  }
 }
 module.exports=handler;
-module.exports.__test={assignAccount,changeStaff,perform,listing};
+module.exports.__test={assignAccount,changeStaff,perform,listing,ABONNEMENT,moisCourant,apresLimite};
