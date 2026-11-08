@@ -65,8 +65,7 @@ async function validerAbonnement(db,auth,actor,b){
  if(typeof b.paye!=='boolean') throw fail(422,'Indiquer paye : true (payé) ou false (non payé).');
  const courant=mois===moisCourant();
  let suspendu=false,reactive=false;
- const result=await db.ref('villages_registry/'+b.villageId).transaction(cur=>{
-  if(!cur) return;
+ const result=await transactionExistant(db.ref('villages_registry/'+b.villageId),cur=>{
   suspendu=false;reactive=false;
   const prev=cur.abonnements?.[mois]||{};
   let next={...cur,abonnements:{...(cur.abonnements||{}),[mois]:{...prev,paye:b.paye,valide_by:actor.uid,valide_ts:Date.now()}}};
@@ -75,7 +74,7 @@ async function validerAbonnement(db,auth,actor,b){
   }
   if(!b.paye && courant && apresLimite() && cur.active===true){next=suspensionAbonnement(next,mois,actor);suspendu=true;}
   return next;
- },undefined,false);
+ });
  if(!result.committed) throw fail(404,'Village introuvable.');
  if(suspendu) await revoquerVillage(db,auth,b.villageId);
  return {villageId:b.villageId,mois,paye:b.paye,suspendu,reactive};
@@ -89,14 +88,32 @@ async function couperImpayes(db,auth,actor){
  for(const id of Object.keys(registry)){
   if(!SLUG.test(id)) continue;
   let coupe=false;
-  const r=await db.ref('villages_registry/'+id).transaction(cur=>{
+  const r=await transactionExistant(db.ref('villages_registry/'+id),cur=>{
    coupe=false;
-   if(!cur||cur.active!==true||cur.abonnements?.[mois]?.paye===true) return;
+   if(cur.active!==true||cur.abonnements?.[mois]?.paye===true) return;
    coupe=true;return suspensionAbonnement(cur,mois,actor);
-  },undefined,false);
+  });
   if(r.committed&&coupe){coupes.push(id);await revoquerVillage(db,auth,id);}
  }
  return {mois,coupes};
+}
+// Transaction sur un nœud qui doit exister. Le SDK appelle d'abord la fonction avec
+// la valeur en cache local, souvent null sur un serveur sans état : abandonner à ce
+// moment-là donnait « Village introuvable » à tort. On garde un écouteur actif pour
+// remplir le cache, et un null renvoie null (aucune écriture) afin que Firebase
+// relance la fonction avec la vraie valeur du serveur.
+async function transactionExistant(ref,fn){
+ const garder=()=>{};
+ if(typeof ref.on==='function') ref.on('value',garder);
+ try{
+  if(typeof ref.once==='function') await ref.once('value');
+  let trouve=false;
+  const r=await ref.transaction(cur=>{
+   if(cur===null||cur===undefined){trouve=false;return null;}
+   trouve=true;return fn(cur);
+  },undefined,false);
+  return {committed:r.committed&&trouve};
+ }finally{ if(typeof ref.off==='function') ref.off('value',garder); }
 }
 async function authActor(req,db,auth){
  const token=(req.headers.authorization||'').match(/^Bearer (\S+)$/i)?.[1];
@@ -174,12 +191,12 @@ async function changeStaff(db,actor,{uid,role,mode}){
  if(!['role','revoke','reactivate'].includes(mode)) throw fail(422,'Action invalide.');
  if(mode==='role'&&!STAFF.includes(role)) throw forbidden('Rôle interdit.');
  const accountRef=db.ref('db_users/'+uid);
- const result=await accountRef.transaction(cur=>{
+ const result=await transactionExistant(accountRef,cur=>{
   // Recheck authorization on EVERY transaction retry: another administrator
   // may have promoted or reassigned the account since the first read.
-  if(!cur || cur.village_id!==actor.villageId || !STAFF.includes(cur.role)) return;
+  if(cur.village_id!==actor.villageId || !STAFF.includes(cur.role)) return;
   return {...cur,...(mode==='role'?{role}:{active:mode==='reactivate'}),updated_ts:Date.now(),updated_by:actor.uid};
- },undefined,false);
+ });
  if(!result.committed) throw fail(403,'Utilisateur extérieur à votre équipe ou rôle protégé.');
  return {uid,role:mode==='role'?role:undefined,active:mode==='role'?undefined:mode==='reactivate'};
 }
@@ -191,12 +208,11 @@ async function changeVillage(db,auth,actor,{villageId,action,motif}){
  const raison=val(motif,300);
  if(action==='deactivateVillage' && raison.length<3) throw fail(422,'Indiquer le motif de la suspension (3 caractères minimum).');
  const activer=action==='activateVillage';
- const result=await v.transaction(current=>{
-  if(!current) return;
+ const result=await transactionExistant(v,current=>{
   const next={...current,active:activer,updated_by:actor.uid,updated_ts:Date.now()};
   if(activer) delete next.suspension; else next.suspension={motif:raison,ts:Date.now(),by:actor.uid};
   return next;
- },undefined,false);
+ });
  if(!result.committed) throw fail(404,'Village introuvable.');
  if(!activer){
   // Toute l'équipe est déconnectée : les jetons existants sont révoqués, et les règles
@@ -236,13 +252,12 @@ async function perform(db,auth,actor,b){
    if(!DUREES[d]) throw fail(422,'Durée d’accès invalide.');
    duree=d;
   }
-  const result=await v.transaction(current=>{
-   if(!current) return;
+  const result=await transactionExistant(v,current=>{
    // Recompute from the latest expiry on retries, preserving a concurrent
    // suspension and accumulating simultaneous extensions.
    if(duree!=='perso') expires_ts=ajouterMois(Math.max(Date.now(),Number(current.expires_ts)||0),DUREES[duree]);
    return {...current,duree,expires_ts,updated_by:actor.uid,updated_ts:Date.now()};
-  },undefined,false);
+  });
   if(!result.committed) throw fail(404,'Village introuvable.');
   return {villageId:b.villageId,expires_ts};
  }

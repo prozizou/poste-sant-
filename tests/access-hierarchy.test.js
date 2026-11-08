@@ -217,3 +217,33 @@ test('Abonnement Wave : visibilité du 10 au 18, validation true/false par le su
  await assert.rejects(identity(db,user('cash')),/inactif/i);
  t.mock.timers.reset();
 });
+test('Transactions : un premier appel avec cache vide (null) ne donne plus « Village introuvable »',async()=>{
+ const db=mk({owner:{role:'superadmin',active:true},admin:{role:'admin',active:true,village_id:'diandioly'},cash:{role:'caissier',active:true,village_id:'diandioly'}},
+   {diandioly:{nom:'Diandioly',active:true}},{owner:{active:true,email:OWNER_EMAIL}});
+ // Comme le SDK Firebase : 1er appel avec le cache local (null) ; abandon si undefined,
+ // sinon le serveur refuse (valeur différente) et relance avec la vraie valeur.
+ const ref0=db.ref;
+ db.ref=p=>{const r=ref0(p);const tx=r.transaction;return {...r,transaction:async fn=>{
+  const reel=p.split('/').filter(Boolean).reduce((o,k)=>o&&o[k],db.state)??null;
+  const premier=fn(null);
+  if(premier===undefined) return {committed:false};
+  if(reel===null) return tx(fn);
+  return tx(fn);
+ }};};
+ const authMock={revokeRefreshTokens:async()=>{}};
+ const owner=await identity(db,user('owner',OWNER_EMAIL));
+ const admin=await identity(db,user('admin'));
+ const {moisCourant}=require('../api/access-management.js').__test;
+ const r=await perform(db,authMock,owner,{action:'setSubscription',villageId:'diandioly',mois:moisCourant(),paye:true});
+ assert.equal(r.paye,true);
+ assert.equal(db.state.villages_registry.diandioly.abonnements[moisCourant()].paye,true);
+ await perform(db,authMock,owner,{action:'renewVillage',villageId:'diandioly',duree:'1m'});
+ assert.ok(db.state.villages_registry.diandioly.expires_ts>Date.now());
+ await perform(db,authMock,owner,{action:'deactivateVillage',villageId:'diandioly',motif:'Test coupure'});
+ assert.equal(db.state.villages_registry.diandioly.active,false);
+ await perform(db,authMock,owner,{action:'activateVillage',villageId:'diandioly'});
+ assert.equal(db.state.villages_registry.diandioly.active,true);
+ await perform(db,authMock,admin,{action:'revokeStaff',uid:'cash'});
+ assert.equal(db.state.db_users.cash.active,false);
+ await assert.rejects(perform(db,authMock,owner,{action:'setSubscription',villageId:'inconnu',mois:moisCourant(),paye:true}),/introuvable/);
+});
